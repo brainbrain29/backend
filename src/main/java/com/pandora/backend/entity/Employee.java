@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import com.pandora.backend.enums.Gender;
+import java.util.List;
 
 @Getter
 @Setter
@@ -24,19 +25,22 @@ public class Employee {
     @Column(name = "employee_name", nullable = false, length = 64)
     private String employeeName;
 
-    @Enumerated(EnumType.ORDINAL) // 将 Gender 枚举存为数字（0,1,2...）
-    @Column(nullable = false)
+    @Enumerated(EnumType.ORDINAL)
+    @Column(name = "gender", nullable = false)
     private Gender gender;
 
-    @Column(length = 20, nullable = false)
-    private String phone;
-
-    @Column(length = 64, nullable = false)
+    @Column(name = "email", nullable = false, length = 64)
     private String email;
 
-    @Column(nullable = false)
+    @Column(name = "position", nullable = false)
     private Byte position;
 
-    @Column(length = 20, nullable = false)
+    @Column(name = "emp_password", nullable = false, length = 20)
     private String password;
+
+    @Column(name = "phone", nullable = false, length = 20)
+    private String phone;
+
+    @OneToMany(mappedBy = "employee")
+    private List<Employee_Team> employeeTeams;
 }

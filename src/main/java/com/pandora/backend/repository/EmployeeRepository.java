@@ -6,5 +6,5 @@ import com.pandora.backend.entity.Employee;
 
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Integer> {
-    Employee findByEmployeeName(String employeeName);
+    Employee findByPhone(String phone);
 }

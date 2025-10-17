@@ -144,7 +144,7 @@ CREATE TABLE notice (
 CREATE TABLE notice_employee (
     notice_id INT NOT NULL,
     receiver_id INT NOT NULL,
-    notice_status VARCHAR(255),
+    notice_status INT NOT NULL,
     PRIMARY KEY (notice_id, receiver_id),
     CONSTRAINT fk_relation_notice FOREIGN KEY (notice_id)
         REFERENCES notice(notice_id)

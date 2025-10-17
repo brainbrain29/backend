@@ -17,7 +17,7 @@ public class MilestoneService {
 
     // 返回任务里程碑
     public List<MilestoneDTO> getMilestonesByProjectId(Integer projectId) {
-        List<Milestone> milestones = milestoneRepository.findByProjectId(projectId);
+        List<Milestone> milestones = milestoneRepository.findByProjectProjectId(projectId);
         return milestones.stream()
                 .map(m -> new MilestoneDTO(m.getTitle(), m.getMilestoneNo()))
                 .collect(Collectors.toList());

@@ -7,5 +7,5 @@ import com.pandora.backend.entity.Milestone;
 
 @Repository
 public interface MilestoneRepository extends JpaRepository<Milestone, Integer> {
-    List<Milestone> findByProjectId(Integer projectId);
+    List<Milestone> findByProjectProjectId(Integer projectId);
 }

@@ -23,7 +23,6 @@ public class Team {
     @Column(name = "team_name", nullable = false, length = 64)
     private String teamName;
 
-    // 多对多：团队中有多个员工
-    @ManyToMany(mappedBy = "teams")
-    private List<Employee> employees;
+    @OneToMany(mappedBy = "team")
+    private List<Employee_Team> employeeTeams;
 }

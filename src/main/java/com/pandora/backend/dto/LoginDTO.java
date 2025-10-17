@@ -1,16 +1,16 @@
 package com.pandora.backend.dto;
 
 public class LoginDTO {
-    private String username;
+    private String phone;
     private String password;
 
     // getter/setter
-    public String getUsername() {
-        return username;
+    public String getPhone() {
+        return phone;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     public String getPassword() {

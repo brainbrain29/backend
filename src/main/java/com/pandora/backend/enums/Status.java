@@ -4,7 +4,8 @@ package com.pandora.backend.enums;
 public enum Status {
     NOT_FINISHED(1, "未完成"),
     COMPLETED(2, "已完成"),
-    PENDING_REVIEW(3, "待审核");
+    PENDING_REVIEW(3, "待审核"),
+    EXPIRED(4, "已过期");
 
     private final int code;
     private final String desc;

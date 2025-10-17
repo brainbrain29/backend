@@ -14,9 +14,9 @@ public class AuthService {
     @Autowired
     private EmployeeRepository employeeRepository;
 
-    public EmployeeDTO login(String username, String password) {
+    public EmployeeDTO login(String phone, String password) {
         // 查询员工
-        Employee emp = employeeRepository.findByEmployeeName(username);
+        Employee emp = employeeRepository.findByPhone(phone);
 
         if (emp == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "用户不存在");
@@ -32,6 +32,7 @@ public class AuthService {
         dto.setEmail(emp.getEmail());
         dto.setGender(emp.getGender().getDesc());
         dto.setPosition(emp.getPosition());
+        dto.setPhone(emp.getPhone());
         return dto;
     }
 }

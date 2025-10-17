@@ -6,8 +6,11 @@ import com.pandora.backend.dto.LoginDTO;
 import com.pandora.backend.dto.EmployeeDTO;
 import com.pandora.backend.service.AuthService;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/auth")
+@Tag(name = "用户接口", description = "用户相关的增删改查接口")
 public class AuthController {
 
     @Autowired
@@ -15,6 +18,6 @@ public class AuthController {
 
     @PostMapping("/login")
     public EmployeeDTO login(@RequestBody LoginDTO loginDTO) {
-        return authService.login(loginDTO.getUsername(), loginDTO.getPassword());
+        return authService.login(loginDTO.getPhone(), loginDTO.getPassword());
     }
 }

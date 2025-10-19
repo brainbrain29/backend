@@ -24,13 +24,13 @@ public class LogController {
 
     // 根据任务ID获取该任务所有日志
     @GetMapping("/byTask")
-    public List<LogDTO> getLogsByTask(@RequestParam Integer taskId) {
+    public List<LogDTO> getLogsByTaskAndEmp(@RequestParam Integer taskId) {
         return logService.getLogsByTask(taskId);
     }
 
     // 根据时间获取当天所有日志
     @GetMapping("/byDate")
-    public List<LogDTO> getLogsByDate(@RequestParam String datetime) {
+    public List<LogDTO> getLogsByDateAndEmp(@RequestParam String datetime) {
         // 前端传入 "2025-10-17T09:30:00" 这样的 ISO 字符串
         LocalDateTime dateTime = LocalDateTime.parse(datetime);
         return logService.getLogsByDate(dateTime);

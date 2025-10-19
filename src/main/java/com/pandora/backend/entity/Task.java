@@ -32,7 +32,7 @@ public class Task {
 
     @ManyToOne
     @JoinColumn(name = "assignee_id")
-    private Employee assignee; // 可为空
+    private Employee assignee;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "sender_id", nullable = false)

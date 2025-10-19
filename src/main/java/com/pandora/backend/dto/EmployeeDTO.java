@@ -1,5 +1,10 @@
 package com.pandora.backend.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class EmployeeDTO {
     private String employeeName;
     private String gender; // 前端看到文字 "男性"/"女性"

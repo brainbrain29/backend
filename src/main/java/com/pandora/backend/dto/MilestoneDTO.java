@@ -1,5 +1,10 @@
 package com.pandora.backend.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class MilestoneDTO {
     private String title;
     private Byte milestoneNo;

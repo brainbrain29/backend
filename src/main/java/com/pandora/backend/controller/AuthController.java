@@ -1,12 +1,11 @@
 package com.pandora.backend.controller;
 
+import com.pandora.backend.dto.LoginDTO;
 import com.pandora.backend.dto.TokenPair;
-import com.pandora.backend.entity.Employee;
 import com.pandora.backend.repository.EmployeeRepository;
 import com.pandora.backend.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
@@ -18,10 +17,10 @@ public class AuthController {
     private EmployeeRepository employeeRepository;
 
     @PostMapping("/login")
-    public TokenPair login(@RequestParam String phone, @RequestParam String password) {
-        Optional<Employee> empOpt = employeeRepository.findByPhone(phone);
-        Employee emp = empOpt.orElseThrow(() -> new RuntimeException("User not found"));
-        return authService.generateTokens(emp);
+    public TokenPair login(@RequestBody LoginDTO dto) {
+        return authService.generateTokens(
+                employeeRepository.findByPhone(dto.getPhone())
+                        .orElseThrow(() -> new RuntimeException("User not found")));
     }
 
     @PostMapping("/refresh")

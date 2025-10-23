@@ -31,6 +31,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             }
+            // token 有效，解析出 userId
+            Integer userId = jwtUtil.extractUserId(token);
+            request.setAttribute("userId", userId); // 注入请求属性
         }
         filterChain.doFilter(request, response);
     }

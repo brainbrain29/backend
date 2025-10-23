@@ -1,13 +1,11 @@
 package com.pandora.backend.controller;
 
+import com.pandora.backend.dto.EmployeeDTO;
+import com.pandora.backend.entity.Employee;
+import com.pandora.backend.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import com.pandora.backend.dto.*;
-import com.pandora.backend.entity.*;
-import com.pandora.backend.service.*;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/employees")
@@ -16,13 +14,17 @@ public class EmployeeController {
     @Autowired
     private EmployeeService employeeService;
 
+    // @Autowired
+    // private ProjectService projectService;
+
     @PostMapping
-    public EmployeeDTO createEmployee(@RequestBody EmployeeDTO dto) {
-        return employeeService.createEmployee(dto);
+    public ResponseEntity<EmployeeDTO> createEmployee(@RequestBody EmployeeDTO dto) {
+        EmployeeDTO created = employeeService.createEmployee(dto);
+        return ResponseEntity.status(201).body(created);
     }
 
     @GetMapping("/me")
-    public EmployeeDTO getEmployee(@RequestAttribute("userId") Integer userId) {
+    public ResponseEntity<EmployeeDTO> getCurrentEmployee(@RequestAttribute("userId") Integer userId) {
         Employee emp = employeeService.getEmployeeById(userId);
         EmployeeDTO dto = new EmployeeDTO();
         dto.setEmployeeName(emp.getEmployeeName());
@@ -30,13 +32,15 @@ public class EmployeeController {
         dto.setPhone(emp.getPhone());
         dto.setEmail(emp.getEmail());
         dto.setPosition(emp.getPosition());
-        return dto;
+        return ResponseEntity.ok(dto);
     }
 
-    // TODO
-    @GetMapping("/me/projects")
-    public ProjectDTO getAllProjects(@RequestParam String param) {
-        ProjectDTO dto = new ProjectDTO();
-        return dto;
-    }
+    /**
+     * @GetMapping("/me/projects")
+     * public ResponseEntity<List<ProjectDTO>> getCurrentEmployeeProjects(
+     * @RequestAttribute("userId") Integer userId) {
+     * List<ProjectDTO> projects = projectService.getProjectsByEmployeeId(userId);
+     * return ResponseEntity.ok(projects);
+     * }
+     */
 }

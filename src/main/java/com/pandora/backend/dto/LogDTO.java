@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class LogDTO {
+    private Integer logId;
     private String employeeName;
     // 这里假设前端能存储员工id和任务id
     private Integer employeeId;

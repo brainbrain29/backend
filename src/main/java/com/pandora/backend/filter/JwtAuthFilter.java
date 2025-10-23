@@ -28,7 +28,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             if (!jwtUtil.validateToken(token)) {
+                response.setContentType("application/json");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("{\"error\":\"Invalid or expired token\"}");
                 return;
             }
             // token 有效，解析出 userId

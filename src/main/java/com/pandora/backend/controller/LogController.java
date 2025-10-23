@@ -18,15 +18,6 @@ public class LogController {
     @Autowired
     private LogService logService;
 
-
-
-    // 根据任务ID获取该任务所有日志
-    @GetMapping("/byTask")
-    public ResponseEntity<List<LogDTO>> getLogsByTask(@RequestParam Integer taskId) {
-        List<LogDTO> logs = logService.getLogsByTask(taskId);
-        return ResponseEntity.ok(logs);
-    }
-
     // 根据时间获取当天所有日志
     @GetMapping("/byDate")
     public ResponseEntity<List<LogDTO>> getLogsByDate(@RequestParam String datetime) {
@@ -35,9 +26,6 @@ public class LogController {
         List<LogDTO> logs = logService.getLogsByDate(dateTime);
         return ResponseEntity.ok(logs);
     }
-
-
-
 
     // 1. 创建日志 (Create)
     // 你的版本返回 LogDTO，RESTful 风格更推荐返回创建好的完整实体和 201 状态码
@@ -50,24 +38,24 @@ public class LogController {
 
     // 2.1 查询所有日志 (Read All)
     @GetMapping
-    public ResponseEntity<List<Log>> getAllLogs() {
+    public ResponseEntity<List<LogDTO>> getAllLogs() {
         // 注意：这个方法和你的 getLogsByTask/Date 返回类型不同
         // 它返回的是包含所有字段的 Log 实体列表
-        List<Log> logs = logService.getAllLogs();
+        List<LogDTO> logs = logService.getAllLogs();
         return ResponseEntity.ok(logs);
     }
 
     // 2.2 查询单个日志 (Read by ID)
     @GetMapping("/{id}")
-    public ResponseEntity<Log> getLogById(@PathVariable Integer id) {
-        Log log = logService.getLogById(id);
+    public ResponseEntity<LogDTO> getLogById(@PathVariable Integer id) {
+        LogDTO log = logService.getLogById(id);
         return ResponseEntity.ok(log);
     }
 
     // 3. 更新/编辑日志 (Update)
     @PutMapping("/{id}")
-    public ResponseEntity<Log> updateLog(@PathVariable Integer id, @RequestBody LogDTO logDTO) {
-        Log updatedLog = logService.updateLog(id, logDTO);
+    public ResponseEntity<LogDTO> updateLog(@PathVariable Integer id, @RequestBody LogDTO logDTO) {
+        LogDTO updatedLog = logService.updateLog(id, logDTO);
         return ResponseEntity.ok(updatedLog);
     }
 

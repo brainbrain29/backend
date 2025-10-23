@@ -1,14 +1,21 @@
 package com.pandora.backend.repository;
 
-import com.pandora.backend.entity.Task; // 确保导入了你的 Task 实体
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import com.pandora.backend.entity.Task;
 
-@Repository // 告诉 Spring 这是一个数据仓库组件
+@Repository
 public interface TaskRepository extends JpaRepository<Task, Integer> {
-    // JpaRepository<Task, Integer> 中的 Task 是实体类名，Integer 是主键的类型
-    // 请确保 Task 实体的主键 taskId 的类型是 Integer
-
-    // 目前不需要在这里添加任何自定义方法，继承 JpaRepository 就已经拥有了
-    // findById(), findAll(), save(), deleteById() 等所有基础的 CRUD 功能。
+    // 根据发送者ID查询任务
+    List<Task> findBySenderEmployeeId(Integer senderId);
+    
+    // 根据执行者ID查询任务
+    List<Task> findByAssigneeEmployeeId(Integer assigneeId);
+    
+    // 根据里程碑ID查询任务
+    List<Task> findByMilestoneMilestoneId(Integer milestoneId);
+    
+    // 根据任务状态查询
+    List<Task> findByTaskStatus(Byte taskStatus);
 }

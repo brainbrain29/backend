@@ -1,0 +1,164 @@
+{
+  "info": {
+    "name": "Pandora Task API",
+    "description": "Task管理接口测试集合",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. 创建任务",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"完成用户登录功能\",\n  \"content\": \"实现用户登录功能，包括验证和token生成\",\n  \"startTime\": \"2025-10-21T09:00:00\",\n  \"endTime\": \"2025-10-25T18:00:00\",\n  \"taskStatus\": 0,\n  \"taskPriority\": 1,\n  \"senderId\": 1,\n  \"assigneeId\": 2,\n  \"taskType\": 1,\n  \"createdByWho\": 1,\n  \"milestoneId\": 1\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/tasks",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["tasks"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. 查询所有任务",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/tasks",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["tasks"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. 查询单个任务",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/tasks/1",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["tasks", "1"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. 更新任务",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"完成用户登录功能（已更新）\",\n  \"taskStatus\": 1,\n  \"taskPriority\": 2\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/tasks/1",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["tasks", "1"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. 删除任务",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/tasks/1",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["tasks", "1"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6. 按发送者查询任务",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/tasks/sender/1",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["tasks", "sender", "1"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "7. 按执行者查询任务",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/tasks/assignee/2",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["tasks", "assignee", "2"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "8. 按里程碑查询任务",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/tasks/milestone/1",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["tasks", "milestone", "1"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "9. 按状态查询任务",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/tasks/status/0",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["tasks", "status", "0"]
+        }
+      },
+      "response": []
+    }
+  ]
+}
+
+

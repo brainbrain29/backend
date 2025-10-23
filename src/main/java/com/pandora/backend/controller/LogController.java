@@ -1,38 +1,81 @@
 package com.pandora.backend.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
 import com.pandora.backend.dto.LogDTO;
+import com.pandora.backend.entity.Log; // 导入实体类 Log
 import com.pandora.backend.service.LogService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/log")
+@RequestMapping("/logs") // 建议使用复数形式 "/logs"，这是 RESTful 规范
 public class LogController {
 
     @Autowired
     private LogService logService;
 
-    // 创建日志
-    @PostMapping
-    public LogDTO createLog(@RequestBody LogDTO dto) {
-        return logService.createLog(dto);
-    }
+
 
     // 根据任务ID获取该任务所有日志
     @GetMapping("/byTask")
-    public List<LogDTO> getLogsByTaskAndEmp(@RequestParam Integer taskId) {
-        return logService.getLogsByTask(taskId);
+    public ResponseEntity<List<LogDTO>> getLogsByTask(@RequestParam Integer taskId) {
+        List<LogDTO> logs = logService.getLogsByTask(taskId);
+        return ResponseEntity.ok(logs);
     }
 
     // 根据时间获取当天所有日志
     @GetMapping("/byDate")
-    public List<LogDTO> getLogsByDateAndEmp(@RequestParam String datetime) {
+    public ResponseEntity<List<LogDTO>> getLogsByDate(@RequestParam String datetime) {
         // 前端传入 "2025-10-17T09:30:00" 这样的 ISO 字符串
         LocalDateTime dateTime = LocalDateTime.parse(datetime);
-        return logService.getLogsByDate(dateTime);
+        List<LogDTO> logs = logService.getLogsByDate(dateTime);
+        return ResponseEntity.ok(logs);
+    }
+
+
+
+
+    // 1. 创建日志 (Create)
+    // 你的版本返回 LogDTO，RESTful 风格更推荐返回创建好的完整实体和 201 状态码
+    @PostMapping
+    public ResponseEntity<Log> createLog(@RequestBody LogDTO dto) {
+        Log createdLog = logService.createLog(dto);
+        // 返回 201 Created 状态码，并在 Body 中包含创建好的资源
+        return new ResponseEntity<>(createdLog, HttpStatus.CREATED);
+    }
+
+    // 2.1 查询所有日志 (Read All)
+    @GetMapping
+    public ResponseEntity<List<Log>> getAllLogs() {
+        // 注意：这个方法和你的 getLogsByTask/Date 返回类型不同
+        // 它返回的是包含所有字段的 Log 实体列表
+        List<Log> logs = logService.getAllLogs();
+        return ResponseEntity.ok(logs);
+    }
+
+    // 2.2 查询单个日志 (Read by ID)
+    @GetMapping("/{id}")
+    public ResponseEntity<Log> getLogById(@PathVariable Integer id) {
+        Log log = logService.getLogById(id);
+        return ResponseEntity.ok(log);
+    }
+
+    // 3. 更新/编辑日志 (Update)
+    @PutMapping("/{id}")
+    public ResponseEntity<Log> updateLog(@PathVariable Integer id, @RequestBody LogDTO logDTO) {
+        Log updatedLog = logService.updateLog(id, logDTO);
+        return ResponseEntity.ok(updatedLog);
+    }
+
+    // 4. 删除日志 (Delete)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteLog(@PathVariable Integer id) {
+        logService.deleteLog(id);
+        // 返回 204 No Content，表示成功处理但无返回体
+        return ResponseEntity.noContent().build();
     }
 }

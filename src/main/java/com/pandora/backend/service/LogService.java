@@ -11,6 +11,7 @@ import com.pandora.backend.repository.TaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
@@ -30,12 +31,14 @@ public class LogService {
     // 你的已有方法 (完全保留)
     // ==================================================
 
+    // TODO
     // 根据 Task 查询日志并转换为 DTO
     public List<LogDTO> getLogsByTask(Integer taskId) {
         List<Log> logs = logRepository.findByTask_TaskId(taskId);
         return convertToDtoList(logs); // 使用重构的转换方法
     }
 
+    // TODO
     // 根据时间查询当天所有日志
     public List<LogDTO> getLogsByDate(LocalDateTime dateTime) {
         LocalDateTime startOfDay = dateTime.toLocalDate().atStartOfDay();
@@ -171,6 +174,36 @@ public class LogService {
         logRepository.deleteById(id);
     }
 
+    public List<LogDTO> queryLogsInWeek(LocalDate startDate, LocalDate endDate) {
+        if (endDate == null) {
+            endDate = startDate.plusDays(6); // 默认一周
+        }
+
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+
+        List<Log> logs = logRepository.findByCreatedTimeBetween(startDateTime, endDateTime);
+        return logs.stream().map(this::convertToDto).toList();
+    }
+
+    public List<LogDTO> queryLogsInMonth(LocalDate startDate, LocalDate endDate) {
+        if (endDate == null) {
+            endDate = startDate.withDayOfMonth(startDate.lengthOfMonth()); // 当月最后一天
+        }
+
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+
+        List<Log> logs = logRepository.findByCreatedTimeBetween(startDateTime, endDateTime);
+        return logs.stream().map(this::convertToDto).toList();
+    }
+
+    public LogDTO getDetailLog(Integer logId) {
+        Log log = logRepository.findById(logId)
+                .orElseThrow(() -> new RuntimeException("Log not found with id: " + logId));
+        return convertToDto(log);
+    }
+
     // ==================================================
     // 辅助方法 (重构优化)
     // ==================================================
@@ -180,6 +213,7 @@ public class LogService {
         return logs.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 
+    // TODO 使用批处理减少employeeId,name等查询
     // 将单个 Log 实体转换为 LogDTO 的通用方法
     private LogDTO convertToDto(Log log) {
         LogDTO dto = new LogDTO();

@@ -4,10 +4,12 @@ import com.pandora.backend.dto.LogDTO;
 import com.pandora.backend.entity.Log; // 导入实体类 Log
 import com.pandora.backend.service.LogService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -65,5 +67,45 @@ public class LogController {
         logService.deleteLog(id);
         // 返回 204 No Content，表示成功处理但无返回体
         return ResponseEntity.noContent().build();
+    }
+
+    // TODO 考虑是否与getLogById重复
+    @GetMapping("/{logId}/detail")
+    public ResponseEntity<LogDTO> getDetailLog(@PathVariable Integer logId) {
+        LogDTO detailedLog = logService.getDetailLog(logId);
+        return ResponseEntity.ok(detailedLog);
+    }
+
+    @GetMapping("/week")
+    public ResponseEntity<List<LogDTO>> queryLogsInWeek(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        // 若只传入一个日期，则自动补齐该周的开始与结束
+        if (endDate == null) {
+            LocalDate startOfWeek = startDate.minusDays(startDate.getDayOfWeek().getValue() - 1);
+            LocalDate endOfWeek = startOfWeek.plusDays(6);
+            return ResponseEntity.ok(
+                    logService.queryLogsInWeek(startOfWeek, endOfWeek));
+        } else {
+            return ResponseEntity.ok(
+                    logService.queryLogsInWeek(startDate, endDate));
+        }
+    }
+
+    @GetMapping("/month")
+    public ResponseEntity<List<LogDTO>> queryLogsInMonth(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        if (endDate == null) {
+            LocalDate startOfMonth = startDate.withDayOfMonth(1);
+            LocalDate endOfMonth = startDate.withDayOfMonth(startDate.lengthOfMonth());
+            return ResponseEntity.ok(
+                    logService.queryLogsInMonth(startOfMonth, endOfMonth));
+        } else {
+            return ResponseEntity.ok(
+                    logService.queryLogsInMonth(startDate, endDate));
+        }
     }
 }

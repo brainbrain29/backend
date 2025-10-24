@@ -7,7 +7,6 @@ import com.pandora.backend.entity.Task;
 import com.pandora.backend.enums.Gender;
 import com.pandora.backend.repository.EmployeeRepository;
 import com.pandora.backend.repository.TaskRepository;
-import com.pandora.backend.service.TaskService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,9 +32,6 @@ public class TaskControllerIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    @Autowired
-    private TaskService taskService;
 
     @Autowired
     private EmployeeRepository employeeRepository;

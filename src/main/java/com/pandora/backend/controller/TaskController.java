@@ -5,7 +5,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.pandora.backend.dto.LogDTO;
 import com.pandora.backend.dto.TaskDTO;
+import com.pandora.backend.service.LogService;
 import com.pandora.backend.service.TaskService;
 
 import java.util.List;
@@ -17,6 +19,9 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
 
+    @Autowired
+    private LogService logService;
+
     /**
      * 创建任务
      * POST /tasks
@@ -27,7 +32,7 @@ public class TaskController {
             TaskDTO createdTask = taskService.createTask(taskDTO);
             return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -41,9 +46,9 @@ public class TaskController {
             TaskDTO updatedTask = taskService.updateTask(id, taskDTO);
             return new ResponseEntity<>(updatedTask, HttpStatus.OK);
         } catch (RuntimeException e) {
-            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -71,7 +76,7 @@ public class TaskController {
             TaskDTO task = taskService.getTaskById(id);
             return new ResponseEntity<>(task, HttpStatus.OK);
         } catch (RuntimeException e) {
-            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
@@ -124,5 +129,11 @@ public class TaskController {
         List<TaskDTO> tasks = taskService.getTasksByStatus(taskStatus);
         return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
-}
 
+    // 根据任务ID获取该任务所有日志
+    @GetMapping("/{taskId}/logs")
+    public ResponseEntity<List<LogDTO>> getLogsByTask(@PathVariable("taskId") Integer taskId) {
+        List<LogDTO> logs = logService.getLogsByTask(taskId);
+        return ResponseEntity.ok(logs);
+    }
+}

@@ -8,7 +8,8 @@ import java.util.Date;
 
 @Component
 public class JwtUtil {
-    private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    private static final String SECRET = "PandoraSuperSecretKey1234567890Pandora!"; // 固定密钥字符串
+    private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
     private final long ACCESS_TOKEN_EXPIRATION = 1000 * 60 * 15; // 15分钟
     private final long REFRESH_TOKEN_EXPIRATION = 1000L * 60 * 60 * 24 * 7; // 7天
 

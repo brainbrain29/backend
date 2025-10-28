@@ -3,7 +3,7 @@ package com.pandora.backend.controller;
 import com.pandora.backend.dto.DepartmentDTO;
 import com.pandora.backend.dto.EmployeeDTO;
 import com.pandora.backend.dto.ImportantMatterDTO;
-import com.pandora.backend.dto.ImportantPersonTaskDTO;
+import com.pandora.backend.dto.ImportantTaskDTO;
 import com.pandora.backend.service.AdminService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -27,7 +27,7 @@ public class AdminWebController {
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         List<ImportantMatterDTO> matters = adminService.getAllImportantMatters();
-        List<ImportantPersonTaskDTO> tasks = adminService.getAllImportantPersonTasks();
+        List<ImportantTaskDTO> tasks = adminService.getAllImportantTasks();
         List<EmployeeDTO> employees = adminService.getAllEmployees();
         List<DepartmentDTO> departments = adminService.getAllDepartments();
         
@@ -54,25 +54,25 @@ public class AdminWebController {
     @PostMapping("/employees")
     public String createEmployee(@ModelAttribute("employeeForm") EmployeeDTO dto) {
         adminService.createEmployee(dto);
-        return "redirect:/admin/web/employees";
+        return "redirect:/admin/web/dashboard#employee-section";
     }
 
     @PostMapping("/employees/{id}")
     public String updateEmployee(@PathVariable Integer id, @ModelAttribute("employeeForm") EmployeeDTO dto) {
         adminService.updateEmployee(id, dto);
-        return "redirect:/admin/web/employees";
+        return "redirect:/admin/web/dashboard#employee-section";
     }
 
     @PostMapping("/employees/{id}/transfer")
     public String transfer(@PathVariable Integer id, @RequestParam(required = false) Integer departmentId) {
         adminService.transferDepartment(id, departmentId);
-        return "redirect:/admin/web/employees";
+        return "redirect:/admin/web/dashboard#employee-section";
     }
 
     @PostMapping("/employees/{id}/delete")
     public String deleteEmployee(@PathVariable Integer id) {
         adminService.deleteEmployee(id);
-        return "redirect:/admin/web/employees";
+        return "redirect:/admin/web/dashboard#employee-section";
     }
 
     @GetMapping("/departments")
@@ -95,46 +95,46 @@ public class AdminWebController {
     @PostMapping("/important-matters")
     public String createImportantMatter(@ModelAttribute("matterForm") ImportantMatterDTO dto) {
         adminService.createImportantMatter(dto);
-        return "redirect:/admin/web/important-matters";
+        return "redirect:/admin/web/dashboard#matter-section";
     }
 
     @PostMapping("/important-matters/{id}")
     public String updateImportantMatter(@PathVariable Integer id, @ModelAttribute("matterForm") ImportantMatterDTO dto) {
         adminService.updateImportantMatter(id, dto);
-        return "redirect:/admin/web/important-matters";
+        return "redirect:/admin/web/dashboard#matter-section";
     }
 
     @PostMapping("/important-matters/{id}/delete")
     public String deleteImportantMatter(@PathVariable Integer id) {
         adminService.deleteImportantMatter(id);
-        return "redirect:/admin/web/important-matters";
+        return "redirect:/admin/web/dashboard#matter-section";
     }
 
     @GetMapping("/important-person-tasks")
-    public String importantPersonTasks(Model model) {
-        List<ImportantPersonTaskDTO> tasks = adminService.getAllImportantPersonTasks();
+    public String importantTasks(Model model) {
+        List<ImportantTaskDTO> tasks = adminService.getAllImportantTasks();
         List<EmployeeDTO> employees = adminService.getAllEmployees();
         model.addAttribute("tasks", tasks);
         model.addAttribute("employees", employees);
-        model.addAttribute("taskForm", new ImportantPersonTaskDTO());
+        model.addAttribute("taskForm", new ImportantTaskDTO());
         return "admin/important-person-tasks";
     }
 
     @PostMapping("/important-person-tasks")
-    public String createImportantPersonTask(@ModelAttribute("taskForm") ImportantPersonTaskDTO dto) {
-        adminService.createImportantPersonTask(dto);
-        return "redirect:/admin/web/important-person-tasks";
+    public String createImportantTask(@ModelAttribute("taskForm") ImportantTaskDTO dto) {
+        adminService.createImportantTask(dto);
+        return "redirect:/admin/web/dashboard#task-section";
     }
 
     @PostMapping("/important-person-tasks/{id}")
-    public String updateImportantPersonTask(@PathVariable Integer id, @ModelAttribute("taskForm") ImportantPersonTaskDTO dto) {
-        adminService.updateImportantPersonTask(id, dto);
-        return "redirect:/admin/web/important-person-tasks";
+    public String updateImportantTask(@PathVariable Integer id, @ModelAttribute("taskForm") ImportantTaskDTO dto) {
+        adminService.updateImportantTask(id, dto);
+        return "redirect:/admin/web/dashboard#task-section";
     }
 
     @PostMapping("/important-person-tasks/{id}/delete")
-    public String deleteImportantPersonTask(@PathVariable Integer id) {
-        adminService.deleteImportantPersonTask(id);
-        return "redirect:/admin/web/important-person-tasks";
+    public String deleteImportantTask(@PathVariable Integer id) {
+        adminService.deleteImportantTask(id);
+        return "redirect:/admin/web/dashboard#task-section";
     }
 }

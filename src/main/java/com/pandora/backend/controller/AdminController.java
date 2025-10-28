@@ -155,24 +155,24 @@ public class AdminController {
         }
     }
 
-    // ========== 十大重要人任务管理 ==========
+    // ========== 十大重要任务管理 ==========
 
     /**
-     * 获取所有重要人任务
+     * 获取所有重要任务
      */
     @GetMapping("/important-person-tasks")
-    public ResponseEntity<List<ImportantPersonTaskDTO>> getAllImportantPersonTasks() {
-        List<ImportantPersonTaskDTO> tasks = adminService.getAllImportantPersonTasks();
+    public ResponseEntity<List<ImportantTaskDTO>> getAllImportantTasks() {
+        List<ImportantTaskDTO> tasks = adminService.getAllImportantTasks();
         return ResponseEntity.ok(tasks);
     }
 
     /**
-     * 创建重要人任务
+     * 创建重要任务
      */
     @PostMapping("/important-person-tasks")
-    public ResponseEntity<ImportantPersonTaskDTO> createImportantPersonTask(@RequestBody ImportantPersonTaskDTO dto) {
+    public ResponseEntity<ImportantTaskDTO> createImportantTask(@RequestBody ImportantTaskDTO dto) {
         try {
-            ImportantPersonTaskDTO result = adminService.createImportantPersonTask(dto);
+            ImportantTaskDTO result = adminService.createImportantTask(dto);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
@@ -180,12 +180,12 @@ public class AdminController {
     }
 
     /**
-     * 更新重要人任务
+     * 更新重要任务
      */
     @PutMapping("/important-person-tasks/{id}")
-    public ResponseEntity<ImportantPersonTaskDTO> updateImportantPersonTask(@PathVariable Integer id, @RequestBody ImportantPersonTaskDTO dto) {
+    public ResponseEntity<ImportantTaskDTO> updateImportantTask(@PathVariable Integer id, @RequestBody ImportantTaskDTO dto) {
         try {
-            ImportantPersonTaskDTO result = adminService.updateImportantPersonTask(id, dto);
+            ImportantTaskDTO result = adminService.updateImportantTask(id, dto);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
@@ -193,12 +193,12 @@ public class AdminController {
     }
 
     /**
-     * 删除重要人任务
+     * 删除重要任务
      */
     @DeleteMapping("/important-person-tasks/{id}")
-    public ResponseEntity<Void> deleteImportantPersonTask(@PathVariable Integer id) {
+    public ResponseEntity<Void> deleteImportantTask(@PathVariable Integer id) {
         try {
-            adminService.deleteImportantPersonTask(id);
+            adminService.deleteImportantTask(id);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();

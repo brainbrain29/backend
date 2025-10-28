@@ -3,18 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>管理员登录 - 工作管理系统</title>
+  <title>管理员登录 - Pandora管理后台</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
+      background-image: url('https://images.unsplash.com/photo-1497294815431-9365093b7331?auto=format&fit=crop&w=1950&q=80'); /* <-- 换成你的图片URL或本地路径 */
+      background-size: cover;       /* 确保图片铺满整个屏幕 */
+      background-position: center;  /* 图片居中显示 */
+      background-repeat: no-repeat; /* 防止图片重复 */
+      background-color: #2578df;    /* 图片加载失败时的备用颜色 */
       height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    
+    /* 新增：加载动效 */
+     @keyframes fadeInUp {  
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     .login-container {
       background: white;
       border-radius: 12px;
@@ -31,7 +47,7 @@
     .logo {
       width: 64px;
       height: 64px;
-      background: #409EFF;
+      background: #8ebef7;
       border-radius: 12px;
       display: flex;
       align-items: center;
@@ -102,7 +118,8 @@
     }
     
     .btn-login:active {
-      transform: translateY(0);
+      transform: translateY(1px);
+      box-shadow: 0 2px 5px rgba(102, 126, 234, 0.3);
     }
     
     .error-message {
@@ -146,7 +163,16 @@
 <body>
   <div class="login-container">
     <div class="login-header">
-      <div class="logo">🏢</div>
+      <div class="logo">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 4L4 12V36H16V26H24V36H36V12L20 4Z" fill="white" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+          <rect x="10" y="16" width="4" height="4" fill="#8ebef7"/>
+          <rect x="18" y="16" width="4" height="4" fill="#8ebef7"/>
+          <rect x="26" y="16" width="4" height="4" fill="#8ebef7"/>
+          <rect x="10" y="22" width="4" height="4" fill="#8ebef7"/>
+          <rect x="26" y="22" width="4" height="4" fill="#8ebef7"/>
+        </svg>
+      </div>
       <h1 class="login-title">管理员登录</h1>
       <p class="login-subtitle">工作管理系统</p>
     </div>

@@ -25,7 +25,7 @@ public class AdminService {
     private ImportantMatterRepository importantMatterRepository;
 
     @Autowired
-    private ImportantPersonTaskRepository importantPersonTaskRepository;
+    private ImportantTaskRepository importantTaskRepository;
 
     // ========== 员工管理 ==========
     
@@ -267,16 +267,16 @@ public class AdminService {
         importantMatterRepository.deleteById(id);
     }
 
-    // ========== 十大重要人任务管理 ==========
+    // ========== 十大重要任务管理 ==========
 
     /**
-     * 获取所有重要人任务
+     * 获取所有重要任务
      */
-    public List<ImportantPersonTaskDTO> getAllImportantPersonTasks() {
-        List<ImportantPersonTask> tasks = importantPersonTaskRepository.findAll();
+    public List<ImportantTaskDTO> getAllImportantTasks() {
+        List<ImportantTask> tasks = importantTaskRepository.findAll();
         return tasks.stream()
                 .map(task -> {
-                    ImportantPersonTaskDTO dto = new ImportantPersonTaskDTO();
+                    ImportantTaskDTO dto = new ImportantTaskDTO();
                     dto.setTaskId(task.getTaskId());
                     dto.setEmployeeId(task.getEmployee().getEmployeeId());
                     dto.setEmployeeName(task.getEmployee().getEmployeeName());
@@ -293,11 +293,11 @@ public class AdminService {
     }
 
     /**
-     * 创建重要人任务
+     * 创建重要任务
      */
     @Transactional
-    public ImportantPersonTaskDTO createImportantPersonTask(ImportantPersonTaskDTO dto) {
-        ImportantPersonTask task = new ImportantPersonTask();
+    public ImportantTaskDTO createImportantTask(ImportantTaskDTO dto) {
+        ImportantTask task = new ImportantTask();
         task.setTaskContent(dto.getTaskContent());
         task.setDeadline(dto.getDeadline());
         task.setTaskStatus(dto.getTaskStatus() != null ? dto.getTaskStatus() : (byte) 0);
@@ -310,9 +310,9 @@ public class AdminService {
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
         task.setEmployee(employee);
 
-        ImportantPersonTask saved = importantPersonTaskRepository.save(task);
+        ImportantTask saved = importantTaskRepository.save(task);
 
-        ImportantPersonTaskDTO result = new ImportantPersonTaskDTO();
+        ImportantTaskDTO result = new ImportantTaskDTO();
         result.setTaskId(saved.getTaskId());
         result.setEmployeeId(saved.getEmployee().getEmployeeId());
         result.setEmployeeName(saved.getEmployee().getEmployeeName());
@@ -328,12 +328,12 @@ public class AdminService {
     }
 
     /**
-     * 更新重要人任务
+     * 更新重要任务
      */
     @Transactional
-    public ImportantPersonTaskDTO updateImportantPersonTask(Integer id, ImportantPersonTaskDTO dto) {
-        ImportantPersonTask task = importantPersonTaskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Important person task not found"));
+    public ImportantTaskDTO updateImportantTask(Integer id, ImportantTaskDTO dto) {
+        ImportantTask task = importantTaskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Important task not found"));
 
         task.setTaskContent(dto.getTaskContent());
         task.setDeadline(dto.getDeadline());
@@ -346,9 +346,9 @@ public class AdminService {
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
         task.setEmployee(employee);
 
-        ImportantPersonTask saved = importantPersonTaskRepository.save(task);
+        ImportantTask saved = importantTaskRepository.save(task);
 
-        ImportantPersonTaskDTO result = new ImportantPersonTaskDTO();
+        ImportantTaskDTO result = new ImportantTaskDTO();
         result.setTaskId(saved.getTaskId());
         result.setEmployeeId(saved.getEmployee().getEmployeeId());
         result.setEmployeeName(saved.getEmployee().getEmployeeName());
@@ -364,11 +364,11 @@ public class AdminService {
     }
 
     /**
-     * 删除重要人任务
+     * 删除重要任务
      */
     @Transactional
-    public void deleteImportantPersonTask(Integer id) {
-        importantPersonTaskRepository.deleteById(id);
+    public void deleteImportantTask(Integer id) {
+        importantTaskRepository.deleteById(id);
     }
 
     // ========== 系统统计 ==========
@@ -383,7 +383,7 @@ public class AdminService {
         stats.setActiveUsers((int) employeeRepository.count());
         
         // 进行中任务数（taskStatus = 1）
-        List<ImportantPersonTask> allTasks = importantPersonTaskRepository.findAll();
+        List<ImportantTask> allTasks = importantTaskRepository.findAll();
         long inProgressCount = allTasks.stream()
                 .filter(task -> task.getTaskStatus() == 1)
                 .count();
@@ -415,7 +415,7 @@ public class AdminService {
      */
     public List<ActivityLogDTO> getRecentActivities() {
         // 获取最近更新的任务（前5条）
-        List<ImportantPersonTask> recentTasks = importantPersonTaskRepository.findAll().stream()
+        List<ImportantTask> recentTasks = importantTaskRepository.findAll().stream()
                 .sorted((t1, t2) -> t2.getUpdatedTime().compareTo(t1.getUpdatedTime()))
                 .limit(5)
                 .collect(Collectors.toList());

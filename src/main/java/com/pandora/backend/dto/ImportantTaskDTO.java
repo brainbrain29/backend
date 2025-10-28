@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-public class ImportantPersonTaskDTO {
+public class ImportantTaskDTO {
     private Integer taskId;
     private Integer employeeId;
     private String employeeName;
@@ -19,9 +19,9 @@ public class ImportantPersonTaskDTO {
     private LocalDateTime updatedTime;
 
     // Constructors
-    public ImportantPersonTaskDTO() {}
+    public ImportantTaskDTO() {}
 
-    public ImportantPersonTaskDTO(Integer taskId, Integer employeeId, String employeeName,
+    public ImportantTaskDTO(Integer taskId, Integer employeeId, String employeeName,
                                  String taskContent, LocalDateTime deadline, Byte taskStatus,
                                  Byte taskPriority, Byte serialNum, LocalDateTime createdTime,
                                  LocalDateTime updatedTime) {
@@ -37,5 +37,3 @@ public class ImportantPersonTaskDTO {
         this.updatedTime = updatedTime;
     }
 }
-
-

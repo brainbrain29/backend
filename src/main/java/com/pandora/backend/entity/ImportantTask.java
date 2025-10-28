@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Setter
 @Entity
 @Table(name = "important_task")
-public class ImportantPersonTask {
+public class ImportantTask {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,4 +41,3 @@ public class ImportantPersonTask {
     @Column(name = "updated_time", nullable = false)
     private LocalDateTime updatedTime;
 }
-

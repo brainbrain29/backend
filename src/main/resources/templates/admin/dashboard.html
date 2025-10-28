@@ -515,7 +515,7 @@
       <!-- 左侧主内容 -->
       <div class="main-content">
         <!-- Tab 1: 十大重要事项 -->
-        <div class="tab-content active">
+        <div class="tab-content active" id="matter-section">
           <div class="content-header">
             <h2 class="content-title">公司十大重要事项</h2>
             <button class="btn-primary" onclick="openMatterModal()">
@@ -552,7 +552,7 @@
         </div>
         
         <!-- Tab 2: 十大任务派发 -->
-        <div class="tab-content">
+        <div class="tab-content" id="task-section">
           <div class="content-header">
             <h2 class="content-title">十大重要任务派发</h2>
             <button class="btn-primary" onclick="openTaskModal()">
@@ -588,7 +588,7 @@
         </div>
         
         <!-- Tab 3: 用户管理 -->
-        <div class="tab-content">
+        <div class="tab-content" id="employee-section">
           <div class="content-header">
             <h2 class="content-title">员工管理</h2>
             <button class="btn-primary" onclick="openEmployeeModal()">
@@ -990,6 +990,32 @@
       
       if (!userInfo.contains(event.target)) {
         closeUserMenu();
+      }
+    });
+    
+    // 页面加载时检测URL锚点并自动切换tab
+    window.addEventListener('load', function() {
+      const hash = window.location.hash;
+      
+      // 定义锚点和对应的tab索引映射
+      const hashTabMap = {
+        '#matter-section': 0,      // 十大重要事项
+        '#task-section': 1,         // 十大任务派发管理
+        '#employee-section': 2      // 用户与权限管理
+      };
+      
+      if (hashTabMap[hash] !== undefined) {
+        const tabIndex = hashTabMap[hash];
+        // 切换到对应的tab
+        switchTab(tabIndex);
+        
+        // 滚动到该区域
+        setTimeout(() => {
+          const element = document.querySelector(hash);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
       }
     });
   </script>

@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统管理面板</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f5f7fa; }
+    
+    /* 顶部导航栏 */
+    .navbar {
+      background: #fff;
+      border-bottom: 1px solid #e4e7ed;
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      font-size: 18px;
+      font-weight: 600;
+      color: #303133;
+    }
+    .navbar-brand svg {
+      width: 24px;
+      height: 24px;
+      margin-right: 8px;
+      fill: #409EFF;
+    }
+    .navbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .nav-link {
+      color: #606266;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .nav-link:hover {
+      color: #409EFF;
+    }
+    .bell-icon {
+      position: relative;
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
+    }
+    .notification-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #F56C6C;
+      color: white;
+      font-size: 10px;
+      padding: 2px 5px;
+      border-radius: 10px;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #409EFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+    }
+    
+    /* 主容器 */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    
+    /* 页头 */
+    .page-header {
+      margin-bottom: 24px;
+    }
+    .page-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #303133;
+      margin-bottom: 8px;
+    }
+    .page-description {
+      font-size: 14px;
+      color: #909399;
+    }
+    
+    /* Tab标签 */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid #e4e7ed;
+      margin-bottom: 24px;
+    }
+    .tab {
+      padding: 12px 24px;
+      font-size: 14px;
+      color: #606266;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      transition: all 0.3s;
+    }
+    .tab:hover {
+      color: #409EFF;
+    }
+    .tab.active {
+      color: #409EFF;
+      border-bottom-color: #409EFF;
+      font-weight: 500;
+    }
+    
+    /* 布局 */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+    }
+    
+    /* 主内容区 */
+    .main-content {
+      background: #fff;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .content-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .content-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #303133;
+    }
+    .btn-primary {
+      background: #409EFF;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.3s;
+    }
+    .btn-primary:hover {
+      background: #66b1ff;
+    }
+    
+    /* 任务卡片 */
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .task-card {
+      border: 1px solid #ebeef5;
+      border-radius: 8px;
+      padding: 20px;
+      transition: all 0.3s;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .task-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border-color: #c6e2ff;
+    }
+    .task-number {
+      width: 32px;
+      height: 32px;
+      background: #f4f4f5;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: #606266;
+      flex-shrink: 0;
+    }
+    .task-content {
+      flex: 1;
+    }
+    .task-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: #303133;
+      margin-bottom: 8px;
+    }
+    .task-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: #909399;
+      margin-bottom: 12px;
+    }
+    .task-tags {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .tag-completed { background: #f0f9ff; color: #67C23A; }
+    .tag-in-progress { background: #e1f3ff; color: #409EFF; }
+    .tag-pending { background: #fff4e6; color: #E6A23C; }
+    .task-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      border: 1px solid #dcdfe6;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+    .btn-icon:hover {
+      border-color: #409EFF;
+      color: #409EFF;
+    }
+    .btn-icon.delete:hover {
+      border-color: #F56C6C;
+      color: #F56C6C;
+    }
+    
+    /* 右侧边栏 */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .widget {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .widget-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #303133;
+      margin-bottom: 16px;
+    }
+    .stat-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #f2f6fc;
+    }
+    .stat-item:last-child {
+      border-bottom: none;
+    }
+    .stat-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #606266;
+    }
+    .stat-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #303133;
+    }
+    .stat-change {
+      font-size: 12px;
+      margin-left: 8px;
+    }
+    .stat-change.up {
+      color: #67C23A;
+    }
+    .stat-change.down {
+      color: #F56C6C;
+    }
+    
+    /* 活动时间线 */
+    .activity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .activity-item {
+      display: flex;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .activity-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .activity-content {
+      flex: 1;
+    }
+    .activity-text {
+      color: #606266;
+      margin-bottom: 4px;
+    }
+    .activity-time {
+      color: #909399;
+      font-size: 12px;
+    }
+    
+    /* 模态框 */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      animation: fadeIn 0.3s;
+    }
+    .modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background: white;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s;
+    }
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #ebeef5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #303133;
+    }
+    .modal-close {
+      font-size: 24px;
+      color: #909399;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+    }
+    .modal-close:hover {
+      color: #303133;
+    }
+    .modal-body {
+      padding: 24px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-label {
+      display: block;
+      font-size: 14px;
+      color: #606266;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .form-label .required {
+      color: #F56C6C;
+    }
+    .form-control {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #dcdfe6;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: #409EFF;
+    }
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #ebeef5;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    .btn-secondary {
+      background: white;
+      color: #606266;
+      border: 1px solid #dcdfe6;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-secondary:hover {
+      color: #409EFF;
+      border-color: #c6e2ff;
+      background: #ecf5ff;
+    }
+    
+    /* Tab内容 */
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* 动画 */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部导航栏 -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      工作管理系统
+    </div>
+    <div class="navbar-actions">
+      <div class="user-info" style="position: relative;">
+        <div class="avatar" th:text="${session.adminName != null ? session.adminName.substring(0, 1) : '管'}">管</div>
+        <span th:text="${session.adminName != null ? session.adminName : '管理员'}">管理员</span>
+        <span style="cursor: pointer;" onclick="toggleUserMenu()">▼</span>
+        <div id="userMenu" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border: 1px solid #ebeef5; border-radius: 4px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); min-width: 120px; z-index: 1000;">
+          <a href="/admin/logout" style="display: block; padding: 12px 16px; color: #606266; text-decoration: none; font-size: 14px; transition: background 0.3s;" onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background='white'">
+            🚪 退出登录
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主容器 -->
+  <div class="container">
+    <!-- 页头 -->
+    <div class="page-header">
+      <h1 class="page-title">系统管理面板</h1>
+      <p class="page-description">管理系统配置、用户与权限管理事项</p>
+    </div>
+
+    <!-- Tab标签 -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab(0)">十大重要事项板</button>
+      <button class="tab" onclick="switchTab(1)">十大任务派发管理</button>
+      <button class="tab" onclick="switchTab(2)">用户与权限管理</button>
+    </div>
+
+    <!-- 主布局 -->
+    <div class="layout">
+      <!-- 左侧主内容 -->
+      <div class="main-content">
+        <!-- Tab 1: 十大重要事项 -->
+        <div class="tab-content active">
+          <div class="content-header">
+            <h2 class="content-title">公司十大重要事项</h2>
+            <button class="btn-primary" onclick="openMatterModal()">
+              <span>+</span>
+              <span>添加事项</span>
+            </button>
+          </div>
+
+        <div class="task-list">
+          <div class="task-card" th:each="matter, iterStat : ${matters}">
+            <div class="task-number" th:text="${iterStat.count}">1</div>
+            <div class="task-content">
+              <div class="task-title" th:text="${matter.content}">完成新产品线的市场调研与规划</div>
+              <div class="task-meta">
+                <span>截止日期: <span th:text="${#temporals.format(matter.deadline, 'yyyy-MM-dd')}">2023-12-15</span></span>
+              </div>
+              <div class="task-tags">
+                <span class="tag tag-completed" th:if="${matter.matterStatus == 2}">已完成</span>
+                <span class="tag tag-in-progress" th:if="${matter.matterStatus == 1}">进行中</span>
+                <span class="tag tag-pending" th:if="${matter.matterStatus == 0}">待处理</span>
+                <span style="font-size: 13px; color: #606266;">
+                  负责人: <span th:text="${matter.assigneeName}">张总</span>
+                </span>
+              </div>
+            </div>
+            <div class="task-actions">
+              <button class="btn-icon" title="编辑" th:onclick="'openMatterModal(' + ${matter.matterId} + ')'">✏️</button>
+              <form th:action="@{/admin/web/important-matters/{id}/delete(id=${matter.matterId})}" method="post" style="display:inline;">
+                <button type="submit" class="btn-icon delete" title="删除" onclick="return confirm('确认删除该事项？')">🗑️</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        </div>
+        
+        <!-- Tab 2: 十大任务派发 -->
+        <div class="tab-content">
+          <div class="content-header">
+            <h2 class="content-title">十大重要任务派发</h2>
+            <button class="btn-primary" onclick="openTaskModal()">
+              <span>+</span>
+              <span>添加任务</span>
+            </button>
+          </div>
+
+          <div class="task-list">
+            <div class="task-card" th:each="task, iterStat : ${tasks}">
+              <div class="task-number" th:text="${iterStat.count}">1</div>
+              <div class="task-content">
+                <div class="task-title" th:text="${task.taskContent}">完成产品迭代开发</div>
+                <div class="task-meta">
+                  <span>截止日期: <span th:text="${#temporals.format(task.deadline, 'yyyy-MM-dd')}">2023-12-20</span></span>
+                  <span>|</span>
+                  <span>负责人: <span th:text="${task.employeeName}">李工</span></span>
+                </div>
+                <div class="task-tags">
+                  <span class="tag tag-completed" th:if="${task.taskStatus == 2}">已完成</span>
+                  <span class="tag tag-in-progress" th:if="${task.taskStatus == 1}">进行中</span>
+                  <span class="tag tag-pending" th:if="${task.taskStatus == 0}">待处理</span>
+                </div>
+              </div>
+              <div class="task-actions">
+                <button class="btn-icon" title="编辑" th:onclick="'openTaskModal(' + ${task.taskId} + ')'">✏️</button>
+                <form th:action="@{/admin/web/important-person-tasks/{id}/delete(id=${task.taskId})}" method="post" style="display:inline;">
+                  <button type="submit" class="btn-icon delete" title="删除" onclick="return confirm('确认删除该任务？')">🗑️</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Tab 3: 用户管理 -->
+        <div class="tab-content">
+          <div class="content-header">
+            <h2 class="content-title">员工管理</h2>
+            <button class="btn-primary" onclick="openEmployeeModal()">
+              <span>+</span>
+              <span>新增员工</span>
+            </button>
+          </div>
+
+          <!-- 员工表格 -->
+          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            <thead>
+              <tr style="background: #f5f7fa; border-bottom: 2px solid #ebeef5;">
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">ID</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">姓名</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">性别</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">电话</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">邮箱</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">职位</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">部门</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="emp : ${employees}" style="border-bottom: 1px solid #ebeef5; transition: background 0.3s;" onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background='white'">
+                <td style="padding: 12px; font-size: 14px; color: #606266;" th:text="${emp.employeeId}">1</td>
+                <td style="padding: 12px; font-size: 14px; color: #303133; font-weight: 500;" th:text="${emp.employeeName}">张伟</td>
+                <td style="padding: 12px; font-size: 14px; color: #606266;" th:text="${emp.gender}">女性</td>
+                <td style="padding: 12px; font-size: 14px; color: #606266;" th:text="${emp.phone}">13800000001</td>
+                <td style="padding: 12px; font-size: 14px; color: #409EFF;" th:text="${emp.email}">ceo@test.com</td>
+                <td style="padding: 12px; font-size: 14px; color: #606266;" th:text="${emp.position}">0</td>
+                <td style="padding: 12px; font-size: 14px; color: #606266;" th:text="${emp.orgName != null ? emp.orgName : '未分配'}">未分配</td>
+                <td style="padding: 12px;">
+                  <form th:action="@{/admin/web/employees/{id}/delete(id=${emp.employeeId})}" method="post" style="display:inline;">
+                    <button type="submit" class="btn-icon delete" title="删除" onclick="return confirm('确认删除该员工？离职员工将被永久删除！')" style="border: 1px solid #dcdfe6; background: white; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-size: 13px; color: #606266; min-width: 80px;">删除</button>
+                  </form>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 右侧边栏 -->
+      <aside class="sidebar">
+        <!-- 系统状态 -->
+        <div class="widget">
+          <h3 class="widget-title">系统状态</h3>
+          <div class="stat-item">
+            <div class="stat-label">
+              <div class="stat-icon" style="background: #e1f3ff; color: #409EFF;">👥</div>
+              <span>现有用户</span>
+            </div>
+            <div>
+              <span class="stat-value" th:text="${stats.activeUsers}">128</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">
+              <div class="stat-icon" style="background: #f0f9ff; color: #67C23A;">📋</div>
+              <span>进行中任务</span>
+            </div>
+            <div>
+              <span class="stat-value" th:text="${stats.inProgressTasks}">45</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">
+              <div class="stat-icon" style="background: #fef0f0; color: #F56C6C;">📦</div>
+              <span>今日到期</span>
+            </div>
+            <div>
+              <span class="stat-value" th:text="${stats.todayDeliveries}">96</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">
+              <div class="stat-icon" style="background: #f4f4f5; color: #909399;">📊</div>
+              <span>任务完成率</span>
+            </div>
+            <div>
+              <span class="stat-value" th:text="${#numbers.formatDecimal(stats.completionRate, 1, 0)} + '%'">78%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 最近系统活动 -->
+        <div class="widget">
+          <h3 class="widget-title">最近系统活动</h3>
+          <div class="activity-list">
+            <div class="activity-item" th:each="activity : ${activities}">
+              <div class="activity-icon" th:style="${activity.activityType == 'COMPLETE_TASK' ? 'background: #f0f9ff; color: #67C23A;' : (activity.activityType == 'UPDATE_TASK' ? 'background: #e1f3ff; color: #409EFF;' : 'background: #fff4e6; color: #E6A23C;')}">
+                <span th:if="${activity.activityType == 'COMPLETE_TASK'}">✓</span>
+                <span th:if="${activity.activityType == 'UPDATE_TASK'}">📝</span>
+                <span th:if="${activity.activityType == 'ADD_TASK'}">➕</span>
+              </div>
+              <div class="activity-content">
+                <div class="activity-text" th:text="${activity.description}">员工 完成了任务</div>
+                <div class="activity-time" th:text="${activity.relativeTime}">刚刚</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+  
+  <!-- 添加/编辑事项模态框 -->
+  <div id="matterModal" class="modal">
+    <div class="modal-content">
+      <form th:action="@{/admin/web/important-matters}" method="post" id="matterForm">
+        <div class="modal-header">
+          <h3 class="modal-title" id="matterModalTitle">添加重要事项</h3>
+          <button type="button" class="modal-close" onclick="closeMatterModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="matterId" id="matterId">
+          <div class="form-group">
+            <label class="form-label">事项内容 <span class="required">*</span></label>
+            <input type="text" name="content" id="matterContent" class="form-control" placeholder="请输入事项内容" required maxlength="255">
+          </div>
+          <div class="form-group">
+            <label class="form-label">截止日期 <span class="required">*</span></label>
+            <input type="datetime-local" name="deadline" id="matterDeadline" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">负责人 <span class="required">*</span></label>
+            <select name="assigneeId" id="matterAssignee" class="form-control" required>
+              <option value="">请选择负责人</option>
+              <option th:each="emp : ${employees}" th:value="${emp.employeeId}" th:text="${emp.employeeName}">员工</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">状态</label>
+            <select name="matterStatus" id="matterStatus" class="form-control">
+              <option value="0">待处理</option>
+              <option value="1">进行中</option>
+              <option value="2">已完成</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">优先级</label>
+            <select name="matterPriority" id="matterPriority" class="form-control">
+              <option value="0">低</option>
+              <option value="1">中</option>
+              <option value="2">高</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">序号 (1-10) <span class="required">*</span></label>
+            <input type="number" name="serialNum" id="matterSerial" class="form-control" min="1" max="10" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">可见范围</label>
+            <select name="visibleRange" id="matterVisible" class="form-control">
+              <option value="0">仅自己</option>
+              <option value="1">部门内</option>
+              <option value="2">全公司</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeMatterModal()">取消</button>
+          <button type="submit" class="btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- 添加/编辑任务模态框 -->
+  <div id="taskModal" class="modal">
+    <div class="modal-content">
+      <form th:action="@{/admin/web/important-person-tasks}" method="post" id="taskForm">
+        <div class="modal-header">
+          <h3 class="modal-title" id="taskModalTitle">添加重要任务</h3>
+          <button type="button" class="modal-close" onclick="closeTaskModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="taskId" id="taskId">
+          <div class="form-group">
+            <label class="form-label">任务内容 <span class="required">*</span></label>
+            <input type="text" name="taskContent" id="taskContent" class="form-control" placeholder="请输入任务内容" required maxlength="255">
+          </div>
+          <div class="form-group">
+            <label class="form-label">截止日期 <span class="required">*</span></label>
+            <input type="datetime-local" name="deadline" id="taskDeadline" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">负责人 <span class="required">*</span></label>
+            <select name="employeeId" id="taskEmployee" class="form-control" required>
+              <option value="">请选择负责人</option>
+              <option th:each="emp : ${employees}" th:value="${emp.employeeId}" th:text="${emp.employeeName}">员工</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">状态</label>
+            <select name="taskStatus" id="taskStatus" class="form-control">
+              <option value="0">待处理</option>
+              <option value="1">进行中</option>
+              <option value="2">已完成</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">优先级</label>
+            <select name="taskPriority" id="taskPriority" class="form-control">
+              <option value="0">低</option>
+              <option value="1">中</option>
+              <option value="2">高</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">序号 (1-10) <span class="required">*</span></label>
+            <input type="number" name="serialNum" id="taskSerial" class="form-control" min="1" max="10" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeTaskModal()">取消</button>
+          <button type="submit" class="btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- 添加/编辑员工模态框 -->
+  <div id="employeeModal" class="modal">
+    <div class="modal-content">
+      <form th:action="@{/admin/web/employees}" method="post" id="employeeForm">
+        <div class="modal-header">
+          <h3 class="modal-title" id="employeeModalTitle">新增员工</h3>
+          <button type="button" class="modal-close" onclick="closeEmployeeModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="employeeId" id="employeeId">
+          <div class="form-group">
+            <label class="form-label">姓名 <span class="required">*</span></label>
+            <input type="text" name="employeeName" id="employeeName" class="form-control" placeholder="请输入员工姓名" required maxlength="64">
+          </div>
+          <div class="form-group">
+            <label class="form-label">性别 <span class="required">*</span></label>
+            <select name="gender" id="employeeGender" class="form-control" required>
+              <option value="男性">男性</option>
+              <option value="女性">女性</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">电话 <span class="required">*</span></label>
+            <input type="text" name="phone" id="employeePhone" class="form-control" placeholder="请输入手机号" required maxlength="20">
+          </div>
+          <div class="form-group">
+            <label class="form-label">邮箱 <span class="required">*</span></label>
+            <input type="email" name="email" id="employeeEmail" class="form-control" placeholder="请输入邮箱地址" required maxlength="64">
+          </div>
+          <div class="form-group">
+            <label class="form-label">职位等级</label>
+            <input type="number" name="position" id="employeePosition" class="form-control" min="0" max="10" placeholder="0-10，数字越小职位越高">
+          </div>
+          <div class="form-group">
+            <label class="form-label">所属部门</label>
+            <select name="orgId" id="employeeDepartment" class="form-control">
+              <option value="">未分配</option>
+              <option th:each="d : ${departments}" th:value="${d.orgId}" th:text="${d.orgName}">部门</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeEmployeeModal()">取消</button>
+          <button type="submit" class="btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    // Tab切换
+    function switchTab(index) {
+      const tabs = document.querySelectorAll('.tab');
+      const contents = document.querySelectorAll('.tab-content');
+      
+      tabs.forEach((tab, i) => {
+        if (i === index) {
+          tab.classList.add('active');
+          contents[i].classList.add('active');
+        } else {
+          tab.classList.remove('active');
+          contents[i].classList.remove('active');
+        }
+      });
+    }
+    
+    // 事项模态框
+    function openMatterModal(matterId) {
+      const modal = document.getElementById('matterModal');
+      const form = document.getElementById('matterForm');
+      const title = document.getElementById('matterModalTitle');
+      
+      if (matterId) {
+        // 编辑模式
+        title.textContent = '编辑重要事项';
+        form.action = '/admin/web/important-matters/' + matterId;
+        // 这里可以通过AJAX加载数据，目前简化处理
+      } else {
+        // 新增模式
+        title.textContent = '添加重要事项';
+        form.action = '/admin/web/important-matters';
+        form.reset();
+      }
+      
+      modal.classList.add('show');
+    }
+    
+    function closeMatterModal() {
+      document.getElementById('matterModal').classList.remove('show');
+    }
+    
+    // 任务模态框
+    function openTaskModal(taskId) {
+      const modal = document.getElementById('taskModal');
+      const form = document.getElementById('taskForm');
+      const title = document.getElementById('taskModalTitle');
+      
+      if (taskId) {
+        title.textContent = '编辑重要任务';
+        form.action = '/admin/web/important-person-tasks/' + taskId;
+      } else {
+        title.textContent = '添加重要任务';
+        form.action = '/admin/web/important-person-tasks';
+        form.reset();
+      }
+      
+      modal.classList.add('show');
+    }
+    
+    function closeTaskModal() {
+      document.getElementById('taskModal').classList.remove('show');
+    }
+    
+    // 员工模态框
+    function openEmployeeModal(employeeId) {
+      const modal = document.getElementById('employeeModal');
+      const form = document.getElementById('employeeForm');
+      const title = document.getElementById('employeeModalTitle');
+      
+      if (employeeId) {
+        title.textContent = '编辑员工';
+        form.action = '/admin/web/employees/' + employeeId;
+      } else {
+        title.textContent = '新增员工';
+        form.action = '/admin/web/employees';
+        form.reset();
+      }
+      
+      modal.classList.add('show');
+    }
+    
+    function closeEmployeeModal() {
+      document.getElementById('employeeModal').classList.remove('show');
+    }
+    
+    // 点击模态框外部关闭
+    window.onclick = function(event) {
+      const matterModal = document.getElementById('matterModal');
+      const taskModal = document.getElementById('taskModal');
+      const employeeModal = document.getElementById('employeeModal');
+      
+      if (event.target === matterModal) {
+        closeMatterModal();
+      }
+      if (event.target === taskModal) {
+        closeTaskModal();
+      }
+      if (event.target === employeeModal) {
+        closeEmployeeModal();
+      }
+    }
+    
+    // ESC键关闭模态框
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeMatterModal();
+        closeTaskModal();
+        closeEmployeeModal();
+        closeUserMenu();
+      }
+    });
+    
+    // 用户菜单
+    function toggleUserMenu() {
+      const menu = document.getElementById('userMenu');
+      menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+    
+    function closeUserMenu() {
+      document.getElementById('userMenu').style.display = 'none';
+    }
+    
+    // 点击其他地方关闭用户菜单
+    document.addEventListener('click', function(event) {
+      const userInfo = document.querySelector('.user-info');
+      const userMenu = document.getElementById('userMenu');
+      
+      if (!userInfo.contains(event.target)) {
+        closeUserMenu();
+      }
+    });
+  </script>
+</body>
+</html>

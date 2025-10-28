@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Top-10 Important Matters</title>
+</head>
+<body>
+<h2>Top-10 Important Matters</h2>
+<p><a th:href="@{/admin/web}">Back</a></p>
+
+<table border="1" cellpadding="6">
+  <thead>
+  <tr>
+    <th>ID</th>
+    <th>Content</th>
+    <th>Deadline</th>
+    <th>Assignee</th>
+    <th>Status</th>
+    <th>Priority</th>
+    <th>Serial</th>
+    <th>Visible</th>
+    <th>Actions</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr th:each="m : ${matters}">
+    <td th:text="${m.matterId}"></td>
+    <td th:text="${m.content}"></td>
+    <td th:text="${#temporals.format(m.deadline, 'yyyy-MM-dd HH:mm')}"></td>
+    <td th:text="${m.assigneeName}"></td>
+    <td th:text="${m.matterStatus}"></td>
+    <td th:text="${m.matterPriority}"></td>
+    <td th:text="${m.serialNum}"></td>
+    <td th:text="${m.visibleRange}"></td>
+    <td>
+      <form th:action="@{'/admin/web/important-matters/' + ${m.matterId}}" method="post" style="display:inline-block">
+        <input type="text" name="content" th:value="${m.content}" required/>
+        <input type="datetime-local" name="deadline" th:value="${#temporals.format(m.deadline, 'yyyy-MM-dd''T''HH:mm')}" required/>
+        <select name="assigneeId">
+          <option th:each="e : ${employees}" th:value="${e.employeeId}" th:selected="${e.employeeId == m.assigneeId}" th:text="${e.employeeName}"></option>
+        </select>
+        <input type="number" name="matterStatus" th:value="${m.matterStatus}" min="0" max="2"/>
+        <input type="number" name="matterPriority" th:value="${m.matterPriority}" min="0" max="2"/>
+        <input type="number" name="serialNum" th:value="${m.serialNum}" min="1" max="10"/>
+        <input type="number" name="visibleRange" th:value="${m.visibleRange}" min="0" max="2"/>
+        <button type="submit">Update</button>
+      </form>
+      <form th:action="@{'/admin/web/important-matters/' + ${m.matterId} + '/delete'}" method="post" style="display:inline-block">
+        <button type="submit" onclick="return confirm('Delete matter?')">Delete</button>
+      </form>
+    </td>
+  </tr>
+  </tbody>
+</table>
+
+<h3>Create Matter</h3>
+<form th:action="@{/admin/web/important-matters}" method="post" th:object="${matterForm}">
+  <input type="text" th:field="*{content}" placeholder="Content" required/>
+  <input type="datetime-local" th:field="*{deadline}" required/>
+  <select th:field="*{assigneeId}">
+    <option th:each="e : ${employees}" th:value="${e.employeeId}" th:text="${e.employeeName}"></option>
+  </select>
+  <input type="number" th:field="*{matterStatus}" min="0" max="2" placeholder="Status"/>
+  <input type="number" th:field="*{matterPriority}" min="0" max="2" placeholder="Priority"/>
+  <input type="number" th:field="*{serialNum}" min="1" max="10" placeholder="Serial"/>
+  <input type="number" th:field="*{visibleRange}" min="0" max="2" placeholder="Visible"/>
+  <button type="submit">Create</button>
+</form>
+</body>
+</html>

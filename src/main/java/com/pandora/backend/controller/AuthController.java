@@ -5,6 +5,8 @@ import com.pandora.backend.dto.TokenPair;
 import com.pandora.backend.repository.EmployeeRepository;
 import com.pandora.backend.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,14 +19,20 @@ public class AuthController {
     private EmployeeRepository employeeRepository;
 
     @PostMapping("/login")
-    public TokenPair login(@RequestBody LoginDTO dto) {
-        return authService.generateTokens(
-                employeeRepository.findByPhone(dto.getPhone())
-                        .orElseThrow(() -> new RuntimeException("User not found")));
+    public ResponseEntity<TokenPair> login(@RequestBody LoginDTO dto) {
+        try {
+            TokenPair tokens = authService.generateTokens(
+                    employeeRepository.findByPhone(dto.getPhone())
+                            .orElseThrow(() -> new RuntimeException("User not found")));
+            return ResponseEntity.ok(tokens);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(null);
+        }
     }
 
     @PostMapping("/refresh")
-    public TokenPair refresh(@RequestParam String refreshToken) {
-        return authService.refreshToken(refreshToken);
+    public ResponseEntity<TokenPair> refresh(@RequestParam String refreshToken) {
+        return ResponseEntity.ok(authService.refreshToken(refreshToken));
     }
 }

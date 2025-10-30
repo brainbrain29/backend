@@ -3,6 +3,8 @@ package com.pandora.backend.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.pandora.backend.enums.Gender;
 import java.util.List;
 
@@ -35,6 +37,7 @@ public class Employee {
     @Column(name = "position", nullable = false)
     private Byte position;
 
+    @JsonIgnore
     @Column(name = "emp_password", nullable = false, length = 20)
     private String password;
 

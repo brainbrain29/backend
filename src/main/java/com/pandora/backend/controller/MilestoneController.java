@@ -13,7 +13,7 @@ public class MilestoneController {
     @Autowired
     private MilestoneService milestoneService;
 
-    @GetMapping("/byProject/{projectId}")
+    @GetMapping("/Project/{projectId}/milestone")
     public List<MilestoneDTO> getMilestonesByProjectId(@PathVariable Integer projectId) {
         return milestoneService.getMilestonesByProjectId(projectId);
     }

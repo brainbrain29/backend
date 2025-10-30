@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>员工管理</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #4CAF50; color: white; }
+    .btn { padding: 5px 10px; margin: 2px; cursor: pointer; }
+    .btn-delete { background-color: #f44336; color: white; border: none; }
+    .form-section { margin-top: 30px; padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; }
+    input, select { margin: 5px; padding: 5px; }
+  </style>
+</head>
+<body>
+<h1>员工管理</h1>
+<p><a href="/admin/web">← 返回首页</a></p>
+
+<h2>员工列表</h2>
+<table>
+  <thead>
+  <tr>
+    <th>ID</th>
+    <th>姓名</th>
+    <th>性别</th>
+    <th>电话</th>
+    <th>邮箱</th>
+    <th>职位</th>
+    <th>部门</th>
+    <th>操作</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr th:each="emp : ${employees}">
+    <td th:text="${emp.employeeId}">1</td>
+    <td th:text="${emp.employeeName}">张三</td>
+    <td th:text="${emp.gender}">男性</td>
+    <td th:text="${emp.phone}">123456</td>
+    <td th:text="${emp.email}">test@test.com</td>
+    <td th:text="${emp.position}">1</td>
+    <td th:text="${emp.orgName != null ? emp.orgName : '未分配'}">开发部</td>
+    <td>
+      <form th:action="@{/admin/web/employees/{id}/delete(id=${emp.employeeId})}" method="post" style="display:inline;">
+        <button type="submit" class="btn btn-delete" onclick="return confirm('确认删除该员工？')">删除</button>
+      </form>
+    </td>
+  </tr>
+  </tbody>
+</table>
+
+<div class="form-section">
+  <h2>新增员工</h2>
+  <form th:action="@{/admin/web/employees}" method="post" th:object="${employeeForm}">
+    <label>姓名: <input type="text" th:field="*{employeeName}" required/></label><br/>
+    <label>性别: 
+      <select th:field="*{gender}">
+        <option value="男性">男性</option>
+        <option value="女性">女性</option>
+      </select>
+    </label><br/>
+    <label>电话: <input type="text" th:field="*{phone}" required/></label><br/>
+    <label>邮箱: <input type="email" th:field="*{email}" required/></label><br/>
+    <label>职位: <input type="number" th:field="*{position}" min="0" max="10"/></label><br/>
+    <label>部门: 
+      <select th:field="*{orgId}">
+        <option value="">未分配</option>
+        <option th:each="d : ${departments}" th:value="${d.orgId}" th:text="${d.orgName}">部门</option>
+      </select>
+    </label><br/>
+    <button type="submit" class="btn">创建员工</button>
+  </form>
+</div>
+</body>
+</html>

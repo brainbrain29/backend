@@ -18,6 +18,8 @@ VALUES
 
 INSERT INTO employee (org_id, employee_name, phone, gender, email, position, emp_password)
 VALUES
+-- 系统管理员
+(NULL, 'admin', '13900000000', 1, 'admin@test.com', 0, 'admin'),
 -- CEO
 (NULL, '张伟', '13800000001', 1, 'ceo@test.com', 0, '123456'),
 -- 部门经理 - 技术部

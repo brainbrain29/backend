@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>管理员控制台</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+    h1 { color: #333; }
+    .menu { list-style: none; padding: 0; }
+    .menu li { margin: 15px 0; }
+    .menu a { display: inline-block; padding: 15px 30px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; font-size: 16px; }
+    .menu a:hover { background-color: #45a049; }
+  </style>
+</head>
+<body>
+  <h1>🛠️ 管理员控制台</h1>
+  <ul class="menu">
+    <li><a href="/admin/web/employees">👥 员工管理</a></li>
+    <li><a href="/admin/web/departments">🏢 部门查看</a></li>
+    <li><a href="/admin/web/important-matters">⭐ 十大重要事项</a></li>
+    <li><a href="/admin/web/important-person-tasks">📄 十大重要任务</a></li>
+  </ul>
+</body>
+</html>

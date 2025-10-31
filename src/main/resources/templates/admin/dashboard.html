@@ -77,6 +77,21 @@
       justify-content: center;
       color: white;
       font-size: 14px;
+      object-fit: cover;
+    }
+    .alert {
+      padding: 12px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .alert-success {
+      background: #f0f9eb;
+      color: #67C23A;
+    }
+    .alert-error {
+      background: #fef0f0;
+      color: #F56C6C;
     }
     
     /* 主容器 */
@@ -483,10 +498,13 @@
     </div>
     <div class="navbar-actions">
       <div class="user-info" style="position: relative;">
-        <div class="avatar" th:text="${session.adminName != null ? session.adminName.substring(0, 1) : '管'}">管</div>
-        <span th:text="${session.adminName != null ? session.adminName : '管理员'}">管理员</span>
+        <img th:src="${session.adminAvatar != null ? session.adminAvatar : '/images/avatar.jpg'}" alt="头像" class="avatar">
+         <span th:text="${session.adminName != null ? session.adminName : '管理员'}">管理员</span>
         <span style="cursor: pointer;" onclick="toggleUserMenu()">▼</span>
-        <div id="userMenu" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border: 1px solid #ebeef5; border-radius: 4px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); min-width: 120px; z-index: 1000;">
+        <div id="userMenu" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border: 1px solid #ebeef5; border-radius: 4px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); min-width: 160px; z-index: 1000;">
+          <a href="javascript:void(0)" onclick="openProfileModal()" style="display: block; padding: 12px 16px; color: #606266; text-decoration: none; font-size: 14px; transition: background 0.3s; border-bottom: 1px solid #ebeef5;" onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background='white'">
+            👤 个人信息
+          </a>
           <a href="/admin/logout" style="display: block; padding: 12px 16px; color: #606266; text-decoration: none; font-size: 14px; transition: background 0.3s;" onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background='white'">
             🚪 退出登录
           </a>
@@ -497,6 +515,8 @@
 
   <!-- 主容器 -->
   <div class="container">
+    <div th:if="${profileMessage != null}" class="alert alert-success" th:text="${profileMessage}">个人资料已更新</div>
+    <div th:if="${profileError != null}" class="alert alert-error" th:text="${profileError}">更新失败</div>
     <!-- 页头 -->
     <div class="page-header">
       <h1 class="page-title">系统管理面板</h1>
@@ -860,6 +880,50 @@
     </div>
   </div>
   
+  <!-- 管理员资料设置 -->
+  <div id="profileModal" class="modal">
+    <div class="modal-content" style="max-width: 520px;">
+      <form th:action="@{/admin/web/profile}" method="post" id="profileForm" enctype="multipart/form-data">
+        <div class="modal-header">
+          <h3 class="modal-title">个人资料</h3>
+          <button type="button" class="modal-close" onclick="closeProfileModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <p style="margin: 0 0 16px; font-size: 13px; color: #909399;">更新管理员的基本资料与头像。密码留空则不修改。</p>
+          <div class="form-group">
+            <label class="form-label">姓名 <span class="required">*</span></label>
+            <input type="text" name="adminName" class="form-control" placeholder="请输入姓名" th:value="${session.adminName}" maxlength="64" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">邮箱 <span class="required">*</span></label>
+            <input type="email" name="adminEmail" class="form-control" placeholder="请输入邮箱地址" th:value="${session.adminEmail}" maxlength="64" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">手机号</label>
+            <input type="text" name="adminPhone" class="form-control" placeholder="请输入手机号码" th:value="${session.adminPhone != null ? session.adminPhone : ''}" maxlength="20">
+          </div>
+          <div class="form-group">
+            <label class="form-label">上传头像</label>
+            <input type="file" name="avatar" class="form-control" accept="image/*">
+            <small style="display: block; margin-top: 4px; font-size: 12px; color: #909399;">支持 jpg/png，建议尺寸 200×200px。</small>
+          </div>
+          <div class="form-group">
+            <label class="form-label">新密码</label>
+            <input type="password" name="newPassword" class="form-control" placeholder="留空则保持不变" minlength="6" maxlength="20">
+          </div>
+          <div class="form-group">
+            <label class="form-label">确认新密码</label>
+            <input type="password" name="confirmPassword" class="form-control" placeholder="再次输入新密码" minlength="6" maxlength="20">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeProfileModal()">取消</button>
+          <button type="submit" class="btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
   <script>
     // Tab切换
     function switchTab(index) {
@@ -945,12 +1009,23 @@
     function closeEmployeeModal() {
       document.getElementById('employeeModal').classList.remove('show');
     }
-    
+
+    // 管理员资料
+    function openProfileModal() {
+      closeUserMenu();
+      document.getElementById('profileModal').classList.add('show');
+    }
+
+    function closeProfileModal() {
+      document.getElementById('profileModal').classList.remove('show');
+    }
+
     // 点击模态框外部关闭
     window.onclick = function(event) {
       const matterModal = document.getElementById('matterModal');
       const taskModal = document.getElementById('taskModal');
       const employeeModal = document.getElementById('employeeModal');
+      const profileModal = document.getElementById('profileModal');
       
       if (event.target === matterModal) {
         closeMatterModal();
@@ -961,14 +1036,18 @@
       if (event.target === employeeModal) {
         closeEmployeeModal();
       }
+      if (event.target === profileModal) {
+        closeProfileModal();
+      }
     }
-    
+
     // ESC键关闭模态框
     document.addEventListener('keydown', function(event) {
       if (event.key === 'Escape') {
         closeMatterModal();
         closeTaskModal();
         closeEmployeeModal();
+        closeProfileModal();
         closeUserMenu();
       }
     });

@@ -1,8 +1,11 @@
 package com.pandora.backend.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.pandora.backend.dto.*;
 import com.pandora.backend.entity.*;
@@ -11,6 +14,11 @@ import com.pandora.backend.enums.Gender;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 @Service
 public class AdminService {
@@ -26,6 +34,9 @@ public class AdminService {
 
     @Autowired
     private ImportantTaskRepository importantTaskRepository;
+
+    @Value("${app.upload.dir:uploads}")
+    private String uploadDir;
 
     // ========== 员工管理 ==========
     
@@ -50,6 +61,27 @@ public class AdminService {
                     return dto;
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 根据 ID 获取管理员信息
+     */
+    public EmployeeDTO getAdminById(Integer adminId) {
+        Employee emp = employeeRepository.findById(adminId)
+                .orElseThrow(() -> new RuntimeException("管理员不存在"));
+
+        EmployeeDTO dto = new EmployeeDTO();
+        dto.setEmployeeId(emp.getEmployeeId());
+        dto.setEmployeeName(emp.getEmployeeName());
+        dto.setGender(emp.getGender() != null ? emp.getGender().getDesc() : null);
+        dto.setPhone(emp.getPhone());
+        dto.setEmail(emp.getEmail());
+        dto.setPosition(emp.getPosition());
+        if (emp.getDepartment() != null) {
+            dto.setOrgId(emp.getDepartment().getOrgId());
+            dto.setOrgName(emp.getDepartment().getOrgName());
+        }
+        return dto;
     }
 
     /**
@@ -155,6 +187,52 @@ public class AdminService {
     @Transactional
     public void deleteEmployee(Integer id) {
         employeeRepository.deleteById(id);
+    }
+
+    /**
+     * 更新管理员个人资料
+     */
+    @Transactional
+    public Employee updateAdminProfile(Integer adminId, String name, String email, String phone,
+                                       String newPassword, MultipartFile avatarFile) {
+        Employee emp = employeeRepository.findById(adminId)
+                .orElseThrow(() -> new RuntimeException("管理员不存在"));
+
+        if (!StringUtils.hasText(name)) {
+            throw new IllegalArgumentException("姓名不能为空");
+        }
+        if (!StringUtils.hasText(email)) {
+            throw new IllegalArgumentException("邮箱不能为空");
+        }
+
+        emp.setEmployeeName(name.trim());
+        emp.setEmail(email.trim());
+        if (StringUtils.hasText(phone)) {
+            emp.setPhone(phone.trim());
+        }
+
+        if (StringUtils.hasText(newPassword)) {
+            emp.setPassword(newPassword.trim());
+        }
+
+        if (avatarFile != null && !avatarFile.isEmpty()) {
+            try {
+                Path uploadPath = Paths.get(uploadDir).toAbsolutePath();
+                Files.createDirectories(uploadPath);
+
+                String extension = StringUtils.getFilenameExtension(avatarFile.getOriginalFilename());
+                String extPart = StringUtils.hasText(extension) ? ("." + extension) : "";
+                String filename = "avatar-" + adminId + "-" + System.currentTimeMillis() + extPart;
+                Path targetPath = uploadPath.resolve(filename);
+                Files.copy(avatarFile.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+                emp.setAvatarUrl("/uploads/" + filename);
+            } catch (IOException ex) {
+                throw new RuntimeException("头像上传失败", ex);
+            }
+        }
+
+        return employeeRepository.save(emp);
     }
 
     /**

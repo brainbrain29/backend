@@ -2,8 +2,7 @@ package com.pandora.backend.dto;
 
 import java.time.LocalDateTime;
 
-public class ProjectDTO { // TODO: DTO for project response
-    private Integer projectId;
+public class ProjectCreateDTO { // TODO: DTO for CEO project creation
     private String title;
     private String content;
     private LocalDateTime startTime;
@@ -11,10 +10,7 @@ public class ProjectDTO { // TODO: DTO for project response
     private Byte projectStatus;
     private Byte projectPriority;
     private Byte projectType;
-    private Integer senderId;
 
-    public Integer getProjectId() { return projectId; }
-    public void setProjectId(Integer projectId) { this.projectId = projectId; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getContent() { return content; }
@@ -29,6 +25,4 @@ public class ProjectDTO { // TODO: DTO for project response
     public void setProjectPriority(Byte projectPriority) { this.projectPriority = projectPriority; }
     public Byte getProjectType() { return projectType; }
     public void setProjectType(Byte projectType) { this.projectType = projectType; }
-    public Integer getSenderId() { return senderId; }
-    public void setSenderId(Integer senderId) { this.senderId = senderId; }
 }

@@ -9,6 +9,9 @@ import com.pandora.backend.dto.LogDTO;
 import com.pandora.backend.dto.TaskDTO;
 import com.pandora.backend.service.LogService;
 import com.pandora.backend.service.TaskService;
+import com.pandora.backend.repository.EmployeeRepository;
+import com.pandora.backend.entity.Employee;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 
@@ -22,6 +25,9 @@ public class TaskController {
     @Autowired
     private LogService logService;
 
+    @Autowired
+    private EmployeeRepository employeeRepository;
+
     /**
      * 创建任务
      * POST /tasks
@@ -33,6 +39,29 @@ public class TaskController {
             return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @PostMapping("/assign")
+    public ResponseEntity<?> assignTask(HttpServletRequest request, @RequestBody TaskDTO body) { // TODO: Manager assigns task (position >= 2)
+        Object uidObj = request.getAttribute("userId");
+        if (uidObj == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid token");
+        }
+        Integer userId = (Integer) uidObj;
+        Employee emp = employeeRepository.findById(userId).orElse(null);
+        if (emp == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
+        }
+        if (emp.getPosition() < 2) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Permission denied");
+        }
+        try {
+            body.setSenderId(userId);
+            TaskDTO created = taskService.createTask(body);
+            return new ResponseEntity<>(created, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 

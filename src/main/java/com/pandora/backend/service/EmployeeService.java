@@ -8,6 +8,8 @@ import com.pandora.backend.dto.EmployeeDTO;
 import com.pandora.backend.entity.Employee;
 import com.pandora.backend.enums.Gender;
 
+import java.util.List;
+
 @Service
 public class EmployeeService {
 
@@ -40,5 +42,10 @@ public class EmployeeService {
     public Employee getEmployeeById(Integer id) {
         return employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+    }
+
+    // 获取所有员工列表
+    public List<Employee> getAllEmployees() {
+        return employeeRepository.findAll();
     }
 }

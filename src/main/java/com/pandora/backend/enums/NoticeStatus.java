@@ -2,9 +2,9 @@ package com.pandora.backend.enums;
 
 // 通知状态
 public enum NoticeStatus {
+    NOT_VIEWED(0, "未查看"),
     VIEWED(1, "已查看"),
-    NOT_RECEIVED(2, "未接收"),
-    NOT_VIEWED(3, "未查看");
+    NOT_RECEIVED(2, "未接收");
 
     private final int code;
     private final String desc;

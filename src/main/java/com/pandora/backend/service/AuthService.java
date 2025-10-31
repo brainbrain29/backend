@@ -29,11 +29,11 @@ public class AuthService {
             throw new RuntimeException("Invalid password");
         }
 
-        return jwtUtil.generateAccessToken(emp.getEmployeeId());
+        return jwtUtil.generateAccessToken(emp.getEmployeeId(), emp.getPosition());
     }
 
     public TokenPair generateTokens(Employee emp) {
-        String access = jwtUtil.generateAccessToken(emp.getEmployeeId());
+        String access = jwtUtil.generateAccessToken(emp.getEmployeeId(), emp.getPosition());
         String refresh = jwtUtil.generateRefreshToken(emp.getEmployeeId());
 
         RefreshToken entity = new RefreshToken();
@@ -44,10 +44,13 @@ public class AuthService {
         entity.setExpiresAt(LocalDateTime.now().plusDays(7));
         refreshTokenRepository.save(entity);
 
-        // 只保留最近2个
+        // 只保留最近2个 Token
         List<RefreshToken> tokens = refreshTokenRepository.findByUserIdOrderByCreatedAtDesc(emp.getEmployeeId());
         if (tokens.size() > 2) {
-            refreshTokenRepository.delete(tokens.get(tokens.size() - 1));
+            // 删除第 3 个及之后的所有旧 Token
+            List<RefreshToken> tokensToDelete = tokens.subList(2, tokens.size());
+            refreshTokenRepository.deleteAll(tokensToDelete);
+            System.out.println("🗑️ 清理用户 " + emp.getEmployeeId() + " 的 " + tokensToDelete.size() + " 个旧 Token");
         }
 
         return new TokenPair(access, refresh);

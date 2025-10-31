@@ -33,9 +33,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 response.getWriter().write("{\"error\":\"Invalid or expired token\"}");
                 return;
             }
-            // token 有效，解析出 userId
+            // token 有效，解析出 userId 和 position
             Integer userId = jwtUtil.extractUserId(token);
-            request.setAttribute("userId", userId); // 注入请求属性
+            Byte position = jwtUtil.extractPosition(token);
+            
+            // 注入请求属性，供后续接口使用
+            request.setAttribute("userId", userId);
+            request.setAttribute("position", position);
         }
         filterChain.doFilter(request, response);
     }

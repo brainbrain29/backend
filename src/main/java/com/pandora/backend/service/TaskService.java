@@ -25,6 +25,9 @@ public class TaskService {
     @Autowired
     private MilestoneRepository milestoneRepository;
 
+    @Autowired
+    private NoticeService noticeService;
+
     // 创建任务
     public TaskDTO createTask(TaskDTO taskDTO) {
         Task task = new Task();
@@ -61,6 +64,8 @@ public class TaskService {
         }
 
         Task savedTask = taskRepository.save(task);
+        // 创建通知：当任务有执行者时，给执行者发送一条通知
+        noticeService.createTaskAssignmentNotice(savedTask);
         return convertToDTO(savedTask);
     }
 

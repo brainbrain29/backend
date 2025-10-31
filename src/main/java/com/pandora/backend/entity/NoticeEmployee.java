@@ -3,20 +3,20 @@ package com.pandora.backend.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import com.pandora.backend.enums.Status;
+import com.pandora.backend.enums.NoticeStatus;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "notice_employee")
-public class Notice_Employee {
+public class NoticeEmployee {
 
     @EmbeddedId
     private NoticeEmployeeId id;
 
     @Enumerated(EnumType.ORDINAL)
     @Column(name = "notice_status")
-    private Status noticeStatus;
+    private NoticeStatus noticeStatus;
 
     @ManyToOne
     @MapsId("noticeId") // 与复合主键中的 noticeId 对应

@@ -1,34 +1,28 @@
 package com.pandora.backend.controller;
 
+import com.pandora.backend.dto.ProjectCreateDTO;
+import com.pandora.backend.dto.ProjectDTO;
+import com.pandora.backend.entity.Employee;
+import com.pandora.backend.repository.EmployeeRepository;
+import com.pandora.backend.service.ProjectService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import com.pandora.backend.dto.MilestoneDTO;
-import com.pandora.backend.dto.MilestoneCreateDTO;
-import com.pandora.backend.entity.Employee;
-import com.pandora.backend.repository.EmployeeRepository;
-import com.pandora.backend.service.MilestoneService;
-import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
-@RequestMapping("/milestone")
-public class MilestoneController { // TODO: CEO-only milestone creation controller
+@RequestMapping("/projects")
+public class ProjectController { // TODO: CEO-only project creation controller
 
     @Autowired
-    private MilestoneService milestoneService;
+    private ProjectService projectService;
 
     @Autowired
     private EmployeeRepository employeeRepository;
 
-    @GetMapping("/Project/{projectId}/milestone")
-    public List<MilestoneDTO> getMilestonesByProjectId(@PathVariable Integer projectId) {
-        return milestoneService.getMilestonesByProjectId(projectId);
-    }
-
     @PostMapping
-    public ResponseEntity<?> createMilestone(HttpServletRequest request, @RequestBody MilestoneCreateDTO body) { // TODO: CEO creates milestone
+    public ResponseEntity<?> createProject(HttpServletRequest request, @RequestBody ProjectCreateDTO body) { // TODO: CEO creates project
         Object uidObj = request.getAttribute("userId");
         if (uidObj == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid token");
@@ -39,10 +33,10 @@ public class MilestoneController { // TODO: CEO-only milestone creation controll
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
         }
         if (emp.getPosition() != 0) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only CEO can create milestone");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only CEO can create project");
         }
         try {
-            MilestoneDTO created = milestoneService.createMilestone(body);
+            ProjectDTO created = projectService.createProject(body, userId);
             return new ResponseEntity<>(created, HttpStatus.CREATED);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());

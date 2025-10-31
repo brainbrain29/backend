@@ -5,10 +5,12 @@ import com.pandora.backend.dto.EmployeeDTO;
 import com.pandora.backend.dto.ImportantMatterDTO;
 import com.pandora.backend.dto.ImportantTaskDTO;
 import com.pandora.backend.service.AdminService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -39,6 +41,51 @@ public class AdminWebController {
         model.addAttribute("stats", adminService.getSystemStats());
         model.addAttribute("activities", adminService.getRecentActivities());
         return "admin/dashboard";
+    }
+
+    @GetMapping("/profile")
+    public String profile(Model model, HttpSession session) {
+        Integer adminId = (Integer) session.getAttribute("adminId");
+        if (adminId != null) {
+            var admin = adminService.getAdminById(adminId);
+            model.addAttribute("profileForm", admin);
+        }
+        return "admin/dashboard";
+    }
+
+    @PostMapping("/profile")
+    public String updateProfile(@RequestParam String adminName,
+                                @RequestParam String adminEmail,
+                                @RequestParam(required = false) String adminPhone,
+                                @RequestParam(required = false) String newPassword,
+                                @RequestParam(required = false) String confirmPassword,
+                                @RequestParam(required = false) MultipartFile avatar,
+                                HttpSession session,
+                                Model model) {
+        Integer adminId = (Integer) session.getAttribute("adminId");
+        if (adminId == null) {
+            return "redirect:/admin/login";
+        }
+
+        if (newPassword != null && !newPassword.equals(confirmPassword)) {
+            model.addAttribute("profileError", "两次输入的密码不一致");
+            return "redirect:/admin/web/dashboard";
+        }
+
+        try {
+            var updated = adminService.updateAdminProfile(adminId, adminName, adminEmail, adminPhone, newPassword, avatar);
+            session.setAttribute("adminName", updated.getEmployeeName());
+            session.setAttribute("adminEmail", updated.getEmail());
+            session.setAttribute("adminPhone", updated.getPhone());
+            session.setAttribute("adminAvatar", updated.getAvatarUrl());
+            model.addAttribute("profileMessage", "个人信息已更新");
+        } catch (IllegalArgumentException ex) {
+            model.addAttribute("profileError", ex.getMessage());
+        } catch (RuntimeException ex) {
+            model.addAttribute("profileError", ex.getMessage());
+        }
+
+        return "redirect:/admin/web/dashboard";
     }
 
     @GetMapping("/employees")

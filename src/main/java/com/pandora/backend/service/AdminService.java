@@ -12,7 +12,10 @@ import com.pandora.backend.entity.*;
 import com.pandora.backend.repository.*;
 import com.pandora.backend.enums.Gender;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,6 +31,12 @@ public class AdminService {
 
     @Autowired
     private DepartmentRepository departmentRepository;
+
+    @Autowired
+    private TeamRepository teamRepository;
+
+    @Autowired
+    private EmployeeTeamRepository employeeTeamRepository;
 
     @Autowired
     private ImportantMatterRepository importantMatterRepository;
@@ -60,6 +69,17 @@ public class AdminService {
                     }
                     return dto;
                 })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取所有团队
+     */
+    @Transactional(readOnly = true)
+    public List<TeamDTO> getAllTeams() {
+        List<Team> teams = teamRepository.findAll();
+        return teams.stream()
+                .map(this::convertToTeamDto)
                 .collect(Collectors.toList());
     }
 
@@ -124,6 +144,34 @@ public class AdminService {
     }
 
     /**
+     * 创建团队
+     */
+    @Transactional
+    public TeamDTO createTeam(TeamDTO dto) {
+        if (!StringUtils.hasText(dto.getTeamName())) {
+            throw new IllegalArgumentException("团队名称不能为空");
+        }
+        if (dto.getOrgId() == null) {
+            throw new IllegalArgumentException("请选择所属部门");
+        }
+
+        String trimmedName = dto.getTeamName().trim();
+        if (teamRepository.existsByTeamNameAndDepartmentOrgId(trimmedName, dto.getOrgId())) {
+            throw new IllegalArgumentException("该部门已存在同名团队");
+        }
+
+        Team team = new Team();
+        team.setTeamName(trimmedName);
+        Department department = departmentRepository.findById(dto.getOrgId())
+                .orElseThrow(() -> new RuntimeException("Department not found"));
+        team.setDepartment(department);
+
+        Team saved = teamRepository.save(team);
+        syncTeamMembers(saved, dto.getMemberIds(), dto.getLeaderId());
+        return convertToTeamDto(saved);
+    }
+
+    /**
      * 更新员工信息
      */
     @Transactional
@@ -164,6 +212,39 @@ public class AdminService {
     }
 
     /**
+     * 更新团队信息
+     */
+    @Transactional
+    public TeamDTO updateTeam(Integer id, TeamDTO dto) {
+        Team team = teamRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Team not found with id: " + id));
+
+        if (!StringUtils.hasText(dto.getTeamName())) {
+            throw new IllegalArgumentException("团队名称不能为空");
+        }
+        if (dto.getOrgId() == null) {
+            throw new IllegalArgumentException("请选择所属部门");
+        }
+
+        String trimmedName = dto.getTeamName().trim();
+        boolean departmentChanged = team.getDepartment() == null || !team.getDepartment().getOrgId().equals(dto.getOrgId());
+        boolean nameChanged = !trimmedName.equals(team.getTeamName());
+        if ((departmentChanged || nameChanged)
+                && teamRepository.existsByTeamNameAndDepartmentOrgId(trimmedName, dto.getOrgId())) {
+            throw new IllegalArgumentException("该部门已存在同名团队");
+        }
+
+        team.setTeamName(trimmedName);
+        Department department = departmentRepository.findById(dto.getOrgId())
+                .orElseThrow(() -> new RuntimeException("Department not found"));
+        team.setDepartment(department);
+
+        Team saved = teamRepository.save(team);
+        syncTeamMembers(saved, dto.getMemberIds(), dto.getLeaderId());
+        return convertToTeamDto(saved);
+    }
+
+    /**
      * 部门调动
      */
     @Transactional
@@ -187,6 +268,92 @@ public class AdminService {
     @Transactional
     public void deleteEmployee(Integer id) {
         employeeRepository.deleteById(id);
+    }
+
+    /**
+     * 删除团队
+     */
+    @Transactional
+    public void deleteTeam(Integer id) {
+        Team team = teamRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Team not found with id: " + id));
+
+        List<Employee_Team> relations = employeeTeamRepository.findByTeamTeamId(id);
+        if (!relations.isEmpty()) {
+            employeeTeamRepository.deleteAll(relations);
+        }
+
+        teamRepository.delete(team);
+    }
+
+    private TeamDTO convertToTeamDto(Team team) {
+        TeamDTO dto = new TeamDTO();
+        dto.setTeamId(team.getTeamId());
+        dto.setTeamName(team.getTeamName());
+        if (team.getDepartment() != null) {
+            dto.setOrgId(team.getDepartment().getOrgId());
+            dto.setOrgName(team.getDepartment().getOrgName());
+        }
+
+        List<Employee_Team> relations = employeeTeamRepository.findByTeamTeamId(team.getTeamId());
+        dto.setMemberCount(relations.size());
+
+        List<String> memberNames = new ArrayList<>();
+        List<Integer> memberIds = new ArrayList<>();
+        for (Employee_Team relation : relations) {
+            Employee member = relation.getEmployee();
+            if (member != null) {
+                memberIds.add(member.getEmployeeId());
+                memberNames.add(member.getEmployeeName());
+                if (relation.getIsLeader() != null && relation.getIsLeader() == 1) {
+                    dto.setLeaderId(member.getEmployeeId());
+                    dto.setLeaderName(member.getEmployeeName());
+                }
+            }
+        }
+
+        dto.setMemberIds(memberIds);
+        dto.setMemberNames(memberNames);
+
+        return dto;
+    }
+
+    private void syncTeamMembers(Team team, List<Integer> memberIds, Integer leaderId) {
+        List<Employee_Team> existing = employeeTeamRepository.findByTeamTeamId(team.getTeamId());
+        if (!existing.isEmpty()) {
+            employeeTeamRepository.deleteAll(existing);
+        }
+
+        if ((memberIds == null || memberIds.isEmpty()) && leaderId == null) {
+            return;
+        }
+
+        Set<Integer> uniqueMemberIds = new LinkedHashSet<>();
+        if (memberIds != null) {
+            uniqueMemberIds.addAll(memberIds);
+        }
+        if (leaderId != null) {
+            uniqueMemberIds.add(leaderId);
+        }
+
+        for (Integer memberId : uniqueMemberIds) {
+            if (memberId == null) {
+                continue;
+            }
+            Employee employee = employeeRepository.findById(memberId)
+                    .orElseThrow(() -> new RuntimeException("Employee not found with id: " + memberId));
+
+            Employee_Team relation = new Employee_Team();
+            EmployeeTeamId relationId = new EmployeeTeamId();
+            relationId.setEmployeeId(employee.getEmployeeId());
+            relationId.setTeamId(team.getTeamId());
+            relation.setId(relationId);
+            relation.setEmployee(employee);
+            relation.setTeam(team);
+            relation.setIsLeader((byte) ((leaderId != null && leaderId.equals(memberId)) ? 1 : 0));
+
+            employeeTeamRepository.save(relation);
+        }
     }
 
     /**
@@ -449,31 +616,26 @@ public class AdminService {
         importantTaskRepository.deleteById(id);
     }
 
-    // ========== 系统统计 ==========
-    
-    /**
-     * 获取系统统计数据
-     */
     public SystemStatsDTO getSystemStats() {
         SystemStatsDTO stats = new SystemStatsDTO();
-        
+
         // 活跃用户数（员工总数）
         stats.setActiveUsers((int) employeeRepository.count());
-        
+
         // 进行中任务数（taskStatus = 1）
         List<ImportantTask> allTasks = importantTaskRepository.findAll();
         long inProgressCount = allTasks.stream()
                 .filter(task -> task.getTaskStatus() == 1)
                 .count();
         stats.setInProgressTasks((int) inProgressCount);
-        
+
         // 今日到期任务数（deadline 是今天的）
         long todayCount = allTasks.stream()
-                .filter(task -> task.getDeadline() != null && 
+                .filter(task -> task.getDeadline() != null &&
                         task.getDeadline().toLocalDate().equals(java.time.LocalDate.now()))
                 .count();
         stats.setTodayDeliveries((int) todayCount);
-        
+
         // 任务完成率
         long totalTasks = allTasks.size();
         if (totalTasks > 0) {
@@ -484,24 +646,23 @@ public class AdminService {
         } else {
             stats.setCompletionRate(0.0);
         }
-        
+
         return stats;
     }
-    
+
     /**
      * 获取最近系统活动（基于最近创建/更新的任务）
      */
     public List<ActivityLogDTO> getRecentActivities() {
-        // 获取最近更新的任务（前5条）
         List<ImportantTask> recentTasks = importantTaskRepository.findAll().stream()
                 .sorted((t1, t2) -> t2.getUpdatedTime().compareTo(t1.getUpdatedTime()))
                 .limit(5)
                 .collect(Collectors.toList());
-        
+
         return recentTasks.stream()
                 .map(task -> {
                     ActivityLogDTO activity = new ActivityLogDTO();
-                    
+
                     // 判断任务状态
                     if (task.getTaskStatus() == 2) {
                         activity.setActivityType("COMPLETE_TASK");
@@ -513,11 +674,11 @@ public class AdminService {
                         activity.setActivityType("ADD_TASK");
                         activity.setDescription(task.getEmployee().getEmployeeName() + " 创建了新任务");
                     }
-                    
+
                     activity.setEmployeeName(task.getEmployee().getEmployeeName());
                     activity.setTimestamp(task.getUpdatedTime());
                     activity.setRelativeTime(getRelativeTime(task.getUpdatedTime()));
-                    
+
                     return activity;
                 })
                 .collect(Collectors.toList());

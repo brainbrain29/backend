@@ -2,6 +2,7 @@ package com.pandora.backend.controller;
 
 import com.pandora.backend.dto.DepartmentDTO;
 import com.pandora.backend.dto.EmployeeDTO;
+import com.pandora.backend.dto.TeamDTO;
 import com.pandora.backend.dto.ImportantMatterDTO;
 import com.pandora.backend.dto.ImportantTaskDTO;
 import com.pandora.backend.service.AdminService;
@@ -32,14 +33,17 @@ public class AdminWebController {
         List<ImportantTaskDTO> tasks = adminService.getAllImportantTasks();
         List<EmployeeDTO> employees = adminService.getAllEmployees();
         List<DepartmentDTO> departments = adminService.getAllDepartments();
+        List<TeamDTO> teams = adminService.getAllTeams();
         
         // 添加系统统计数据和活动日志
         model.addAttribute("matters", matters);
         model.addAttribute("tasks", tasks);
         model.addAttribute("employees", employees);
         model.addAttribute("departments", departments);
+        model.addAttribute("teams", teams);
         model.addAttribute("stats", adminService.getSystemStats());
         model.addAttribute("activities", adminService.getRecentActivities());
+        model.addAttribute("teamForm", new TeamDTO());
         return "admin/dashboard";
     }
 
@@ -120,6 +124,41 @@ public class AdminWebController {
     public String deleteEmployee(@PathVariable Integer id) {
         adminService.deleteEmployee(id);
         return "redirect:/admin/web/dashboard#employee-section";
+    }
+
+    @PostMapping("/teams")
+    public String createTeam(@RequestParam String teamName,
+                             @RequestParam Integer orgId,
+                             @RequestParam(required = false) Integer leaderId,
+                             @RequestParam(value = "memberIds", required = false) List<Integer> memberIds) {
+        TeamDTO dto = new TeamDTO();
+        dto.setTeamName(teamName);
+        dto.setOrgId(orgId);
+        dto.setLeaderId(leaderId);
+        dto.setMemberIds(memberIds);
+        adminService.createTeam(dto);
+        return "redirect:/admin/web/dashboard#team-section";
+    }
+
+    @PostMapping("/teams/{id}")
+    public String updateTeam(@PathVariable Integer id,
+                             @RequestParam String teamName,
+                             @RequestParam Integer orgId,
+                             @RequestParam(required = false) Integer leaderId,
+                             @RequestParam(value = "memberIds", required = false) List<Integer> memberIds) {
+        TeamDTO dto = new TeamDTO();
+        dto.setTeamName(teamName);
+        dto.setOrgId(orgId);
+        dto.setLeaderId(leaderId);
+        dto.setMemberIds(memberIds);
+        adminService.updateTeam(id, dto);
+        return "redirect:/admin/web/dashboard#team-section";
+    }
+
+    @PostMapping("/teams/{id}/delete")
+    public String deleteTeam(@PathVariable Integer id) {
+        adminService.deleteTeam(id);
+        return "redirect:/admin/web/dashboard#team-section";
     }
 
     @GetMapping("/departments")

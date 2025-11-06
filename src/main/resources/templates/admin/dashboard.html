@@ -528,6 +528,7 @@
       <button class="tab active" onclick="switchTab(0)">十大重要事项板</button>
       <button class="tab" onclick="switchTab(1)">十大任务派发管理</button>
       <button class="tab" onclick="switchTab(2)">用户与权限管理</button>
+      <button class="tab" onclick="switchTab(3)">团队管理</button>
     </div>
 
     <!-- 主布局 -->
@@ -643,6 +644,55 @@
                 <td style="padding: 12px;">
                   <form th:action="@{/admin/web/employees/{id}/delete(id=${emp.employeeId})}" method="post" style="display:inline;">
                     <button type="submit" class="btn-icon delete" title="删除" onclick="return confirm('确认删除该员工？离职员工将被永久删除！')" style="border: 1px solid #dcdfe6; background: white; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-size: 13px; color: #606266; min-width: 80px;">删除</button>
+                  </form>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Tab 4: 团队管理 -->
+        <div class="tab-content" id="team-section">
+          <div class="content-header">
+            <h2 class="content-title">团队管理</h2>
+            <button class="btn-primary" onclick="openTeamModal()">
+              <span>+</span>
+              <span>新增团队</span>
+            </button>
+          </div>
+
+          <div th:if="${#lists.isEmpty(teams)}" style="padding: 24px; text-align: center; color: #909399; border: 1px dashed #dcdfe6; border-radius: 8px;">
+            暂无团队数据，点击“新增团队”开始创建。
+          </div>
+
+          <table th:if="${!#lists.isEmpty(teams)}" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            <thead>
+              <tr style="background: #f5f7fa; border-bottom: 2px solid #ebeef5;">
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">ID</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">团队名称</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">所属部门</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">团队负责人</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">成员数</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">成员列表</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #606266; font-size: 14px;">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="team : ${teams}" style="border-bottom: 1px solid #ebeef5; transition: background 0.3s;" onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background='white'">
+                <td style="padding: 12px; font-size: 14px; color: #606266;" th:text="${team.teamId}">1</td>
+                <td style="padding: 12px; font-size: 14px; color: #303133; font-weight: 500;" th:text="${team.teamName}">研发团队</td>
+                <td style="padding: 12px; font-size: 14px; color: #606266;" th:text="${team.orgName}">技术部</td>
+                <td style="padding: 12px; font-size: 14px; color: #606266;" th:text="${team.leaderName != null ? team.leaderName : '未指定'}">张伟</td>
+                <td style="padding: 12px; font-size: 14px; color: #606266;" th:text="${team.memberCount}">3</td>
+                <td style="padding: 12px; font-size: 14px; color: #606266;">
+                  <span th:text="${team.memberNames != null && !team.memberNames.isEmpty() ? #strings.listJoin(team.memberNames, ', ') : '无成员'}">张伟, 李四</span>
+                </td>
+                <td style="padding: 12px; display: flex; gap: 8px;">
+                  <button class="btn-icon" title="编辑"
+                          th:attr="data-team-id=${team.teamId},data-team-name=${team.teamName},data-org-id=${team.orgId},data-leader-id=${team.leaderId},data-member-ids=${team.memberIds != null ? #strings.listJoin(team.memberIds, ',') : ''}"
+                          onclick="openTeamModal(this)">✏️</button>
+                  <form th:action="@{/admin/web/teams/{id}/delete(id=${team.teamId})}" method="post" style="display:inline;">
+                    <button type="submit" class="btn-icon delete" title="删除" onclick="return confirm('确认删除该团队？删除后团队成员关系将被清除。')">🗑️</button>
                   </form>
                 </td>
               </tr>
@@ -771,6 +821,50 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-secondary" onclick="closeMatterModal()">取消</button>
+          <button type="submit" class="btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 添加/编辑团队模态框 -->
+  <div id="teamModal" class="modal">
+    <div class="modal-content">
+      <form th:action="@{/admin/web/teams}" method="post" id="teamForm">
+        <div class="modal-header">
+          <h3 class="modal-title" id="teamModalTitle">新增团队</h3>
+          <button type="button" class="modal-close" onclick="closeTeamModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="teamIdField" name="teamId">
+          <div class="form-group">
+            <label class="form-label">团队名称 <span class="required">*</span></label>
+            <input type="text" name="teamName" id="teamNameInput" class="form-control" placeholder="请输入团队名称" required maxlength="64">
+          </div>
+          <div class="form-group">
+            <label class="form-label">所属部门 <span class="required">*</span></label>
+            <select name="orgId" id="teamDepartmentSelect" class="form-control" required>
+              <option value="">请选择部门</option>
+              <option th:each="dept : ${departments}" th:value="${dept.orgId}" th:text="${dept.orgName}">部门</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">团队负责人</label>
+            <select name="leaderId" id="teamLeaderSelect" class="form-control">
+              <option value="">未指定</option>
+              <option th:each="emp : ${employees}" th:value="${emp.employeeId}" th:text="${emp.employeeName}">员工</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">团队成员</label>
+            <select name="memberIds" id="teamMembersSelect" class="form-control" multiple size="6">
+              <option th:each="emp : ${employees}" th:value="${emp.employeeId}" th:text="${emp.employeeName}">员工</option>
+            </select>
+            <small style="display: block; margin-top: 4px; font-size: 12px; color: #909399;">按住 Ctrl/Command 可多选；建议将负责人也勾选到成员列表。</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeTeamModal()">取消</button>
           <button type="submit" class="btn-primary">保存</button>
         </div>
       </form>
@@ -1010,6 +1104,63 @@
       document.getElementById('employeeModal').classList.remove('show');
     }
 
+    // 团队模态框
+    function openTeamModal(trigger) {
+      const modal = document.getElementById('teamModal');
+      const form = document.getElementById('teamForm');
+      const title = document.getElementById('teamModalTitle');
+      const teamIdField = document.getElementById('teamIdField');
+      const nameInput = document.getElementById('teamNameInput');
+      const deptSelect = document.getElementById('teamDepartmentSelect');
+      const leaderSelect = document.getElementById('teamLeaderSelect');
+      const memberSelect = document.getElementById('teamMembersSelect');
+
+      form.reset();
+      teamIdField.value = '';
+      [...memberSelect.options].forEach(option => option.selected = false);
+
+      if (trigger && trigger.dataset && trigger.dataset.teamId) {
+        title.textContent = '编辑团队';
+        const teamId = trigger.dataset.teamId;
+        form.action = '/admin/web/teams/' + teamId;
+        teamIdField.value = teamId;
+        nameInput.value = trigger.dataset.teamName || '';
+        if (trigger.dataset.orgId) {
+          deptSelect.value = trigger.dataset.orgId;
+        }
+        if (trigger.dataset.leaderId) {
+          leaderSelect.value = trigger.dataset.leaderId;
+        } else {
+          leaderSelect.value = '';
+        }
+
+        const memberIds = trigger.dataset.memberIds ? trigger.dataset.memberIds.split(',').filter(Boolean) : [];
+        memberIds.forEach(id => {
+          const option = memberSelect.querySelector('option[value="' + id + '"]');
+          if (option) {
+            option.selected = true;
+          }
+        });
+
+        if (trigger.dataset.leaderId) {
+          const leaderOption = memberSelect.querySelector('option[value="' + trigger.dataset.leaderId + '"]');
+          if (leaderOption) {
+            leaderOption.selected = true;
+          }
+        }
+      } else {
+        title.textContent = '新增团队';
+        form.action = '/admin/web/teams';
+        leaderSelect.value = '';
+      }
+
+      modal.classList.add('show');
+    }
+
+    function closeTeamModal() {
+      document.getElementById('teamModal').classList.remove('show');
+    }
+
     // 管理员资料
     function openProfileModal() {
       closeUserMenu();
@@ -1025,8 +1176,9 @@
       const matterModal = document.getElementById('matterModal');
       const taskModal = document.getElementById('taskModal');
       const employeeModal = document.getElementById('employeeModal');
+      const teamModal = document.getElementById('teamModal');
       const profileModal = document.getElementById('profileModal');
-      
+
       if (event.target === matterModal) {
         closeMatterModal();
       }
@@ -1035,6 +1187,9 @@
       }
       if (event.target === employeeModal) {
         closeEmployeeModal();
+      }
+      if (event.target === teamModal) {
+        closeTeamModal();
       }
       if (event.target === profileModal) {
         closeProfileModal();
@@ -1047,6 +1202,7 @@
         closeMatterModal();
         closeTaskModal();
         closeEmployeeModal();
+        closeTeamModal();
         closeProfileModal();
         closeUserMenu();
       }
@@ -1080,7 +1236,8 @@
       const hashTabMap = {
         '#matter-section': 0,      // 十大重要事项
         '#task-section': 1,         // 十大任务派发管理
-        '#employee-section': 2      // 用户与权限管理
+        '#employee-section': 2,     // 用户与权限管理
+        '#team-section': 3          // 团队管理
       };
       
       if (hashTabMap[hash] !== undefined) {

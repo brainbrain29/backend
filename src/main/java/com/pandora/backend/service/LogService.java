@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -104,6 +105,20 @@ public class LogService {
                     return dto;
                 })
                 .collect(Collectors.toList());
+    }
+
+    public List<LogDTO> searchLogs(String keyword) {
+        if (keyword == null) {
+            return Collections.emptyList();
+        }
+
+        String trimmedKeyword = keyword.trim();
+        if (trimmedKeyword.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Log> logs = logRepository.searchByKeyword(trimmedKeyword);
+        return convertToDtoList(logs);
     }
 
     // TODO

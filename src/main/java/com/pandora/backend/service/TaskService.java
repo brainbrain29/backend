@@ -1,5 +1,6 @@
 package com.pandora.backend.service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -137,6 +138,22 @@ public class TaskService {
     // 查询所有任务
     public List<TaskDTO> getAllTasks() {
         List<Task> tasks = taskRepository.findAll();
+        return tasks.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<TaskDTO> searchTasks(String keyword) {
+        if (keyword == null) {
+            return Collections.emptyList();
+        }
+
+        String trimmedKeyword = keyword.trim();
+        if (trimmedKeyword.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Task> tasks = taskRepository.searchByKeyword(trimmedKeyword);
         return tasks.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());

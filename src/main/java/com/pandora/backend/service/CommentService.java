@@ -1,7 +1,9 @@
 package com.pandora.backend.service;
 
 import com.pandora.backend.dto.CommentDTO;
-import com.pandora.backend.dto.CommentResponseDTO; // 导入新的响应 DTO
+import com.pandora.backend.dto.CommentResponseDTO; 
+import com.pandora.backend.dto.NoticeDTO;
+
 import com.pandora.backend.entity.Comment;
 import com.pandora.backend.entity.Employee;
 import com.pandora.backend.entity.Notice;
@@ -91,6 +93,17 @@ public class CommentService {
             dto.setParentId(comment.getParent().getId());
         }
 
+        return dto;
+    }
+
+    public NoticeDTO convertToNoticeDto(Notice notice) {
+        NoticeDTO dto = new NoticeDTO();
+        dto.setNoticeId(notice.getNoticeId());
+        dto.setContent(notice.getContent());
+        dto.setCreatedTime(notice.getCreatedTime());
+        if (notice.getSender() != null) {
+            dto.setSenderName(notice.getSender().getEmployeeName());
+        }
         return dto;
     }
 }

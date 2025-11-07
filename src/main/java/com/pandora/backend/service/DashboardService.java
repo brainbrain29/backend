@@ -66,24 +66,23 @@ public class DashboardService {
     private NoticeSummaryDTO convertToNoticeSummaryDto(Notice notice) {
         NoticeSummaryDTO dto = new NoticeSummaryDTO();
         dto.setId(notice.getNoticeId());
-        // 你的 Notice 实体没有 title，但有 content，我们用 content 作为标题
-        dto.setTitle(notice.getContent());
 
-        // 摘要: 截取 content 的前 30 个字符作为摘要
-        if (notice.getContent() != null && notice.getContent().length() > 30) {
-            dto.setSummary(notice.getContent().substring(0, 30) + "...");
+        String rawContent = notice.getContent();
+        if (rawContent == null || rawContent.isBlank()) {
+            dto.setTitle("公告");
+            dto.setSummary(null);
         } else {
-            dto.setSummary(notice.getContent());
+            String content = rawContent.trim();
+            dto.setTitle(abbreviate(content, 20));
+            dto.setSummary(abbreviate(content, 50));
         }
 
-        // 你的 Notice 实体没有 tag，可以暂时设为 null 或根据 noticeType 判断
-        // dto.setTag(String.valueOf(notice.getNoticeType())); // 比如将数字类型转为字符串
-        dto.setTag("公告"); // 或者先写死一个
+        Byte noticeType = notice.getNoticeType();
+        dto.setTag(noticeType != null ? String.valueOf(noticeType) : null);
 
         dto.setPublishTime(notice.getCreatedTime());
 
-        // 未读状态的逻辑需要专门实现，比如通过 Notice_Employee 这个中间表来判断
-        dto.setUnread(true); // 暂时写死为 true
+        dto.setUnread(false);
 
         return dto;
     }
@@ -101,6 +100,16 @@ public class DashboardService {
             dto.setDueDate(task.getEndTime().toLocalDate());
         }
         return dto;
+    }
+
+    private String abbreviate(String text, int maxLength) {
+        if (text == null) {
+            return null;
+        }
+        if (text.length() <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength) + "...";
     }
 
     private LogSummaryDTO convertToLogSummaryDto(Log log) {

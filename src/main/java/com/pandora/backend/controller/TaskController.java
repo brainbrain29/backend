@@ -177,6 +177,12 @@ public class TaskController {
         }
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<TaskDTO>> searchTasks(@RequestParam("keyword") String keyword) {
+        List<TaskDTO> tasks = taskService.searchTasks(keyword);
+        return new ResponseEntity<>(tasks, HttpStatus.OK);
+    }
+
     /**
      * 根据发送者ID查询任务
      * GET /tasks/sender/{senderId}

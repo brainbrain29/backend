@@ -1,11 +1,13 @@
 package com.pandora.backend.repository;
 
-import org.springframework.data.domain.Pageable;
 import java.util.List;
+
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
 import com.pandora.backend.entity.Task;
 
 @Repository
@@ -21,6 +23,17 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
 
     // 根据任务状态查询
     List<Task> findByTaskStatus(Byte taskStatus);
+
+    @Query("""
+            SELECT DISTINCT t FROM Task t
+            LEFT JOIN t.assignee assignee
+            LEFT JOIN t.sender sender
+            WHERE LOWER(t.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(COALESCE(t.content, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(COALESCE(assignee.employeeName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(COALESCE(sender.employeeName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+            """)
+    List<Task> searchByKeyword(@Param("keyword") String keyword);
 
     @Query("SELECT t FROM Task t WHERE t.assignee IS NULL ORDER BY t.endTime ASC")
     List<Task> findTop10CompanyTasks(Pageable pageable);

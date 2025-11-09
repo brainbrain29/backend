@@ -25,4 +25,16 @@ public interface LogRepository extends JpaRepository<Log, Integer> {
     @Query("SELECT l FROM Log l WHERE l.employee.employeeId = :userId AND l.createdTime >= :startOfDay AND l.createdTime < :endOfDay ORDER BY l.createdTime DESC")
     List<Log> findTodayLogsByEmployeeId(@Param("userId") Integer userId, @Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
 
+    @Query("""
+            SELECT DISTINCT l FROM Log l
+            LEFT JOIN l.employee employee
+            LEFT JOIN l.task task
+            WHERE LOWER(l.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(COALESCE(l.employeeLocation, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(COALESCE(l.attachment, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(COALESCE(employee.employeeName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(COALESCE(task.title, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+            """)
+    List<Log> searchByKeyword(@Param("keyword") String keyword);
+
 }

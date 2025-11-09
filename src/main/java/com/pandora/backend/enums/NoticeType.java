@@ -4,8 +4,9 @@ package com.pandora.backend.enums;
 public enum NoticeType {
     NEW_TASK(1, "新任务派发"),
     TASK_UPDATE(2, "任务状态更新"),
-    COMPANY_MATTER(3, "公司事项"),
-    CUSTOM(4, "自定义");
+    COMPANY_MATTER(3, "公司重要事项发布"),
+    IMPORTANT_TASK(4, "公司重要任务发布"),
+    CUSTOM(5, "自定义");
 
     private final int code;
     private final String desc;

@@ -150,6 +150,16 @@ public class DashboardService {
         return dto;
     }
 
+    private String abbreviate(String text, int maxLength) {
+        if (text == null) {
+            return null;
+        }
+        if (text.length() <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength) + "...";
+    }
+
     private LogSummaryDTO convertToLogSummaryDto(Log log) {
         LogSummaryDTO dto = new LogSummaryDTO();
         dto.setLogId(log.getLogId());

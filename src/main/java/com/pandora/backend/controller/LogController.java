@@ -84,6 +84,12 @@ public class LogController {
         return ResponseEntity.ok(logs);
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<LogDTO>> searchLogs(@RequestParam("keyword") String keyword) {
+        List<LogDTO> logs = logService.searchLogs(keyword);
+        return ResponseEntity.ok(logs);
+    }
+
     // 2.2 查询单个日志 (Read by ID)
     @GetMapping("/{id}")
     public ResponseEntity<?> getLogById(HttpServletRequest request, @PathVariable Integer id) {

@@ -9,8 +9,8 @@ import java.time.LocalDate;
 public class TaskSummaryDTO {
     private Integer taskId;
     private String title;
-    private Byte priority;
-    private Byte status;
+    private String taskPriority; // 优先级，返回中文描述
+    private String taskStatus; // 状态，返回中文描述
     private String assigneeName; // 负责人
     private LocalDate dueDate; // 到期日
 }

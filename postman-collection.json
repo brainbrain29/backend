@@ -1,0 +1,677 @@
+{
+	"info": {
+		"name": "Pandora Backend API",
+		"description": "API collection for Milestone and Task controllers",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "your-jwt-token-here",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Milestone API",
+			"item": [
+				{
+					"name": "Get Milestones by Project ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/milestone/Project/1/milestone",
+							"host": ["{{baseUrl}}"],
+							"path": ["milestone", "Project", "1", "milestone"]
+						},
+						"description": "Get all milestones for a specific project"
+					}
+				},
+				{
+					"name": "Create Milestone (CEO Only)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Phase 1 Completion\",\n  \"content\": \"Complete all core features for phase 1\",\n  \"projectId\": 1,\n  \"milestoneNo\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/milestone",
+							"host": ["{{baseUrl}}"],
+							"path": ["milestone"]
+						},
+						"description": "Create a new milestone (requires CEO position)"
+					}
+				}
+			]
+		},
+		{
+			"name": "Task API",
+			"item": [
+				{
+					"name": "Create Task (Self)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Implement User Authentication\",\n  \"content\": \"Add JWT-based authentication to the API\",\n  \"startTime\": \"2025-11-05T10:00:00\",\n  \"endTime\": \"2025-11-10T18:00:00\",\n  \"taskStatus\": \"pending\",\n  \"taskPriority\": \"high\",\n  \"assigneeId\": 1,\n  \"senderId\": 1,\n  \"taskType\": \"development\",\n  \"milestoneId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks"]
+						},
+						"description": "Create a task for yourself (no special permission required)"
+					}
+				},
+				{
+					"name": "Assign Task (Manager Only)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Code Review\",\n  \"content\": \"Review pull request #123\",\n  \"startTime\": \"2025-11-05T09:00:00\",\n  \"endTime\": \"2025-11-06T17:00:00\",\n  \"taskStatus\": \"pending\",\n  \"taskPriority\": \"medium\",\n  \"assigneeId\": 5,\n  \"senderId\": 2,\n  \"taskType\": \"review\",\n  \"milestoneId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks/assign",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "assign"]
+						},
+						"description": "Assign a task to someone (requires manager position or higher)"
+					}
+				},
+				{
+					"name": "Update Task",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Implement User Authentication - Updated\",\n  \"content\": \"Add JWT-based authentication with refresh token support\",\n  \"startTime\": \"2025-11-05T10:00:00\",\n  \"endTime\": \"2025-11-12T18:00:00\",\n  \"taskStatus\": \"in_progress\",\n  \"taskPriority\": \"high\",\n  \"assigneeId\": 1,\n  \"senderId\": 1,\n  \"taskType\": \"development\",\n  \"milestoneId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tasks/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "1"]
+						},
+						"description": "Update an existing task by ID"
+					}
+				},
+				{
+					"name": "Delete Task",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/tasks/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "1"]
+						},
+						"description": "Delete a task by ID"
+					}
+				},
+				{
+					"name": "Get Task by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/tasks/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "1"]
+						},
+						"description": "Get a specific task by ID"
+					}
+				},
+				{
+					"name": "Get All Tasks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/tasks",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks"]
+						},
+						"description": "Get all tasks in the system"
+					}
+				},
+				{
+					"name": "Get Tasks by Sender ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/tasks/sender/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "sender", "1"]
+						},
+						"description": "Get all tasks created by a specific sender"
+					}
+				},
+				{
+					"name": "Get Tasks by Assignee ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/tasks/assignee/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "assignee", "1"]
+						},
+						"description": "Get all tasks assigned to a specific user"
+					}
+				},
+				{
+					"name": "Get Tasks by Milestone ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/tasks/milestone/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "milestone", "1"]
+						},
+						"description": "Get all tasks for a specific milestone"
+					}
+				},
+				{
+					"name": "Get Tasks by Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/tasks/status/0",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "status", "0"]
+						},
+						"description": "Get all tasks with a specific status (0=pending, 1=in_progress, 2=completed, etc.)"
+					}
+				},
+				{
+					"name": "Get Logs by Task ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/tasks/1/logs",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "1", "logs"]
+						},
+						"description": "Get all logs for a specific task"
+					}
+				},
+				{
+					"name": "Get Team Tasks (Team Leader Only)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/tasks/team",
+							"host": ["{{baseUrl}}"],
+							"path": ["tasks", "team"]
+						},
+						"description": "Get all tasks for the team (requires team leader position or higher)"
+					}
+				}
+			]
+		},
+		{
+			"name": "Project API",
+			"item": [
+				{
+					"name": "Create Project (CEO Only)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"E-commerce Platform\",\n  \"content\": \"Build a complete e-commerce platform with payment integration\",\n  \"startTime\": \"2025-11-01T09:00:00\",\n  \"endTime\": \"2026-06-30T18:00:00\",\n  \"projectStatus\": 0,\n  \"projectPriority\": 1,\n  \"projectType\": 0\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/projects",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects"]
+						},
+						"description": "Create a new project (requires CEO position)"
+					}
+				},
+				{
+					"name": "Get All Projects",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/projects",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects"]
+						},
+						"description": "Get all projects in the system"
+					}
+				},
+				{
+					"name": "Get Project by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/projects/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects", "1"]
+						},
+						"description": "Get a specific project by ID"
+					}
+				},
+				{
+					"name": "Update Project (CEO Only)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"E-commerce Platform - Updated\",\n  \"content\": \"Build a complete e-commerce platform with payment and shipping integration\",\n  \"startTime\": \"2025-11-01T09:00:00\",\n  \"endTime\": \"2026-08-31T18:00:00\",\n  \"projectStatus\": 1,\n  \"projectPriority\": 1,\n  \"projectType\": 0\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/projects/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects", "1"]
+						},
+						"description": "Update an existing project (requires CEO position)"
+					}
+				},
+				{
+					"name": "Delete Project (CEO Only)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/projects/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["projects", "1"]
+						},
+						"description": "Delete a project (requires CEO position)"
+					}
+				}
+			]
+		},
+		{
+			"name": "Log API",
+			"item": [
+				{
+					"name": "Create Log",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"taskId\": 1,\n  \"content\": \"Completed the authentication module implementation\",\n  \"emoji\": \"😊\",\n  \"attachment\": \"https://example.com/screenshot.png\",\n  \"employeeLocation\": \"Office\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/logs",
+							"host": ["{{baseUrl}}"],
+							"path": ["logs"]
+						},
+						"description": "Create a new log entry (employeeId is set from auth token)"
+					}
+				},
+				{
+					"name": "Get All Logs",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/logs",
+							"host": ["{{baseUrl}}"],
+							"path": ["logs"]
+						},
+						"description": "Get all logs in the system"
+					}
+				},
+				{
+					"name": "Get Log by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/logs/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["logs", "1"]
+						},
+						"description": "Get a specific log by ID"
+					}
+				},
+				{
+					"name": "Get Logs by Date",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/logs/byDate?datetime=2025-11-05",
+							"host": ["{{baseUrl}}"],
+							"path": ["logs", "byDate"],
+							"query": [
+								{
+									"key": "datetime",
+									"value": "2025-11-05"
+								}
+							]
+						},
+						"description": "Get all logs for the current user on a specific date"
+					}
+				},
+				{
+					"name": "Get Logs in Week",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/logs/week?startDate=2025-11-04",
+							"host": ["{{baseUrl}}"],
+							"path": ["logs", "week"],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2025-11-04",
+									"description": "Start date (will auto-calculate week range)"
+								},
+								{
+									"key": "endDate",
+									"value": "2025-11-10",
+									"description": "Optional end date",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get logs for a week. If only startDate is provided, it calculates the full week."
+					}
+				},
+				{
+					"name": "Get Logs in Month",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/logs/month?startDate=2025-11-01",
+							"host": ["{{baseUrl}}"],
+							"path": ["logs", "month"],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2025-11-01",
+									"description": "Start date (will auto-calculate month range)"
+								},
+								{
+									"key": "endDate",
+									"value": "2025-11-30",
+									"description": "Optional end date",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get logs for a month. If only startDate is provided, it calculates the full month."
+					}
+				},
+				{
+					"name": "Get Log Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/logs/1/detail",
+							"host": ["{{baseUrl}}"],
+							"path": ["logs", "1", "detail"]
+						},
+						"description": "Get detailed information for a specific log"
+					}
+				},
+				{
+					"name": "Update Log",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"taskId\": 1,\n  \"content\": \"Completed the authentication module and added unit tests\",\n  \"emoji\": \"🎉\",\n  \"attachment\": \"https://example.com/screenshot-updated.png\",\n  \"employeeLocation\": \"Remote\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/logs/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["logs", "1"]
+						},
+						"description": "Update an existing log entry"
+					}
+				},
+				{
+					"name": "Delete Log",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/logs/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["logs", "1"]
+						},
+						"description": "Delete a log entry"
+					}
+				}
+			]
+		}
+	]
+}

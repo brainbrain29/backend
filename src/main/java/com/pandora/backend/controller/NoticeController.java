@@ -8,9 +8,8 @@ import com.pandora.backend.dto.NoticeStatusDTO;
 import com.pandora.backend.dto.NoticeDTO;
 import com.pandora.backend.service.NoticeService;
 
-//TODO:代码风格,返回网络状态码还是只返回json文件
 @RestController
-@RequestMapping("/notice")
+@RequestMapping("/notices")
 public class NoticeController {
     @Autowired
     private NoticeService noticeService;

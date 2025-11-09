@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.pandora.backend.enums.Gender;
 import java.util.List;
 
@@ -49,4 +50,8 @@ public class Employee {
 
     @OneToMany(mappedBy = "employee")
     private List<Employee_Team> employeeTeams;
+
+    @OneToMany(mappedBy = "employee", fetch = FetchType.LAZY)
+    @JsonManagedReference(value = "emp-logs")
+    private List<Log> logs;
 }

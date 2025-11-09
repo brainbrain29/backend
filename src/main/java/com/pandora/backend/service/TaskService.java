@@ -1,20 +1,35 @@
 package com.pandora.backend.service;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.pandora.backend.repository.TaskRepository;
 import com.pandora.backend.repository.EmployeeRepository;
+import com.pandora.backend.repository.EmployeeTeamRepository;
 import com.pandora.backend.repository.MilestoneRepository;
+import com.pandora.backend.repository.ProjectRepository;
+import com.pandora.backend.dto.AssignableEmployeeDTO;
 import com.pandora.backend.dto.TaskDTO;
+import com.pandora.backend.dto.TaskStatusDTO;
+import com.pandora.backend.enums.Status;
 import com.pandora.backend.entity.Task;
 import com.pandora.backend.entity.Employee;
 import com.pandora.backend.entity.Milestone;
+import com.pandora.backend.entity.Project;
+import com.pandora.backend.enums.Priority;
+import com.pandora.backend.enums.TaskType;
 
 @Service
 public class TaskService {
+
+    private static final Byte POSITION_TEAM_LEADER = 2;
+    private static final Byte LEADER_FLAG = 1;
 
     @Autowired
     private TaskRepository taskRepository;
@@ -28,6 +43,12 @@ public class TaskService {
     @Autowired
     private NoticeService noticeService;
 
+    @Autowired
+    private EmployeeTeamRepository employeeTeamRepository;
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
     // 创建任务
     public TaskDTO createTask(TaskDTO taskDTO) {
         Task task = new Task();
@@ -35,10 +56,18 @@ public class TaskService {
         task.setContent(taskDTO.getContent());
         task.setStartTime(taskDTO.getStartTime());
         task.setEndTime(taskDTO.getEndTime());
-        task.setTaskStatus(taskDTO.getTaskStatus());
-        task.setTaskPriority(taskDTO.getTaskPriority());
-        task.setTaskType(taskDTO.getTaskType());
-        task.setCreatedByWho(taskDTO.getCreatedByWho());
+        if (taskDTO.getTaskStatus() != null) {
+            Status s = Status.fromDesc(taskDTO.getTaskStatus());
+            task.setTaskStatus((byte) s.getCode());
+        }
+        if (taskDTO.getTaskPriority() != null) {
+            Priority p = Priority.fromDesc(taskDTO.getTaskPriority());
+            task.setTaskPriority((byte) p.getCode());
+        }
+        if (taskDTO.getTaskType() != null) {
+            TaskType t = TaskType.fromDesc(taskDTO.getTaskType());
+            task.setTaskType((byte) t.getCode());
+        }
 
         // 设置发送者（必填）
         if (taskDTO.getSenderId() != null) {
@@ -87,18 +116,17 @@ public class TaskService {
             task.setEndTime(taskDTO.getEndTime());
         }
         if (taskDTO.getTaskStatus() != null) {
-            task.setTaskStatus(taskDTO.getTaskStatus());
+            Status s = Status.fromDesc(taskDTO.getTaskStatus());
+            task.setTaskStatus((byte) s.getCode());
         }
         if (taskDTO.getTaskPriority() != null) {
-            task.setTaskPriority(taskDTO.getTaskPriority());
+            Priority p = Priority.fromDesc(taskDTO.getTaskPriority());
+            task.setTaskPriority((byte) p.getCode());
         }
         if (taskDTO.getTaskType() != null) {
-            task.setTaskType(taskDTO.getTaskType());
+            TaskType t = TaskType.fromDesc(taskDTO.getTaskType());
+            task.setTaskType((byte) t.getCode());
         }
-        if (taskDTO.getCreatedByWho() != null) {
-            task.setCreatedByWho(taskDTO.getCreatedByWho());
-        }
-
         // 更新执行者
         if (taskDTO.getAssigneeId() != null) {
             Employee assignee = employeeRepository.findById(taskDTO.getAssigneeId())
@@ -139,10 +167,45 @@ public class TaskService {
         return convertToDTO(task);
     }
 
-    // 查询所有任务
+    // 查询所有任务 (管理员使用)
     public List<TaskDTO> getAllTasks() {
         List<Task> tasks = taskRepository.findAll();
         return tasks.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 查询用户的所有任务
+     * 返回用户创建的或被分配的任务，去重
+     * 
+     * @param userId 用户ID
+     * @return 任务列表
+     */
+    public List<TaskDTO> getTasksByUserId(Integer userId) {
+        // 获取用户创建的任务
+        List<Task> createdTasks = taskRepository.findBySenderEmployeeId(userId);
+
+        // 获取用户被分配的任务
+        List<Task> assignedTasks = taskRepository.findByAssigneeEmployeeId(userId);
+
+        // 合并并去重
+        Set<Integer> taskIds = new HashSet<>();
+        List<Task> allTasks = new ArrayList<>();
+
+        for (Task task : createdTasks) {
+            if (taskIds.add(task.getTaskId())) {
+                allTasks.add(task);
+            }
+        }
+
+        for (Task task : assignedTasks) {
+            if (taskIds.add(task.getTaskId())) {
+                allTasks.add(task);
+            }
+        }
+
+        return allTasks.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -187,10 +250,10 @@ public class TaskService {
         dto.setContent(task.getContent());
         dto.setStartTime(task.getStartTime());
         dto.setEndTime(task.getEndTime());
-        dto.setTaskStatus(task.getTaskStatus());
-        dto.setTaskPriority(task.getTaskPriority());
-        dto.setTaskType(task.getTaskType());
-        dto.setCreatedByWho(task.getCreatedByWho());
+        dto.setTaskStatus(task.getTaskStatus() != null ? Status.fromCode(task.getTaskStatus()).getDesc() : null);
+        dto.setTaskPriority(
+                task.getTaskPriority() != null ? Priority.fromCode(task.getTaskPriority()).getDesc() : null);
+        dto.setTaskType(task.getTaskType() != null ? TaskType.fromCode(task.getTaskType()).getDesc() : null);
 
         if (task.getAssignee() != null) {
             dto.setAssigneeId(task.getAssignee().getEmployeeId());
@@ -204,5 +267,231 @@ public class TaskService {
 
         return dto;
     }
-}
 
+    private Employee loadLeaderOrThrow(Integer leaderId) {
+        return employeeRepository.findById(leaderId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+    }
+
+    private void validateLeaderPosition(Employee leader) {
+        if (!POSITION_TEAM_LEADER.equals(leader.getPosition())) {
+            throw new IllegalArgumentException("仅团队长可以执行该操作");
+        }
+    }
+
+    public List<TaskDTO> getTasksByTeam(Integer leaderId) {
+        List<Integer> teamIds = employeeTeamRepository.findLeaderTeamIds(leaderId, LEADER_FLAG);
+        if (teamIds.isEmpty()) {
+            return List.of();
+        }
+        Set<Integer> memberIds = new HashSet<>();
+        memberIds.add(leaderId);
+        for (Integer teamId : teamIds) {
+            List<Employee> mates = employeeTeamRepository.findTeammates(teamId, leaderId);
+            for (Employee e : mates) {
+                memberIds.add(e.getEmployeeId());
+            }
+        }
+        List<TaskDTO> result = new ArrayList<>();
+        Set<Integer> seen = new HashSet<>();
+        for (Integer mid : memberIds) {
+            List<Task> list = taskRepository.findByAssigneeEmployeeId(mid);
+            for (Task t : list) {
+                if (seen.add(t.getTaskId())) {
+                    result.add(convertToDTO(t));
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 更新任务状态
+     * 权限检查: 只有任务负责人、创建者、上级可以更新状态
+     */
+    public TaskDTO updateTaskStatus(TaskStatusDTO dto, Integer userId, Byte position) {
+        if (dto.getTaskId() == null) {
+            throw new IllegalArgumentException("任务ID不能为空");
+        }
+        if (dto.getTaskStatus() == null) {
+            throw new IllegalArgumentException("任务状态不能为空");
+        }
+
+        Task task = taskRepository.findById(dto.getTaskId())
+                .orElseThrow(() -> new RuntimeException("任务不存在"));
+
+        // 权限检查
+        boolean hasPermission = false;
+
+        // 1. 是任务负责人
+        if (task.getAssignee() != null && task.getAssignee().getEmployeeId().equals(userId)) {
+            hasPermission = true;
+        }
+
+        // 2. 是任务创建者
+        if (task.getSender() != null && task.getSender().getEmployeeId().equals(userId)) {
+            hasPermission = true;
+        }
+
+        // 3. 是上级 (部门经理或团队长)
+        if (position != null && position <= 2) {
+            hasPermission = true;
+        }
+
+        if (!hasPermission) {
+            throw new IllegalArgumentException("无权限更新此任务状态");
+        }
+
+        // 更新状态: 将中文描述转换为 code
+        Status status = Status.fromDesc(dto.getTaskStatus());
+        task.setTaskStatus((byte) status.getCode());
+        Task updatedTask = taskRepository.save(task);
+
+        return convertToDTO(updatedTask);
+    }
+
+    /**
+     * 获取可分配任务的人员列表
+     * 基于项目的团队成员进行分配
+     * 部门经理: 可以分配给项目团队的团队长 + 员工
+     * 团队长: 只能分配给项目团队的员工
+     */
+    public List<AssignableEmployeeDTO> getAssignableTaskMembers(
+            Integer projectId, Integer userId, Byte position) {
+
+        if (projectId == null) {
+            throw new IllegalArgumentException("项目ID不能为空");
+        }
+
+        // 1. 获取项目信息
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("项目不存在"));
+
+        // 2. 检查项目是否已分配团队 (使用 project.team 字段)
+        if (project.getTeam() == null) {
+            throw new IllegalArgumentException("该项目尚未分配负责团队");
+        }
+
+        Integer teamId = project.getTeam().getTeamId();
+
+        // 3. 根据调用者的职位确定需要查询的职位列表
+        List<Byte> positions;
+        if (position == 1) {
+            // 部门经理: 可以分配给团队长(2) + 员工(3)
+            positions = Arrays.asList((byte) 2, (byte) 3);
+        } else if (position == 2) {
+            // 团队长: 只能分配给员工(3)
+            positions = Arrays.asList((byte) 3);
+        } else {
+            throw new IllegalArgumentException("无权限分配任务");
+        }
+
+        // 4. 直接查询符合条件的团队成员 (在数据库层面过滤)
+        List<Employee> teamMembers = employeeTeamRepository
+                .findTeamMembersByPositions(teamId, positions);
+
+        // 5. 转换为 DTO
+        return teamMembers.stream()
+                .map(this::toAssignableDTO)
+                .collect(Collectors.toList());
+    }
+
+    // TODO:检查接口
+    /**
+     * 分配任务负责人
+     * 部门经理: 可以分配给本部门的团队长和员工
+     * 团队长: 可以分配给本团队的员工
+     */
+    public TaskDTO assignTaskMember(Integer taskId, Integer assigneeId, Integer userId, Byte position) {
+        if (assigneeId == null) {
+            throw new IllegalArgumentException("负责人ID不能为空");
+        }
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("任务不存在"));
+
+        Employee assignee = employeeRepository.findById(assigneeId)
+                .orElseThrow(() -> new IllegalArgumentException("负责人不存在"));
+
+        Employee currentUser = employeeRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+
+        // 权限检查
+        boolean canAssign = false;
+
+        if (position == 1) {
+            // 部门经理: 检查负责人是否在本部门
+            if (currentUser.getDepartment() != null &&
+                    assignee.getDepartment() != null &&
+                    currentUser.getDepartment().getOrgId().equals(assignee.getDepartment().getOrgId())) {
+                // 只能分配给团队长或员工
+                if (assignee.getPosition() == 2 || assignee.getPosition() == 3) {
+                    canAssign = true;
+                }
+            }
+        } else if (position == 2) {
+            // 团队长: 检查负责人是否在本团队
+            List<Integer> teamIds = employeeTeamRepository.findLeaderTeamIds(userId, LEADER_FLAG);
+
+            for (Integer teamId : teamIds) {
+                if (employeeTeamRepository.existsByTeamTeamIdAndEmployeeEmployeeId(teamId, assigneeId)) {
+                    // 只能分配给员工
+                    if (assignee.getPosition() == 3) {
+                        canAssign = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!canAssign) {
+            throw new IllegalArgumentException("无权限分配给该员工");
+        }
+
+        // 分配任务
+        task.setAssignee(assignee);
+        Task updatedTask = taskRepository.save(task);
+
+        // 创建通知
+        noticeService.createTaskAssignmentNotice(updatedTask);
+
+        return convertToDTO(updatedTask);
+    }
+
+    // TODO:不想在后端注明,也许写成映射类
+    /**
+     * 转换为可分配员工DTO
+     */
+    private AssignableEmployeeDTO toAssignableDTO(Employee employee) {
+        AssignableEmployeeDTO dto = new AssignableEmployeeDTO();
+        dto.setEmployeeId(employee.getEmployeeId());
+        dto.setEmployeeName(employee.getEmployeeName());
+        dto.setEmail(employee.getEmail());
+        dto.setPosition(employee.getPosition());
+
+        // 设置职位名称
+        switch (employee.getPosition()) {
+            case 0:
+                dto.setPositionName("CEO");
+                break;
+            case 1:
+                dto.setPositionName("部门经理");
+                break;
+            case 2:
+                dto.setPositionName("团队长");
+                break;
+            case 3:
+                dto.setPositionName("员工");
+                break;
+            default:
+                dto.setPositionName("未知");
+        }
+
+        if (employee.getDepartment() != null) {
+            dto.setOrgId(employee.getDepartment().getOrgId());
+            dto.setOrgName(employee.getDepartment().getOrgName());
+        }
+
+        return dto;
+    }
+}

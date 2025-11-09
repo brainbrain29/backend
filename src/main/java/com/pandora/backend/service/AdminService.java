@@ -39,7 +39,7 @@ public class AdminService {
     private String uploadDir;
 
     // ========== 员工管理 ==========
-    
+
     /**
      * 获取所有员工列表
      */
@@ -95,10 +95,10 @@ public class AdminService {
         emp.setPhone(dto.getPhone());
         emp.setEmail(dto.getEmail());
         emp.setPosition(dto.getPosition());
-        
+
         // 设置默认密码
         emp.setPassword("123456");
-        
+
         // 设置部门
         if (dto.getOrgId() != null) {
             Department department = departmentRepository.findById(dto.getOrgId())
@@ -170,13 +170,13 @@ public class AdminService {
     public void transferDepartment(Integer employeeId, Integer newDepartmentId) {
         Employee emp = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
-        
+
         Department department = null;
         if (newDepartmentId != null) {
             department = departmentRepository.findById(newDepartmentId)
                     .orElseThrow(() -> new RuntimeException("Department not found"));
         }
-        
+
         emp.setDepartment(department);
         employeeRepository.save(emp);
     }
@@ -194,7 +194,7 @@ public class AdminService {
      */
     @Transactional
     public Employee updateAdminProfile(Integer adminId, String name, String email, String phone,
-                                       String newPassword, MultipartFile avatarFile) {
+            String newPassword, MultipartFile avatarFile) {
         Employee emp = employeeRepository.findById(adminId)
                 .orElseThrow(() -> new RuntimeException("管理员不存在"));
 
@@ -255,15 +255,13 @@ public class AdminService {
         return matters.stream()
                 .map(matter -> {
                     ImportantMatterDTO dto = new ImportantMatterDTO();
-                    dto.setMatterId(matter.getMatterId());
+                    dto.setEventId(matter.getMatterId());
+                    dto.setTitle(matter.getTitle());
                     dto.setContent(matter.getContent());
-                    dto.setDeadline(matter.getDeadline());
-                    dto.setAssigneeId(matter.getAssignee().getEmployeeId());
-                    dto.setAssigneeName(matter.getAssignee().getEmployeeName());
-                    dto.setMatterStatus(matter.getMatterStatus());
-                    dto.setMatterPriority(matter.getMatterPriority());
-                    dto.setSerialNum(matter.getSerialNum());
-                    dto.setVisibleRange(matter.getVisibleRange());
+                    if (matter.getDepartment() != null) {
+                        dto.setDepartmentName(matter.getDepartment().getOrgName());
+                    }
+                    dto.setPublishTime(matter.getPublishTime());
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -275,29 +273,28 @@ public class AdminService {
     @Transactional
     public ImportantMatterDTO createImportantMatter(ImportantMatterDTO dto) {
         ImportantMatter matter = new ImportantMatter();
+        matter.setTitle(dto.getTitle());
         matter.setContent(dto.getContent());
-        matter.setDeadline(dto.getDeadline());
-        matter.setMatterStatus(dto.getMatterStatus());
-        matter.setMatterPriority(dto.getMatterPriority());
-        matter.setSerialNum(dto.getSerialNum());
-        matter.setVisibleRange(dto.getVisibleRange());
+        matter.setPublishTime(java.time.LocalDateTime.now());
 
-        Employee assignee = employeeRepository.findById(dto.getAssigneeId())
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
-        matter.setAssignee(assignee);
+        // 设置部门
+        if (dto.getDepartmentId() != null) {
+            Department department = departmentRepository.findById(dto.getDepartmentId())
+                    .orElseThrow(() -> new RuntimeException("Department not found"));
+            matter.setDepartment(department);
+        }
 
         ImportantMatter saved = importantMatterRepository.save(matter);
 
         ImportantMatterDTO result = new ImportantMatterDTO();
-        result.setMatterId(saved.getMatterId());
+        result.setEventId(saved.getMatterId());
+        result.setTitle(saved.getTitle());
         result.setContent(saved.getContent());
-        result.setDeadline(saved.getDeadline());
-        result.setAssigneeId(saved.getAssignee().getEmployeeId());
-        result.setAssigneeName(saved.getAssignee().getEmployeeName());
-        result.setMatterStatus(saved.getMatterStatus());
-        result.setMatterPriority(saved.getMatterPriority());
-        result.setSerialNum(saved.getSerialNum());
-        result.setVisibleRange(saved.getVisibleRange());
+        if (saved.getDepartment() != null) {
+            result.setDepartmentId(saved.getDepartment().getOrgId());
+            result.setDepartmentName(saved.getDepartment().getOrgName());
+        }
+        result.setPublishTime(saved.getPublishTime());
 
         return result;
     }
@@ -310,29 +307,27 @@ public class AdminService {
         ImportantMatter matter = importantMatterRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Important matter not found"));
 
+        matter.setTitle(dto.getTitle());
         matter.setContent(dto.getContent());
-        matter.setDeadline(dto.getDeadline());
-        matter.setMatterStatus(dto.getMatterStatus());
-        matter.setMatterPriority(dto.getMatterPriority());
-        matter.setSerialNum(dto.getSerialNum());
-        matter.setVisibleRange(dto.getVisibleRange());
 
-        Employee assignee = employeeRepository.findById(dto.getAssigneeId())
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
-        matter.setAssignee(assignee);
+        // 更新部门
+        if (dto.getDepartmentId() != null) {
+            Department department = departmentRepository.findById(dto.getDepartmentId())
+                    .orElseThrow(() -> new RuntimeException("Department not found"));
+            matter.setDepartment(department);
+        }
 
         ImportantMatter saved = importantMatterRepository.save(matter);
 
         ImportantMatterDTO result = new ImportantMatterDTO();
-        result.setMatterId(saved.getMatterId());
+        result.setEventId(saved.getMatterId());
+        result.setTitle(saved.getTitle());
         result.setContent(saved.getContent());
-        result.setDeadline(saved.getDeadline());
-        result.setAssigneeId(saved.getAssignee().getEmployeeId());
-        result.setAssigneeName(saved.getAssignee().getEmployeeName());
-        result.setMatterStatus(saved.getMatterStatus());
-        result.setMatterPriority(saved.getMatterPriority());
-        result.setSerialNum(saved.getSerialNum());
-        result.setVisibleRange(saved.getVisibleRange());
+        if (saved.getDepartment() != null) {
+            result.setDepartmentId(saved.getDepartment().getOrgId());
+            result.setDepartmentName(saved.getDepartment().getOrgName());
+        }
+        result.setPublishTime(saved.getPublishTime());
 
         return result;
     }
@@ -360,8 +355,27 @@ public class AdminService {
                     dto.setEmployeeName(task.getEmployee().getEmployeeName());
                     dto.setTaskContent(task.getTaskContent());
                     dto.setDeadline(task.getDeadline());
-                    dto.setTaskStatus(task.getTaskStatus());
-                    dto.setTaskPriority(task.getTaskPriority());
+
+                    // 将 code 转换为中文描述
+                    if (task.getTaskStatus() != null) {
+                        String statusDesc = switch (task.getTaskStatus()) {
+                            case 0 -> "待处理";
+                            case 1 -> "进行中";
+                            case 2 -> "已完成";
+                            default -> "未知";
+                        };
+                        dto.setTaskStatus(statusDesc);
+                    }
+                    if (task.getTaskPriority() != null) {
+                        String priorityDesc = switch (task.getTaskPriority()) {
+                            case 0 -> "低";
+                            case 1 -> "中";
+                            case 2 -> "高";
+                            default -> "未知";
+                        };
+                        dto.setTaskPriority(priorityDesc);
+                    }
+
                     dto.setSerialNum(task.getSerialNum());
                     dto.setCreatedTime(task.getCreatedTime());
                     dto.setUpdatedTime(task.getUpdatedTime());
@@ -378,8 +392,32 @@ public class AdminService {
         ImportantTask task = new ImportantTask();
         task.setTaskContent(dto.getTaskContent());
         task.setDeadline(dto.getDeadline());
-        task.setTaskStatus(dto.getTaskStatus() != null ? dto.getTaskStatus() : (byte) 0);
-        task.setTaskPriority(dto.getTaskPriority() != null ? dto.getTaskPriority() : (byte) 1);
+
+        // 将中文描述转换为 code
+        if (dto.getTaskStatus() != null) {
+            byte statusCode = switch (dto.getTaskStatus()) {
+                case "待处理" -> 0;
+                case "进行中" -> 1;
+                case "已完成" -> 2;
+                default -> 0;
+            };
+            task.setTaskStatus(statusCode);
+        } else {
+            task.setTaskStatus((byte) 0);
+        }
+
+        if (dto.getTaskPriority() != null) {
+            byte priorityCode = switch (dto.getTaskPriority()) {
+                case "低" -> 0;
+                case "中" -> 1;
+                case "高" -> 2;
+                default -> 1;
+            };
+            task.setTaskPriority(priorityCode);
+        } else {
+            task.setTaskPriority((byte) 1);
+        }
+
         task.setSerialNum(dto.getSerialNum());
         task.setCreatedTime(java.time.LocalDateTime.now());
         task.setUpdatedTime(java.time.LocalDateTime.now());
@@ -396,8 +434,21 @@ public class AdminService {
         result.setEmployeeName(saved.getEmployee().getEmployeeName());
         result.setTaskContent(saved.getTaskContent());
         result.setDeadline(saved.getDeadline());
-        result.setTaskStatus(saved.getTaskStatus());
-        result.setTaskPriority(saved.getTaskPriority());
+
+        // 将 code 转换为中文描述
+        result.setTaskStatus(switch (saved.getTaskStatus()) {
+            case 0 -> "待处理";
+            case 1 -> "进行中";
+            case 2 -> "已完成";
+            default -> "未知";
+        });
+        result.setTaskPriority(switch (saved.getTaskPriority()) {
+            case 0 -> "低";
+            case 1 -> "中";
+            case 2 -> "高";
+            default -> "未知";
+        });
+
         result.setSerialNum(saved.getSerialNum());
         result.setCreatedTime(saved.getCreatedTime());
         result.setUpdatedTime(saved.getUpdatedTime());
@@ -415,8 +466,28 @@ public class AdminService {
 
         task.setTaskContent(dto.getTaskContent());
         task.setDeadline(dto.getDeadline());
-        task.setTaskStatus(dto.getTaskStatus());
-        task.setTaskPriority(dto.getTaskPriority());
+
+        // 将中文描述转换为 code
+        if (dto.getTaskStatus() != null) {
+            byte statusCode = switch (dto.getTaskStatus()) {
+                case "待处理" -> 0;
+                case "进行中" -> 1;
+                case "已完成" -> 2;
+                default -> 0;
+            };
+            task.setTaskStatus(statusCode);
+        }
+
+        if (dto.getTaskPriority() != null) {
+            byte priorityCode = switch (dto.getTaskPriority()) {
+                case "低" -> 0;
+                case "中" -> 1;
+                case "高" -> 2;
+                default -> 1;
+            };
+            task.setTaskPriority(priorityCode);
+        }
+
         task.setSerialNum(dto.getSerialNum());
         task.setUpdatedTime(java.time.LocalDateTime.now());
 
@@ -432,8 +503,21 @@ public class AdminService {
         result.setEmployeeName(saved.getEmployee().getEmployeeName());
         result.setTaskContent(saved.getTaskContent());
         result.setDeadline(saved.getDeadline());
-        result.setTaskStatus(saved.getTaskStatus());
-        result.setTaskPriority(saved.getTaskPriority());
+
+        // 将 code 转换为中文描述
+        result.setTaskStatus(switch (saved.getTaskStatus()) {
+            case 0 -> "待处理";
+            case 1 -> "进行中";
+            case 2 -> "已完成";
+            default -> "未知";
+        });
+        result.setTaskPriority(switch (saved.getTaskPriority()) {
+            case 0 -> "低";
+            case 1 -> "中";
+            case 2 -> "高";
+            default -> "未知";
+        });
+
         result.setSerialNum(saved.getSerialNum());
         result.setCreatedTime(saved.getCreatedTime());
         result.setUpdatedTime(saved.getUpdatedTime());
@@ -450,30 +534,30 @@ public class AdminService {
     }
 
     // ========== 系统统计 ==========
-    
+
     /**
      * 获取系统统计数据
      */
     public SystemStatsDTO getSystemStats() {
         SystemStatsDTO stats = new SystemStatsDTO();
-        
+
         // 活跃用户数（员工总数）
         stats.setActiveUsers((int) employeeRepository.count());
-        
+
         // 进行中任务数（taskStatus = 1）
         List<ImportantTask> allTasks = importantTaskRepository.findAll();
         long inProgressCount = allTasks.stream()
                 .filter(task -> task.getTaskStatus() == 1)
                 .count();
         stats.setInProgressTasks((int) inProgressCount);
-        
+
         // 今日到期任务数（deadline 是今天的）
         long todayCount = allTasks.stream()
-                .filter(task -> task.getDeadline() != null && 
+                .filter(task -> task.getDeadline() != null &&
                         task.getDeadline().toLocalDate().equals(java.time.LocalDate.now()))
                 .count();
         stats.setTodayDeliveries((int) todayCount);
-        
+
         // 任务完成率
         long totalTasks = allTasks.size();
         if (totalTasks > 0) {
@@ -484,10 +568,10 @@ public class AdminService {
         } else {
             stats.setCompletionRate(0.0);
         }
-        
+
         return stats;
     }
-    
+
     /**
      * 获取最近系统活动（基于最近创建/更新的任务）
      */
@@ -497,11 +581,11 @@ public class AdminService {
                 .sorted((t1, t2) -> t2.getUpdatedTime().compareTo(t1.getUpdatedTime()))
                 .limit(5)
                 .collect(Collectors.toList());
-        
+
         return recentTasks.stream()
                 .map(task -> {
                     ActivityLogDTO activity = new ActivityLogDTO();
-                    
+
                     // 判断任务状态
                     if (task.getTaskStatus() == 2) {
                         activity.setActivityType("COMPLETE_TASK");
@@ -513,16 +597,16 @@ public class AdminService {
                         activity.setActivityType("ADD_TASK");
                         activity.setDescription(task.getEmployee().getEmployeeName() + " 创建了新任务");
                     }
-                    
+
                     activity.setEmployeeName(task.getEmployee().getEmployeeName());
                     activity.setTimestamp(task.getUpdatedTime());
                     activity.setRelativeTime(getRelativeTime(task.getUpdatedTime()));
-                    
+
                     return activity;
                 })
                 .collect(Collectors.toList());
     }
-    
+
     /**
      * 计算相对时间（如"10分钟前"）
      */
@@ -530,12 +614,12 @@ public class AdminService {
         if (dateTime == null) {
             return "";
         }
-        
+
         java.time.Duration duration = java.time.Duration.between(dateTime, java.time.LocalDateTime.now());
         long minutes = duration.toMinutes();
         long hours = duration.toHours();
         long days = duration.toDays();
-        
+
         if (minutes < 1) {
             return "刚刚";
         } else if (minutes < 60) {
@@ -547,5 +631,3 @@ public class AdminService {
         }
     }
 }
-
-

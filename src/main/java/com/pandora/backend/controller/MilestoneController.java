@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
 import com.pandora.backend.dto.MilestoneDTO;
 import com.pandora.backend.dto.MilestoneCreateDTO;
 import com.pandora.backend.entity.Employee;
@@ -14,7 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/milestone")
-public class MilestoneController { // TODO: CEO-only milestone creation controller
+public class MilestoneController { // TODO: 项目创建者才能"操控"里程碑
 
     @Autowired
     private MilestoneService milestoneService;
@@ -22,13 +21,9 @@ public class MilestoneController { // TODO: CEO-only milestone creation controll
     @Autowired
     private EmployeeRepository employeeRepository;
 
-    @GetMapping("/Project/{projectId}/milestone")
-    public List<MilestoneDTO> getMilestonesByProjectId(@PathVariable Integer projectId) {
-        return milestoneService.getMilestonesByProjectId(projectId);
-    }
-
     @PostMapping
-    public ResponseEntity<?> createMilestone(HttpServletRequest request, @RequestBody MilestoneCreateDTO body) { // TODO: CEO creates milestone
+    public ResponseEntity<?> createMilestone(HttpServletRequest request, @RequestBody MilestoneCreateDTO body) {
+
         Object uidObj = request.getAttribute("userId");
         if (uidObj == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid token");

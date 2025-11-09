@@ -2,9 +2,9 @@ package com.pandora.backend.enums;
 
 // 项目/任务/事项优先级
 public enum Priority {
-    HIGH(1, "重要"),
-    NORMAL(2, "一般"),
-    LOW(3, "日常");
+    HIGH(1, "高"),
+    NORMAL(2, "中"),
+    LOW(3, "低");
 
     private final int code;
     private final String desc;

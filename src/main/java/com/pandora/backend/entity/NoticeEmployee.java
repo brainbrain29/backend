@@ -15,7 +15,7 @@ public class NoticeEmployee {
     private NoticeEmployeeId id;
 
     @Enumerated(EnumType.ORDINAL)
-    @Column(name = "notice_status")
+    @Column(name = "notice_status", nullable = false)
     private NoticeStatus noticeStatus;
 
     @ManyToOne

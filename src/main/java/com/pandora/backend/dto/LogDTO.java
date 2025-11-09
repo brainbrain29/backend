@@ -15,7 +15,7 @@ public class LogDTO {
     private Integer taskId;
     private LocalDateTime createdTime;
     private String content;
-    private Byte emoji;
+    private String emoji;
     private String attachment;
     private String employeeLocation;
 }

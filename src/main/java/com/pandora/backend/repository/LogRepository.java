@@ -19,6 +19,9 @@ public interface LogRepository extends JpaRepository<Log, Integer> {
     List<Log> findByTask_TaskId(Integer taskId);
 
     List<Log> findByCreatedTimeBetween(LocalDateTime start, LocalDateTime end);
+    
+    // Query logs by employee (user) within a time range
+    List<Log> findByEmployeeEmployeeIdAndCreatedTimeBetween(Integer userId, LocalDateTime start, LocalDateTime end);
     @Query("SELECT l FROM Log l WHERE l.employee.employeeId = :userId AND l.createdTime >= :startOfDay AND l.createdTime < :endOfDay ORDER BY l.createdTime DESC")
     List<Log> findTodayLogsByEmployeeId(@Param("userId") Integer userId, @Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
 

@@ -1,34 +1,18 @@
 package com.pandora.backend.dto;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
 
-public class ProjectDTO { // TODO: DTO for project response
+@Getter
+@Setter
+public class ProjectDTO {
     private Integer projectId;
     private String title;
     private String content;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    private Byte projectStatus;
-    private Byte projectPriority;
-    private Byte projectType;
+    private String projectStatus; // 返回中文描述给前端，如"已完成"
     private Integer senderId;
-
-    public Integer getProjectId() { return projectId; }
-    public void setProjectId(Integer projectId) { this.projectId = projectId; }
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public String getContent() { return content; }
-    public void setContent(String content) { this.content = content; }
-    public LocalDateTime getStartTime() { return startTime; }
-    public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
-    public LocalDateTime getEndTime() { return endTime; }
-    public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
-    public Byte getProjectStatus() { return projectStatus; }
-    public void setProjectStatus(Byte projectStatus) { this.projectStatus = projectStatus; }
-    public Byte getProjectPriority() { return projectPriority; }
-    public void setProjectPriority(Byte projectPriority) { this.projectPriority = projectPriority; }
-    public Byte getProjectType() { return projectType; }
-    public void setProjectType(Byte projectType) { this.projectType = projectType; }
-    public Integer getSenderId() { return senderId; }
-    public void setSenderId(Integer senderId) { this.senderId = senderId; }
+    private Integer teamId;
 }

@@ -13,7 +13,7 @@ import com.pandora.backend.entity.Milestone;
 import com.pandora.backend.entity.Project;
 
 @Service
-public class MilestoneService { // TODO: Service for CEO milestone creation
+public class MilestoneService {
 
     @Autowired
     private MilestoneRepository milestoneRepository;
@@ -29,7 +29,7 @@ public class MilestoneService { // TODO: Service for CEO milestone creation
                 .collect(Collectors.toList());
     }
 
-    public MilestoneDTO createMilestone(MilestoneCreateDTO dto) { // TODO: Create milestone bound to project
+    public MilestoneDTO createMilestone(MilestoneCreateDTO dto) {
         Project project = projectRepository.findById(dto.getProjectId())
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 

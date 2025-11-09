@@ -15,25 +15,16 @@ public class ImportantMatter {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer matterId;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, length = 100)
+    private String title;
+
+    @Column(nullable = false, length = 500)
     private String content;
 
-    @Column(nullable = false)
-    private LocalDateTime deadline;
+    @ManyToOne
+    @JoinColumn(name = "department_id")
+    private Department department;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "assignee_id", nullable = false)
-    private Employee assignee;
-
-    @Column(nullable = false)
-    private Byte matterStatus;
-
-    @Column(nullable = false)
-    private Byte matterPriority;
-
-    @Column(nullable = false)
-    private Byte serialNum;
-
-    @Column(nullable = false)
-    private Byte visibleRange;
+    @Column(name = "publish_time")
+    private LocalDateTime publishTime;
 }

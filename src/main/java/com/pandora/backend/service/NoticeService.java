@@ -114,6 +114,11 @@ public class NoticeService {
             return;
         }
 
+        // 如果分配者和执行者是同一人,不发送通知
+        if (task.getAssignee().getEmployeeId().equals(task.getSender().getEmployeeId())) {
+            return;
+        }
+
         // 1. 保存通知到数据库
         Notice notice = new Notice();
         notice.setSender(task.getSender());

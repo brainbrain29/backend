@@ -12,21 +12,20 @@ public class TaskDTO {
     private String content;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    private Byte taskStatus;
-    private Byte taskPriority;
+    private String taskStatus;
+    private String taskPriority;
     private Integer assigneeId;
     private Integer senderId;
-    private Byte taskType;
-    private Byte createdByWho;
+    private String taskType;
     private Integer milestoneId;
 
     public TaskDTO() {
     }
 
-    public TaskDTO(Integer taskId, String title, String content, LocalDateTime startTime, 
-                   LocalDateTime endTime, Byte taskStatus, Byte taskPriority, 
-                   Integer assigneeId, Integer senderId, Byte taskType, 
-                   Byte createdByWho, Integer milestoneId) {
+    public TaskDTO(Integer taskId, String title, String content, LocalDateTime startTime,
+            LocalDateTime endTime, String taskStatus, String taskPriority,
+            Integer assigneeId, Integer senderId, String taskType,
+            Integer milestoneId) {
         this.taskId = taskId;
         this.title = title;
         this.content = content;
@@ -37,8 +36,6 @@ public class TaskDTO {
         this.assigneeId = assigneeId;
         this.senderId = senderId;
         this.taskType = taskType;
-        this.createdByWho = createdByWho;
         this.milestoneId = milestoneId;
     }
 }
-

@@ -21,8 +21,10 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
 
     // 根据任务状态查询
     List<Task> findByTaskStatus(Byte taskStatus);
+
     @Query("SELECT t FROM Task t WHERE t.assignee IS NULL ORDER BY t.endTime ASC")
     List<Task> findTop10CompanyTasks(Pageable pageable);
+
     @Query("SELECT t FROM Task t WHERE t.assignee.employeeId = :userId ORDER BY t.endTime ASC")
     List<Task> findTop10PersonalTasks(@Param("userId") Integer userId, Pageable pageable);
 
@@ -35,4 +37,22 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
 
     // 我们在 LogService 中用到了这个，所以也需要加在这里
     List<Task> findByTaskId(Integer taskId);
+
+    // TODO:检查效率
+    @Query("""
+            SELECT DISTINCT t
+            FROM Task t
+            WHERE t.assignee.employeeId IN (
+                SELECT et.employee.employeeId
+                FROM Employee_Team et
+                WHERE et.team.teamId IN (
+                    SELECT et2.team.teamId
+                    FROM Employee_Team et2
+                    WHERE et2.employee.employeeId = :leaderId
+                      AND et2.isLeader = :leaderFlag
+                )
+            )
+            """)
+    List<Task> findTeamTasksByLeader(@Param("leaderId") Integer leaderId, @Param("leaderFlag") Byte leaderFlag);
+
 }

@@ -6,13 +6,19 @@ import com.pandora.backend.repository.EmployeeRepository;
 import com.pandora.backend.repository.RefreshTokenRepository;
 import com.pandora.backend.util.JwtUtil;
 import com.pandora.backend.dto.TokenPair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 public class AuthService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthService.class);
+    private static final String STATUS_ACTIVE = "ACTIVE";
+    private static final String STATUS_USED = "USED";
+    private static final String ERROR_MESSAGE_INTERNAL_SERVER = "Internal Server Error";
 
     @Autowired
     private EmployeeRepository employeeRepository;
@@ -39,38 +45,41 @@ public class AuthService {
         RefreshToken entity = new RefreshToken();
         entity.setUserId(emp.getEmployeeId());
         entity.setRefreshToken(refresh);
-        entity.setStatus("ACTIVE");
+        entity.setStatus(STATUS_ACTIVE);
         entity.setCreatedAt(LocalDateTime.now());
         entity.setExpiresAt(LocalDateTime.now().plusDays(7));
         refreshTokenRepository.save(entity);
-
-        // 只保留最近2个 Token
-        List<RefreshToken> tokens = refreshTokenRepository.findByUserIdOrderByCreatedAtDesc(emp.getEmployeeId());
-        if (tokens.size() > 2) {
-            // 删除第 3 个及之后的所有旧 Token
-            List<RefreshToken> tokensToDelete = tokens.subList(2, tokens.size());
-            refreshTokenRepository.deleteAll(tokensToDelete);
-            System.out.println("🗑️ 清理用户 " + emp.getEmployeeId() + " 的 " + tokensToDelete.size() + " 个旧 Token");
-        }
 
         return new TokenPair(access, refresh);
     }
 
     public TokenPair refreshToken(String oldRefreshToken) {
         RefreshToken token = refreshTokenRepository.findByRefreshToken(oldRefreshToken)
-                .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+                .orElseThrow(() -> handleRefreshTokenError(oldRefreshToken, "Refresh token not found"));
 
-        if (token.getExpiresAt().isBefore(LocalDateTime.now()) || !"ACTIVE".equals(token.getStatus())) {
-            throw new RuntimeException("Refresh token expired or revoked");
-        }
+        validateRefreshToken(token);
 
-        token.setStatus("USED");
+        token.setStatus(STATUS_USED);
         refreshTokenRepository.save(token);
 
         Integer userId = jwtUtil.extractUserId(oldRefreshToken);
         Employee emp = employeeRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> handleRefreshTokenError(oldRefreshToken, "User not found for refresh token"));
 
         return generateTokens(emp);
+    }
+
+    private void validateRefreshToken(RefreshToken token) {
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw handleRefreshTokenError(token.getRefreshToken(), "Refresh token expired");
+        }
+        if (!STATUS_ACTIVE.equals(token.getStatus())) {
+            throw handleRefreshTokenError(token.getRefreshToken(), "Refresh token status is " + token.getStatus());
+        }
+    }
+
+    private RuntimeException handleRefreshTokenError(String refreshToken, String reason) {
+        LOGGER.error("Failed to refresh token: reason={}, refreshToken={}", reason, refreshToken);
+        return new RuntimeException(ERROR_MESSAGE_INTERNAL_SERVER);
     }
 }

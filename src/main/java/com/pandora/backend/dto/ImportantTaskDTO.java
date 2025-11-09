@@ -12,19 +12,19 @@ public class ImportantTaskDTO {
     private String employeeName;
     private String taskContent;
     private LocalDateTime deadline;
-    private Byte taskStatus;
-    private Byte taskPriority;
-    private Byte serialNum;
+    private String taskStatus; // 返回中文描述，如"已完成"
+    private String taskPriority; // 返回中文描述，如"高"
+    private Byte serialNum; // 序号 1-10
     private LocalDateTime createdTime;
     private LocalDateTime updatedTime;
 
     // Constructors
-    public ImportantTaskDTO() {}
+    public ImportantTaskDTO() {
+    }
 
     public ImportantTaskDTO(Integer taskId, Integer employeeId, String employeeName,
-                                 String taskContent, LocalDateTime deadline, Byte taskStatus,
-                                 Byte taskPriority, Byte serialNum, LocalDateTime createdTime,
-                                 LocalDateTime updatedTime) {
+            String taskContent, LocalDateTime deadline, String taskStatus,
+            String taskPriority, Byte serialNum) {
         this.taskId = taskId;
         this.employeeId = employeeId;
         this.employeeName = employeeName;
@@ -33,7 +33,5 @@ public class ImportantTaskDTO {
         this.taskStatus = taskStatus;
         this.taskPriority = taskPriority;
         this.serialNum = serialNum;
-        this.createdTime = createdTime;
-        this.updatedTime = updatedTime;
     }
 }

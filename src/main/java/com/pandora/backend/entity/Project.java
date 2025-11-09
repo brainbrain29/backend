@@ -32,15 +32,13 @@ public class Project {
     @Column(name = "project_status", nullable = false)
     private Byte projectStatus;
 
-    @Column(name = "project_priority", nullable = false)
-    private Byte projectPriority;
-
-    @Column(name = "project_type", nullable = false)
-    private Byte projectType;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", referencedColumnName = "employee_id", nullable = false, foreignKey = @ForeignKey(name = "fk_project_sender"))
     private Employee sender;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id", referencedColumnName = "team_id", foreignKey = @ForeignKey(name = "fk_project_team"))
+    private Team team;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Milestone> milestones;

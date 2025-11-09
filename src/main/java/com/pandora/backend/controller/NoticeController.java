@@ -16,7 +16,7 @@ public class NoticeController {
     @Autowired
     private NoticeService noticeService;
 
-    // TODO:具体逻辑应该是返回通知摘要,再返回通知详情
+    // TODO:需要先返回通知摘要,再返回通知详情吗？
     /**
      * 获取当前用户的未读通知
      * 安全：从 JWT Token 中获取 userId，防止越权访问

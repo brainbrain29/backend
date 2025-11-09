@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+//TODO:评论功能先不做
 @RestController
 @RequestMapping("/api")
 public class CommentController {
@@ -30,8 +31,8 @@ public class CommentController {
      * 在某个事项下发表新评论
      */
     @PostMapping("/notices/{noticeId}/comments")
-    public ResponseEntity<CommentResponseDTO> addCommentToNotice(@PathVariable Integer noticeId, @RequestBody CommentDTO commentDTO) {
-        // TODO: 替换为从 Spring Security 获取当前登录用户
+    public ResponseEntity<CommentResponseDTO> addCommentToNotice(@PathVariable Integer noticeId,
+            @RequestBody CommentDTO commentDTO) {
         Integer currentUserId = 1;
 
         CommentResponseDTO newComment = commentService.createComment(commentDTO, noticeId, currentUserId);
@@ -43,7 +44,6 @@ public class CommentController {
      */
     @DeleteMapping("/comments/{commentId}")
     public ResponseEntity<Void> deleteComment(@PathVariable Integer commentId) {
-        // TODO: 在 Service 层增加权限校验逻辑，确保只有作者或管理员能删除
         commentService.deleteComment(commentId);
         return ResponseEntity.noContent().build();
     }

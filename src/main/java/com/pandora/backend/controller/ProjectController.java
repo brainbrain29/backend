@@ -18,7 +18,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/projects")
-public class ProjectController { // TODO: 项目创建者才能"操控",谁可见呢?
+public class ProjectController { // TODO: 项目创建者才能修改项目,但谁可见项目呢?
 
     @Autowired
     private ProjectService projectService;

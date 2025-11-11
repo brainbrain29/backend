@@ -2,6 +2,7 @@ package com.pandora.backend.controller;
 
 import com.pandora.backend.dto.EmployeeDTO;
 import com.pandora.backend.entity.Employee;
+import com.pandora.backend.enums.PositionEnum;
 import com.pandora.backend.service.EmployeeService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,17 +93,10 @@ public class EmployeeController {
 
     /**
      * 辅助方法：获取职位名称
+     * 使用PositionEnum统一管理职位映射
      */
     private String getPositionName(Byte position) {
-        if (position == null) return "未知";
-        int pos = position.intValue();
-        switch (pos) {
-            case 0: return "CEO";
-            case 1: return "部门经理";
-            case 2: return "项目经理";
-            case 3: return "普通员工";
-            default: return "未知";
-        }
+        return PositionEnum.getDescriptionByCode(position);
     }
 
     /**

@@ -40,4 +40,7 @@ public class Log {
 
     @Column(length = 50)
     private String employeeLocation;
+
+    @Column(name = "employee_position")
+    private Byte employeePosition;
 }

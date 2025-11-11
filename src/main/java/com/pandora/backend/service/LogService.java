@@ -69,6 +69,7 @@ public class LogService {
         log.setEmoji((byte) emoji.getCode());
         log.setAttachment(dto.getAttachment());
         log.setEmployeeLocation(dto.getEmployeeLocation());
+        log.setEmployeePosition(dto.getPosition()); // 存储员工职位
         log.setCreatedTime(LocalDateTime.now()); // 由后端设置创建时间
 
         if (dto.getTaskId() != null) {
@@ -178,6 +179,7 @@ public class LogService {
                     dto.setEmoji(Emoji.fromCode(log.getEmoji()).getDesc());
                     dto.setAttachment(log.getAttachment());
                     dto.setEmployeeLocation(log.getEmployeeLocation());
+                    dto.setPosition(log.getEmployeePosition()); // 返回员工职位
 
                     return dto;
                 })
@@ -217,6 +219,7 @@ public class LogService {
         }
         dto.setAttachment(log.getAttachment());
         dto.setEmployeeLocation(log.getEmployeeLocation());
+        dto.setPosition(log.getEmployeePosition()); // 返回员工职位
 
         return dto;
     }
@@ -234,6 +237,7 @@ public class LogService {
         }
         existingLog.setAttachment(logDTO.getAttachment());
         existingLog.setEmployeeLocation(logDTO.getEmployeeLocation());
+        existingLog.setEmployeePosition(logDTO.getPosition()); // 更新员工职位
 
         // 更新关联 Task
         if (logDTO.getTaskId() != null) {
@@ -328,6 +332,7 @@ public class LogService {
         dto.setEmoji(Emoji.fromCode(log.getEmoji()).getDesc());
         dto.setAttachment(log.getAttachment());
         dto.setEmployeeLocation(log.getEmployeeLocation());
+        dto.setPosition(log.getEmployeePosition()); // 返回员工职位
         return dto;
     }
 }

@@ -18,4 +18,5 @@ public class LogDTO {
     private String emoji;
     private String attachment;
     private String employeeLocation;
+    private Byte position;
 }

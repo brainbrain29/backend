@@ -475,9 +475,9 @@ public class TaskService {
         return convertToDTO(updatedTask);
     }
 
-    // TODO:不想在后端注明,也许写成映射类
     /**
      * 转换为可分配员工DTO
+     * 使用PositionEnum统一管理职位映射
      */
     private AssignableEmployeeDTO toAssignableDTO(Employee employee) {
         AssignableEmployeeDTO dto = new AssignableEmployeeDTO();
@@ -486,23 +486,8 @@ public class TaskService {
         dto.setEmail(employee.getEmail());
         dto.setPosition(employee.getPosition());
 
-        // 设置职位名称
-        switch (employee.getPosition()) {
-            case 0:
-                dto.setPositionName("CEO");
-                break;
-            case 1:
-                dto.setPositionName("部门经理");
-                break;
-            case 2:
-                dto.setPositionName("团队长");
-                break;
-            case 3:
-                dto.setPositionName("员工");
-                break;
-            default:
-                dto.setPositionName("未知");
-        }
+        // 使用枚举设置职位名称，避免硬编码
+        dto.setPositionName(PositionEnum.getDescriptionByCode(employee.getPosition()));
 
         if (employee.getDepartment() != null) {
             dto.setOrgId(employee.getDepartment().getOrgId());

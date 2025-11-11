@@ -423,13 +423,24 @@ public class AdminService {
         return matters.stream()
                 .map(matter -> {
                     ImportantMatterDTO dto = new ImportantMatterDTO();
-                    dto.setEventId(matter.getMatterId());
+                    dto.setMatterId(matter.getMatterId());
                     dto.setTitle(matter.getTitle());
                     dto.setContent(matter.getContent());
                     if (matter.getDepartment() != null) {
+                        dto.setDepartmentId(matter.getDepartment().getOrgId());
                         dto.setDepartmentName(matter.getDepartment().getOrgName());
                     }
                     dto.setPublishTime(matter.getPublishTime());
+                    
+                    // 添加默认值以兼容前端模板
+                    dto.setDeadline(matter.getPublishTime()); // 使用发布时间作为截止日期
+                    dto.setAssigneeName("系统"); // 默认负责人
+                    dto.setAssigneeId(1); // 默认负责人ID
+                    dto.setMatterStatus((byte)0); // 默认状态：待处理
+                    dto.setMatterPriority((byte)1); // 默认优先级：中
+                    dto.setSerialNum((byte)1); // 默认序号
+                    dto.setVisibleRange(0); // 默认可见范围
+                    
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -450,12 +461,14 @@ public class AdminService {
             Department department = departmentRepository.findById(dto.getDepartmentId())
                     .orElseThrow(() -> new RuntimeException("Department not found"));
             matter.setDepartment(department);
+        } else {
+            matter.setDepartment(null);
         }
 
         ImportantMatter saved = importantMatterRepository.save(matter);
 
         ImportantMatterDTO result = new ImportantMatterDTO();
-        result.setEventId(saved.getMatterId());
+        result.setMatterId(saved.getMatterId());
         result.setTitle(saved.getTitle());
         result.setContent(saved.getContent());
         if (saved.getDepartment() != null) {
@@ -483,12 +496,14 @@ public class AdminService {
             Department department = departmentRepository.findById(dto.getDepartmentId())
                     .orElseThrow(() -> new RuntimeException("Department not found"));
             matter.setDepartment(department);
+        } else {
+            matter.setDepartment(null);
         }
 
         ImportantMatter saved = importantMatterRepository.save(matter);
 
         ImportantMatterDTO result = new ImportantMatterDTO();
-        result.setEventId(saved.getMatterId());
+        result.setMatterId(saved.getMatterId());
         result.setTitle(saved.getTitle());
         result.setContent(saved.getContent());
         if (saved.getDepartment() != null) {

@@ -73,17 +73,27 @@ public class DashboardService {
 
     private ImportantMatterDTO convertToImportantMatterDto(ImportantMatter matter) {
         ImportantMatterDTO dto = new ImportantMatterDTO();
-        dto.setEventId(matter.getMatterId());
+        dto.setMatterId(matter.getMatterId());
         dto.setTitle(matter.getTitle());
         dto.setContent(matter.getContent());
 
         // 设置部门名称
         if (matter.getDepartment() != null) {
+            dto.setDepartmentId(matter.getDepartment().getOrgId());
             dto.setDepartmentName(matter.getDepartment().getOrgName());
         }
 
         // 设置发布时间
         dto.setPublishTime(matter.getPublishTime());
+        
+        // 添加默认值以兼容前端模板
+        dto.setDeadline(matter.getPublishTime()); // 使用发布时间作为截止日期
+        dto.setAssigneeName("系统"); // 默认负责人
+        dto.setAssigneeId(1); // 默认负责人ID
+        dto.setMatterStatus((byte)0); // 默认状态：待处理
+        dto.setMatterPriority((byte)1); // 默认优先级：中
+        dto.setSerialNum((byte)1); // 默认序号
+        dto.setVisibleRange(0); // 默认可见范围
 
         return dto;
     }

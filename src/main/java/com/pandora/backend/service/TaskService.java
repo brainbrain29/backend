@@ -25,6 +25,8 @@ import com.pandora.backend.entity.Milestone;
 import com.pandora.backend.entity.Project;
 import com.pandora.backend.enums.Priority;
 import com.pandora.backend.enums.TaskType;
+import com.pandora.backend.enums.NoticeType;
+import com.pandora.backend.enums.PositionEnum;
 
 @Service
 public class TaskService {
@@ -95,7 +97,16 @@ public class TaskService {
 
         Task savedTask = taskRepository.save(task);
         // 创建通知：当任务有执行者时，给执行者发送一条通知
-        noticeService.createTaskAssignmentNotice(savedTask);
+        // 1. 判断是否为“公司重要任务”，如果是，则广播
+        if (savedTask.getTaskType() != null && savedTask.getTaskType() == NoticeType.IMPORTANT_TASK.getCode()) {
+            noticeService.createImportantTaskNotice(savedTask);
+        }
+        // 2. 否则，如果只是普通的“新任务派发”
+        else if (savedTask.getAssignee() != null) {
+            noticeService.createTaskAssignmentNotice(savedTask);
+        }
+        // ===================================================================
+
         return convertToDTO(savedTask);
     }
 
@@ -103,6 +114,8 @@ public class TaskService {
     public TaskDTO updateTask(Integer taskId, TaskDTO taskDTO) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
+        // 记录更新前的状态，用于后续比较
+        Byte oldStatus = task.getTaskStatus();
 
         if (taskDTO.getTitle() != null) {
             task.setTitle(taskDTO.getTitle());
@@ -150,6 +163,17 @@ public class TaskService {
         }
 
         Task updatedTask = taskRepository.save(task);
+        // 检查任务状态是否真的发生了变化
+        Byte newStatus = updatedTask.getTaskStatus();
+        if (newStatus != null && !newStatus.equals(oldStatus)) {
+            // 假设更新者就是任务的发送者 (sender)
+            // 在实际应用中，这里应该传入当前操作的用户 (updater)
+            if (updatedTask.getSender() != null) {
+                noticeService.createTaskUpdateNotice(updatedTask, updatedTask.getSender());
+            }
+        }
+        // ===================================================================
+
         return convertToDTO(updatedTask);
     }
 
@@ -199,6 +223,7 @@ public class TaskService {
 
         return createTask(taskDTO);
     }
+
 
     // 删除任务
     public void deleteTask(Integer taskId) {

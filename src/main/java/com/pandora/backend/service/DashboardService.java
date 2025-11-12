@@ -53,7 +53,7 @@ public class DashboardService {
 
         // 4. 获取今日日志
         List<LogSummaryDTO> todayLogs = logRepository
-                .findTodayLogsByEmployeeId(currentUserId, LocalDate.now().atStartOfDay(),
+                .findByEmployeeEmployeeIdAndCreatedTimeBetween(currentUserId, LocalDate.now().atStartOfDay(), // <--- 修正为正确的方法名
                         LocalDate.now().plusDays(1).atStartOfDay())
                 .stream().map(this::convertToLogSummaryDto).collect(Collectors.toList());
 

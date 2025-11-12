@@ -153,6 +153,53 @@ public class TaskService {
         return convertToDTO(updatedTask);
     }
 
+    /**
+     * 验证用户是否有权限为指定项目创建任务
+     * 只有项目创建者或负责该项目的团队长才有权限
+     */
+    private void validateTaskCreationPermission(Integer projectId, Integer userId, Byte userPosition) {
+        if (projectId == null) {
+            throw new IllegalArgumentException("项目ID不能为空");
+        }
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("项目不存在"));
+
+        boolean hasPermission = false;
+
+        // 1. 检查是否是项目创建者
+        if (project.getSender() != null && project.getSender().getEmployeeId().equals(userId)) {
+            hasPermission = true;
+        }
+
+        // 2. 检查是否是负责该项目的团队长
+        if (project.getTeam() != null && userPosition == 2) {
+            // 检查当前用户是否是该项目的团队长
+            List<Integer> leaderTeamIds = employeeTeamRepository.findLeaderTeamIds(userId, LEADER_FLAG);
+            if (leaderTeamIds.contains(project.getTeam().getTeamId())) {
+                hasPermission = true;
+            }
+        }
+
+        if (!hasPermission) {
+            throw new IllegalArgumentException("无权限为该项目创建任务");
+        }
+    }
+
+    /**
+     * 创建任务（带权限验证版本）
+     * 用于需要权限验证的场景，如assignTask接口
+     */
+    public TaskDTO createTaskWithPermission(TaskDTO taskDTO, Integer userId) {
+        Employee user = employeeRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+
+        // 验证权限
+        validateTaskCreationPermission(taskDTO.getProjectId(), userId, user.getPosition());
+
+        return createTask(taskDTO);
+    }
+
     // 删除任务
     public void deleteTask(Integer taskId) {
         if (!taskRepository.existsById(taskId)) {
@@ -280,6 +327,9 @@ public class TaskService {
         }
         if (task.getMilestone() != null) {
             dto.setMilestoneId(task.getMilestone().getMilestoneId());
+            if (task.getMilestone().getProject() != null) {
+                dto.setProjectId(task.getMilestone().getProject().getProjectId());
+            }
         }
 
         return dto;

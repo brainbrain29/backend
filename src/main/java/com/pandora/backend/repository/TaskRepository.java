@@ -51,7 +51,7 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
     // 我们在 LogService 中用到了这个，所以也需要加在这里
     List<Task> findByTaskId(Integer taskId);
 
-    // TODO:检查效率
+    // TODO:检查效率（这里AI建议添加数据库索引进行优化）
     @Query("""
             SELECT DISTINCT t
             FROM Task t

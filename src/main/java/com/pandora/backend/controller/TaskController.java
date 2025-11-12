@@ -59,8 +59,8 @@ public class TaskController {
         }
     }
 
-    // 老板创建任务(需要权限)
-    // TODO: 验证身份一定是负责团队的团队长或是创建项目的项目经理
+    // 为项目创建任务（需要权限）
+    // 权限要求：必须是项目创建者或负责该项目的团队长
     @PostMapping("/assign")
     public ResponseEntity<?> assignTask(HttpServletRequest request, @RequestBody TaskDTO body) {
         Object uidObj = request.getAttribute("userId");
@@ -68,22 +68,30 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid token");
         }
         Integer userId = (Integer) uidObj;
-        Employee emp = employeeRepository.findById(userId).orElse(null);
-        if (emp == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
-        }
-        if (emp.getPosition() < 2) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Permission denied");
-        }
+
         try {
+            // 验证输入参数
             if (body.getSenderId() == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Sender ID is required");
             }
             if (!userId.equals(body.getSenderId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Sender mismatch");
             }
-            TaskDTO created = taskService.createTask(body);
+            if (body.getProjectId() == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Project ID is required");
+            }
+
+            // 验证用户身份
+            Employee emp = employeeRepository.findById(userId).orElse(null);
+            if (emp == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
+            }
+
+            // 执行权限检查和创建任务
+            TaskDTO created = taskService.createTaskWithPermission(body, userId);
             return new ResponseEntity<>(created, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }

@@ -25,6 +25,7 @@ import com.pandora.backend.entity.Milestone;
 import com.pandora.backend.entity.Project;
 import com.pandora.backend.enums.Priority;
 import com.pandora.backend.enums.TaskType;
+import com.pandora.backend.enums.PositionEnum;
 
 @Service
 public class TaskService {

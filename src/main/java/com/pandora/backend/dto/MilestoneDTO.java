@@ -1,32 +1,13 @@
 package com.pandora.backend.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
-@Getter
-@Setter
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class MilestoneDTO {
     private String title;
-    private Byte milestoneNo;
-
-    public MilestoneDTO(String title, Byte milestoneNo) {
-        this.title = title;
-        this.milestoneNo = milestoneNo;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public Byte getMilestoneNo() {
-        return milestoneNo;
-    }
-
-    public void setMilestoneNo(Byte milestoneNo) {
-        this.milestoneNo = milestoneNo;
-    }
+    private Byte milestoneNo;    
 }

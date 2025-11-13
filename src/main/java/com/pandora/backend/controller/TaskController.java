@@ -122,7 +122,7 @@ public class TaskController {
         }
     }
 
-    // TODO:只传一个任务状态吗,需要做权限检查吗
+    // TODO:只传一个任务状态吗,需要做权限检查吗（需要的，你自己写了）
     // 更新任务状态
     @PutMapping("{taskId}/status")
     public ResponseEntity<TaskDTO> updateTaskStatus(

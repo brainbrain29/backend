@@ -67,4 +67,30 @@ public class RedisUtil {
     public Long decrement(String key) {
         return redisTemplate.opsForValue().decrement(key);
     }
+
+    /**
+     * 尝试获取分布式锁
+     * @param key 锁的 key
+     * @param value 锁的值（通常用 UUID）
+     * @param timeout 锁的超时时间
+     * @param unit 时间单位
+     * @return 是否获取成功
+     */
+    public Boolean tryLock(String key, String value, long timeout, TimeUnit unit) {
+        return redisTemplate.opsForValue().setIfAbsent(key, value, timeout, unit);
+    }
+
+    /**
+     * 释放分布式锁（需要验证值匹配）
+     * @param key 锁的 key
+     * @param value 锁的值
+     * @return 是否释放成功
+     */
+    public Boolean releaseLock(String key, String value) {
+        Object currentValue = redisTemplate.opsForValue().get(key);
+        if (value.equals(currentValue)) {
+            return redisTemplate.delete(key);
+        }
+        return false;
+    }
 }

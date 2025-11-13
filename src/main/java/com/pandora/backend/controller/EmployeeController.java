@@ -2,6 +2,7 @@ package com.pandora.backend.controller;
 
 import com.pandora.backend.dto.EmployeeDTO;
 import com.pandora.backend.entity.Employee;
+import com.pandora.backend.enums.Position;
 import com.pandora.backend.service.EmployeeService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,7 +76,7 @@ public class EmployeeController {
                 empMap.put("employeeId", emp.getEmployeeId());
                 empMap.put("employeeName", emp.getEmployeeName());
                 empMap.put("position", emp.getPosition());
-                empMap.put("positionName", getPositionName(emp.getPosition()));
+                empMap.put("positionName", Position.fromCode(emp.getPosition()).getDescription());
                 empMap.put("phone", emp.getPhone());
                 empMap.put("email", emp.getEmail());
                 return empMap;
@@ -88,21 +89,6 @@ public class EmployeeController {
         response.put("message", "获取成功");
 
         return ResponseEntity.ok(response);
-    }
-
-    /**
-     * 辅助方法：获取职位名称
-     */
-    private String getPositionName(Byte position) {
-        if (position == null) return "未知";
-        int pos = position.intValue();
-        switch (pos) {
-            case 0: return "CEO";
-            case 1: return "部门经理";
-            case 2: return "项目经理";
-            case 3: return "普通员工";
-            default: return "未知";
-        }
     }
 
     /**

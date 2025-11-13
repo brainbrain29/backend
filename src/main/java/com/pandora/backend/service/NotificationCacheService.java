@@ -22,6 +22,7 @@ public class NotificationCacheService {
     // Redis Key 前缀
     private static final String UNREAD_COUNT_PREFIX = "unread_count:";
     private static final String RECENT_NOTICES_PREFIX = "recent_notices:";
+    private static final String PENDING_NOTICES_PREFIX = "pending_notices:"; // 待推送通知队列
 
     /**
      * 增加未读通知数量
@@ -121,5 +122,78 @@ public class NotificationCacheService {
     public void clearAllCache(Integer userId) {
         redisUtil.delete(UNREAD_COUNT_PREFIX + userId);
         redisUtil.delete(RECENT_NOTICES_PREFIX + userId);
+    }
+
+    // ==================== 待推送通知队列管理 ====================
+
+    /**
+     * 添加通知到待推送队列（用户离线时）
+     * 使用 List 结构，保持通知顺序
+     */
+    public void addPendingNotice(Integer userId, NoticeDTO notice) {
+        String key = PENDING_NOTICES_PREFIX + userId;
+        
+        // 获取现有队列
+        @SuppressWarnings("unchecked")
+        List<NoticeDTO> pendingList = (List<NoticeDTO>) redisUtil.get(key);
+        if (pendingList == null) {
+            pendingList = new ArrayList<>();
+        }
+        
+        // 添加到队列尾部
+        pendingList.add(notice);
+        
+        // 限制队列长度，最多保存 50 条
+        if (pendingList.size() > 50) {
+            pendingList = pendingList.subList(pendingList.size() - 50, pendingList.size());
+        }
+        
+        // 缓存 7 天（用户可能长时间不上线）
+        redisUtil.set(key, pendingList, 7, TimeUnit.DAYS);
+        
+        System.out.println("📥 通知已加入待推送队列，用户: " + userId + ", 队列长度: " + pendingList.size());
+    }
+
+    /**
+     * 获取用户的所有待推送通知
+     */
+    @SuppressWarnings("unchecked")
+    public List<NoticeDTO> getPendingNotices(Integer userId) {
+        String key = PENDING_NOTICES_PREFIX + userId;
+        Object notices = redisUtil.get(key);
+        return notices != null ? (List<NoticeDTO>) notices : new ArrayList<>();
+    }
+
+    /**
+     * 清空用户的待推送通知队列
+     */
+    public void clearPendingNotices(Integer userId) {
+        String key = PENDING_NOTICES_PREFIX + userId;
+        redisUtil.delete(key);
+        System.out.println("🗑️ 已清空待推送队列，用户: " + userId);
+    }
+
+    /**
+     * 获取待推送通知数量
+     */
+    public int getPendingNoticeCount(Integer userId) {
+        List<NoticeDTO> notices = getPendingNotices(userId);
+        return notices.size();
+    }
+
+    // ==================== 分布式锁管理 ====================
+
+    /**
+     * 尝试获取分布式锁
+     */
+    public Boolean tryLock(String lockKey, String lockValue, long timeout, TimeUnit unit) {
+        return redisUtil.tryLock(lockKey, lockValue, timeout, unit);
+    }
+
+    /**
+     * 释放分布式锁
+     */
+    public Boolean releaseLock(String lockKey, String lockValue) {
+        return redisUtil.releaseLock(lockKey, lockValue);
     }
 }

@@ -272,14 +272,22 @@ public class TaskService {
                 task.getTaskPriority() != null ? Priority.fromCode(task.getTaskPriority()).getDesc() : null);
         dto.setTaskType(task.getTaskType() != null ? TaskType.fromCode(task.getTaskType()).getDesc() : null);
 
+        // 负责人信息
         if (task.getAssignee() != null) {
             dto.setAssigneeId(task.getAssignee().getEmployeeId());
+            dto.setAssigneeName(task.getAssignee().getEmployeeName());
         }
+
+        // 创建者信息
         if (task.getSender() != null) {
             dto.setSenderId(task.getSender().getEmployeeId());
+            dto.setSenderName(task.getSender().getEmployeeName());
         }
+
+        // 里程碑信息
         if (task.getMilestone() != null) {
             dto.setMilestoneId(task.getMilestone().getMilestoneId());
+            dto.setMilestoneName(task.getMilestone().getTitle());
         }
 
         return dto;

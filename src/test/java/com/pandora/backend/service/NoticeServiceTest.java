@@ -6,6 +6,7 @@ import com.pandora.backend.entity.*;
 import com.pandora.backend.enums.NoticeStatus;
 import com.pandora.backend.repository.NoticeEmployeeRepository;
 import com.pandora.backend.repository.NoticeRepository;
+import com.pandora.backend.util.RedisUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,6 +45,9 @@ class NoticeServiceTest {
 
     @Mock
     private NotificationPushService pushService;
+
+    @Mock
+    private RedisUtil redisUtil;
 
     @InjectMocks
     private NoticeService noticeService;
@@ -78,6 +83,19 @@ class NoticeServiceTest {
         noticeEmployee.setNotice(notice);
         noticeEmployee.setReceiver(receiver);
         noticeEmployee.setNoticeStatus(NoticeStatus.NOT_VIEWED);
+
+        // Mock Redis 锁操作，让所有测试都能成功获取锁
+        // 使用 lenient() 允许某些测试不使用这些 Mock
+        lenient().when(redisUtil.tryLock(anyString(), anyString(), anyLong(), any(TimeUnit.class)))
+                .thenReturn(true);
+
+        // Mock NotificationCacheService 的锁操作（这是实际使用的）
+        lenient().when(cacheService.tryLock(anyString(), anyString(), anyLong(), any(TimeUnit.class)))
+                .thenReturn(true);
+
+        // Mock 删除锁操作（delete 返回 Boolean）
+        lenient().when(redisUtil.delete(anyString())).thenReturn(true);
+        lenient().when(cacheService.releaseLock(anyString(), anyString())).thenReturn(true);
     }
 
     /**
@@ -196,6 +214,10 @@ class NoticeServiceTest {
 
         when(noticeEmployeeRepository.findById(id)).thenReturn(Optional.of(noticeEmployee));
 
+        // Mock 分布式锁
+        when(cacheService.tryLock(anyString(), anyString(), anyLong(), any())).thenReturn(true);
+        when(cacheService.releaseLock(anyString(), anyString())).thenReturn(true);
+
         // 执行
         noticeService.markAsRead(userId, noticeId);
 
@@ -205,9 +227,8 @@ class NoticeServiceTest {
         // 验证保存到数据库
         verify(noticeEmployeeRepository, times(1)).save(noticeEmployee);
 
-        // 验证更新 Redis
-        verify(cacheService, times(1)).decrementUnreadCount(userId);
-        verify(cacheService, times(1)).clearAllCache(userId);
+        // 验证清空 Redis（延迟双删，会调用2次）
+        verify(cacheService, times(2)).clearAllCache(userId);
     }
 
     /**
@@ -230,9 +251,8 @@ class NoticeServiceTest {
         // 验证批量保存
         verify(noticeEmployeeRepository, times(1)).saveAll(unreadNotices);
 
-        // 验证清空 Redis
-        verify(cacheService, times(1)).clearUnreadCount(userId);
-        verify(cacheService, times(1)).clearAllCache(userId);
+        // 验证清空 Redis 缓存（实际调用了 2 次 clearAllCache）
+        verify(cacheService, times(2)).clearAllCache(userId);
     }
 
     /**

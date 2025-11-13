@@ -4,6 +4,7 @@ import com.pandora.backend.dto.AssignDTO;
 import com.pandora.backend.dto.MilestoneDTO;
 import com.pandora.backend.dto.ProjectCreateDTO;
 import com.pandora.backend.dto.ProjectDTO;
+import com.pandora.backend.dto.TaskDTO;
 import com.pandora.backend.dto.TeamAssignmentOptionDTO;
 import com.pandora.backend.entity.Employee;
 import com.pandora.backend.repository.EmployeeRepository;
@@ -186,6 +187,24 @@ public class ProjectController { // TODO: 项目创建者才能修改项目,但�
         try {
             ProjectDTO updated = projectService.assignProjectLeader(projectId, dto.getTeamId(), userId, position);
             return new ResponseEntity<>(updated, HttpStatus.OK);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取项目的所有任务
+     * 不区分权限,员工和领导都能看到项目的所有任务
+     * 包括未完成、待审核、已完成的任务
+     * 返回的任务不包含日志信息
+     */
+    @GetMapping("/{projectId}/tasks")
+    public ResponseEntity<?> getAllTasksByProject(@PathVariable Integer projectId) {
+        try {
+            List<TaskDTO> tasks = projectService.getAllTasksByProject(projectId);
+            return new ResponseEntity<>(tasks, HttpStatus.OK);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

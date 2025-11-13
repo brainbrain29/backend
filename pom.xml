@@ -77,6 +77,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Spring Security Test -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -145,6 +152,16 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
 
+        <!-- GLM-4.6 API SDK -->
+        <dependency>
+            <groupId>ai.z.openapi</groupId>
+            <artifactId>zai-sdk</artifactId>
+            <version>0.1.0</version>
+        </dependency>
+
+        <!-- JUnit 5 (已包含在 spring-boot-starter-test 中，这里显式声明版本) -->
+        <!-- spring-boot-starter-test 已经包含了 JUnit Jupiter, Mockito, AssertJ 等 -->
+
     </dependencies>
 
     <build>
@@ -189,7 +206,199 @@
                     <password>123456</password>
                 </configuration>
             </plugin>
+
+            <!-- Maven Surefire Plugin - 单元测试执行和报告 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <!-- 指定要运行的测试文件模式 -->
+                    <includes>
+                        <include>**/*Test.java</include>
+                    </includes>
+                    <!-- 排除某些测试（如果需要） -->
+                    <!-- <excludes>
+                        <exclude>**/integration/**</exclude>
+                    </excludes> -->
+                </configuration>
+            </plugin>
+
+            <!-- JaCoCo Plugin - 代码覆盖率分析 -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.11</version>
+                <executions>
+                    <!-- 准备 JaCoCo 代理 -->
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <!-- 生成覆盖率报告 -->
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <!-- 检查覆盖率阈值 -->
+                    <execution>
+                        <id>check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.60</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+                <configuration>
+                    <!-- 只包含日志、任务、仪表板、员工、通知模块 -->
+                    <includes>
+                        <include>**/service/LogService.class</include>
+                        <include>**/service/TaskService.class</include>
+                        <include>**/service/DashboardService.class</include>
+                        <include>**/service/EmployeeService.class</include>
+                        <include>**/service/NoticeService.class</include>
+                        <include>**/controller/LogController.class</include>
+                        <include>**/controller/TaskController.class</include>
+                        <include>**/controller/DashboardController.class</include>
+                        <include>**/controller/EmployeeController.class</include>
+                        <include>**/controller/NoticeController.class</include>
+                    </includes>
+                    <!-- 排除某些类（如配置类、实体类） -->
+                    <excludes>
+                        <exclude>**/entity/**</exclude>
+                        <exclude>**/dto/**</exclude>
+                        <exclude>**/config/**</exclude>
+                        <exclude>**/BackendApplication.class</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- Checkstyle Plugin - 代码规范检查 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.3.1</version>
+                <dependencies>
+                    <!-- Checkstyle 核心依赖 -->
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>10.12.5</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <!-- 使用 Google Java Style -->
+                    <configLocation>google_checks.xml</configLocation>
+                    <!-- 或使用 Sun Java Style -->
+                    <!-- <configLocation>sun_checks.xml</configLocation> -->
+                    
+                    <!-- 编码格式 -->
+                    <encoding>UTF-8</encoding>
+                    
+                    <!-- 控制台输出 -->
+                    <consoleOutput>true</consoleOutput>
+                    
+                    <!-- 违规时是否失败构建 -->
+                    <failsOnError>false</failsOnError>
+                    <failOnViolation>false</failOnViolation>
+                    
+                    <!-- 包含的文件 -->
+                    <includes>**/*.java</includes>
+                    
+                    <!-- 排除的文件 -->
+                    <excludes>**/generated/**,**/target/**</excludes>
+                    
+                    <!-- 源代码目录 -->
+                    <sourceDirectories>
+                        <sourceDirectory>src/main/java</sourceDirectory>
+                    </sourceDirectories>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>checkstyle</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Maven Site Plugin - 生成项目站点 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>3.12.1</version>
+            </plugin>
+
+            <!-- Maven Project Info Reports Plugin - 生成项目信息报告 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>3.4.5</version>
+            </plugin>
         </plugins>
     </build>
+
+    <!-- 报告配置 -->
+    <reporting>
+        <plugins>
+            <!-- Surefire 测试报告 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-report-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+
+            <!-- JaCoCo 覆盖率报告 -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.11</version>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>report</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+
+            <!-- Checkstyle 报告 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.3.1</version>
+                <configuration>
+                    <configLocation>google_checks.xml</configLocation>
+                </configuration>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>checkstyle</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+        </plugins>
+    </reporting>
 
 </project>

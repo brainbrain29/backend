@@ -261,7 +261,16 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid token");
         }
         Integer userId = (Integer) uidObj;
-        Byte position = (Byte) request.getAttribute("position");
+        Object positionObj = request.getAttribute("position");
+
+        // 调试日志 - 查看类型和值
+        System.out.println("DEBUG - userId: " + userId);
+        System.out.println(
+                "DEBUG - positionObj type: " + (positionObj != null ? positionObj.getClass().getName() : "null"));
+        System.out.println("DEBUG - positionObj value: " + positionObj);
+
+        Byte position = (Byte) positionObj;
+        System.out.println("DEBUG - position after cast: " + position);
 
         // 只有部门经理(1) 和团队长(2) 可以调用
         if (position == null || position > 2) {

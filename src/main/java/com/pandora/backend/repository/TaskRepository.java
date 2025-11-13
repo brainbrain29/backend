@@ -68,4 +68,14 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
             """)
     List<Task> findTeamTasksByLeader(@Param("leaderId") Integer leaderId, @Param("leaderFlag") Byte leaderFlag);
 
+    /**
+     * 根据项目ID查询所有任务(通过里程碑关联)
+     */
+    @Query("""
+            SELECT t FROM Task t
+            WHERE t.milestone.project.projectId = :projectId
+            ORDER BY t.taskStatus ASC, t.taskPriority DESC, t.endTime ASC
+            """)
+    List<Task> findByProjectId(@Param("projectId") Integer projectId);
+
 }

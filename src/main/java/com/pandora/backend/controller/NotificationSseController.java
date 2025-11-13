@@ -3,6 +3,7 @@ package com.pandora.backend.controller;
 import com.pandora.backend.entity.Employee;
 import com.pandora.backend.repository.EmployeeRepository;
 import com.pandora.backend.service.NotificationPushService;
+import com.pandora.backend.service.NotificationStatusUpdater;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -26,6 +27,9 @@ public class NotificationSseController {
 
     @Autowired
     private NotificationPushService pushService;
+
+    @Autowired
+    private NotificationStatusUpdater statusUpdater;
 
     /**
      * 建立 SSE 连接
@@ -51,8 +55,11 @@ public class NotificationSseController {
         // 创建 SSE 连接，超时 30 分钟
         SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
 
-        // 注册连接到推送服务
+        // 注册连接到推送服务（会自动推送待接收通知）
         pushService.registerConnection(userId, emitter);
+
+        // 异步更新待推送通知的状态（NOT_RECEIVED → NOT_VIEWED）
+        new Thread(() -> statusUpdater.updatePendingNoticesStatus(userId)).start();
 
         // 发送连接成功消息
         try {

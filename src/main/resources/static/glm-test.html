@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLM-4.6 API 测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-stream {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-stream:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-normal {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-normal:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn-clear {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .btn-clear:hover {
+            background: #ff5252;
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .output-box {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .output-box.streaming {
+            border-color: #667eea;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(102, 126, 234, 0);
+            }
+        }
+        
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            text-align: center;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #667eea;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 GLM-4.6 API 测试</h1>
+            <p>体验基础调用和流式调用的区别</p>
+        </div>
+        
+        <div class="content">
+            <div class="input-group">
+                <label for="userInput">输入你的问题：</label>
+                <textarea id="userInput" rows="4" placeholder="例如：请介绍一下人工智能的发展历史">请写一首关于春天的诗</textarea>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn-stream" onclick="chatStream()">
+                    🚀 流式调用 (推荐)
+                </button>
+                <button class="btn-normal" onclick="chatNormal()">
+                    📝 基础调用
+                </button>
+                <button class="btn-clear" onclick="clearOutput()">
+                    🗑️ 清空
+                </button>
+            </div>
+            
+            <div class="input-group">
+                <label>响应内容：</label>
+                <div id="output" class="output-box">等待输入...</div>
+            </div>
+            
+            <div id="status"></div>
+        </div>
+    </div>
+    
+    <script>
+        const outputEl = document.getElementById('output');
+        const statusEl = document.getElementById('status');
+        const userInputEl = document.getElementById('userInput');
+        
+        function setStatus(message, type = 'info') {
+            statusEl.className = `status ${type}`;
+            statusEl.innerHTML = message;
+        }
+        
+        function clearOutput() {
+            outputEl.textContent = '等待输入...';
+            outputEl.classList.remove('streaming');
+            statusEl.innerHTML = '';
+        }
+        
+        async function chatNormal() {
+            const message = userInputEl.value.trim();
+            if (!message) {
+                setStatus('请输入问题', 'error');
+                return;
+            }
+            
+            outputEl.textContent = '';
+            outputEl.classList.remove('streaming');
+            setStatus('<span class="loading"></span>正在请求 GLM API（基础调用）...', 'info');
+            
+            const startTime = Date.now();
+            
+            try {
+                const response = await fetch('/api/glm/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'user', content: message }
+                        ]
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+                
+                outputEl.textContent = data.content;
+                setStatus(`✅ 完成！用时 ${duration} 秒，共 ${data.totalTokens} tokens`, 'success');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                outputEl.textContent = '请求失败，请检查配置和网络连接';
+                setStatus(`❌ 错误: ${error.message}`, 'error');
+            }
+        }
+        
+        async function chatStream() {
+            const message = userInputEl.value.trim();
+            if (!message) {
+                setStatus('请输入问题', 'error');
+                return;
+            }
+            
+            outputEl.textContent = '';
+            outputEl.classList.add('streaming');
+            setStatus('<span class="loading"></span>正在流式接收 GLM API 响应...', 'info');
+            
+            const startTime = Date.now();
+            let chunkCount = 0;
+            
+            try {
+                const response = await fetch('/api/glm/chat/stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'user', content: message }
+                        ]
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('event: message')) {
+                            continue;
+                        }
+                        
+                        if (line.startsWith('data: ')) {
+                            const data = line.substring(6).trim();
+                            
+                            if (data === '[DONE]') {
+                                const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+                                outputEl.classList.remove('streaming');
+                                setStatus(`✅ 流式传输完成！用时 ${duration} 秒，共 ${chunkCount} 个片段`, 'success');
+                                return;
+                            }
+                            
+                            if (data) {
+                                outputEl.textContent += data;
+                                chunkCount++;
+                                
+                                // 自动滚动到底部
+                                outputEl.scrollTop = outputEl.scrollHeight;
+                            }
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                outputEl.classList.remove('streaming');
+                outputEl.textContent = '请求失败，请检查配置和网络连接';
+                setStatus(`❌ 错误: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

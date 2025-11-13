@@ -1,5 +1,6 @@
 package com.pandora.backend.dto;
 
+import com.pandora.backend.enums.Position;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,7 +12,8 @@ public class EmployeeDTO {
     private String gender; // 前端看到文字 "男性"/"女性"
     private String phone;
     private String email;
-    private Byte position;
+    private Byte position; // 保留原有的 Byte 类型，用于兼容
+    private String positionName; // 新增：职位名称，如 "CEO"、"部门经理"
     private Integer orgId;
     private String orgName;
 
@@ -54,5 +56,15 @@ public class EmployeeDTO {
 
     public void setPosition(Byte position) {
         this.position = position;
+        // 自动设置 positionName
+        this.positionName = Position.fromCode(position).getDescription();
+    }
+
+    /**
+     * 设置 position 并自动更新 positionName
+     */
+    public void setPositionWithName(Byte position) {
+        this.position = position;
+        this.positionName = Position.fromCode(position).getDescription();
     }
 }

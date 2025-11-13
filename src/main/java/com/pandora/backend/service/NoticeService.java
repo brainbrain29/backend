@@ -128,70 +128,136 @@ public class NoticeService {
         notice.setCreatedTime(LocalDateTime.now());
         Notice saved = noticeRepository.save(notice);
 
+        Integer receiverId = task.getAssignee().getEmployeeId();
+        
+        // 判断用户是否在线，设置初始状态
+        boolean isOnline = pushService.isUserOnline(receiverId);
+        NoticeStatus initialStatus = isOnline ? NoticeStatus.NOT_VIEWED : NoticeStatus.NOT_RECEIVED;
+        
         NoticeEmployee ne = new NoticeEmployee();
         NoticeEmployeeId id = new NoticeEmployeeId();
         id.setNoticeId(saved.getNoticeId());
-        id.setReceiverId(task.getAssignee().getEmployeeId());
+        id.setReceiverId(receiverId);
         ne.setId(id);
         ne.setNotice(saved);
         ne.setReceiver(task.getAssignee());
-        ne.setNoticeStatus(NoticeStatus.NOT_VIEWED);
+        ne.setNoticeStatus(initialStatus);
         noticeEmployeeRepository.save(ne);
 
         // 2. 转换为 DTO
         NoticeDTO dto = toDTO(ne);
 
         // 3. 更新 Redis 缓存
-        Integer receiverId = task.getAssignee().getEmployeeId();
         cacheService.incrementUnreadCount(receiverId); // 未读数 +1
         cacheService.cacheRecentNotice(receiverId, dto); // 缓存最近通知
 
-        // 4. SSE 实时推送（如果用户在线）
+        // 4. SSE 实时推送（如果用户在线）或加入待推送队列（用户离线）
         pushService.pushNotification(receiverId, dto);
 
-        System.out.println("任务分配通知已创建并推送给用户: " + receiverId);
+        System.out.println("任务分配通知已创建，用户: " + receiverId + ", 状态: " + initialStatus.getDesc());
+    }
+
+    /**
+     * 批量更新通知状态为已接收（用户上线推送后调用）
+     * NOT_RECEIVED → NOT_VIEWED
+     */
+    public void markAsReceived(Integer userId, java.util.List<Integer> noticeIds) {
+        if (noticeIds == null || noticeIds.isEmpty()) {
+            return;
+        }
+
+        for (Integer noticeId : noticeIds) {
+            NoticeEmployeeId id = new NoticeEmployeeId();
+            id.setNoticeId(noticeId);
+            id.setReceiverId(userId);
+
+            NoticeEmployee ne = noticeEmployeeRepository.findById(id).orElse(null);
+            if (ne != null && ne.getNoticeStatus() == NoticeStatus.NOT_RECEIVED) {
+                ne.setNoticeStatus(NoticeStatus.NOT_VIEWED);
+                noticeEmployeeRepository.save(ne);
+            }
+        }
+
+        System.out.println("✅ 已更新 " + noticeIds.size() + " 条通知状态为已接收，用户: " + userId);
     }
 
     /**
      * 标记单个通知为已读
+     * 使用分布式锁防止读到脏数据
      */
     public void markAsRead(Integer userId, Integer noticeId) {
-        NoticeEmployeeId id = new NoticeEmployeeId();
-        id.setNoticeId(noticeId);
-        id.setReceiverId(userId);
-
-        NoticeEmployee ne = noticeEmployeeRepository.findById(id).orElse(null);
-        if (ne != null && ne.getNoticeStatus() == NoticeStatus.NOT_VIEWED) {
-            // 1. 更新数据库
-            ne.setNoticeStatus(NoticeStatus.VIEWED);
-            noticeEmployeeRepository.save(ne);
-
-            // 2. 更新 Redis 缓存
-            cacheService.decrementUnreadCount(userId);
-            cacheService.clearAllCache(userId); // 清空缓存，强制重新加载
-
-            System.out.println("Notification " + noticeId + " marked as read for user: " + userId);
+        String lockKey = "lock:notice:" + userId;
+        String lockValue = java.util.UUID.randomUUID().toString();
+        
+        try {
+            // 1. 获取分布式锁（超时5秒）
+            Boolean locked = cacheService.tryLock(lockKey, lockValue, 5, java.util.concurrent.TimeUnit.SECONDS);
+            if (!locked) {
+                System.out.println("⚠️ 获取锁失败，用户: " + userId + " 可能有并发操作");
+                throw new RuntimeException("操作过于频繁，请稍后重试");
+            }
+            
+            // 2. 先删除缓存（防止读到旧数据）
+            cacheService.clearAllCache(userId);
+            
+            // 3. 更新数据库
+            NoticeEmployeeId id = new NoticeEmployeeId();
+            id.setNoticeId(noticeId);
+            id.setReceiverId(userId);
+            
+            NoticeEmployee ne = noticeEmployeeRepository.findById(id).orElse(null);
+            if (ne != null && ne.getNoticeStatus() == NoticeStatus.NOT_VIEWED) {
+                ne.setNoticeStatus(NoticeStatus.VIEWED);
+                noticeEmployeeRepository.save(ne);
+                
+                System.out.println("✅ 通知已标记为已读，noticeId: " + noticeId + ", 用户: " + userId);
+            }
+            
+            // 4. 再次删除缓存（延迟双删）
+            cacheService.clearAllCache(userId);
+            
+        } finally {
+            // 5. 释放锁
+            cacheService.releaseLock(lockKey, lockValue);
         }
     }
 
     /**
      * 标记所有通知为已读
+     * 使用分布式锁防止读到脏数据
      */
     public void markAllAsRead(Integer userId) {
-        List<NoticeEmployee> unreadNotices = noticeEmployeeRepository.findUnreadByReceiverId(userId);
-
-        if (!unreadNotices.isEmpty()) {
-            // 1. 更新数据库
-            for (NoticeEmployee ne : unreadNotices) {
-                ne.setNoticeStatus(NoticeStatus.VIEWED);
+        String lockKey = "lock:notice:" + userId;
+        String lockValue = java.util.UUID.randomUUID().toString();
+        
+        try {
+            // 1. 获取分布式锁
+            Boolean locked = cacheService.tryLock(lockKey, lockValue, 5, java.util.concurrent.TimeUnit.SECONDS);
+            if (!locked) {
+                System.out.println("⚠️ 获取锁失败，用户: " + userId + " 可能有并发操作");
+                throw new RuntimeException("操作过于频繁，请稍后重试");
             }
-            noticeEmployeeRepository.saveAll(unreadNotices);
-
-            // 2. 清空 Redis 缓存
-            cacheService.clearUnreadCount(userId);
+            
+            // 2. 先删除缓存
             cacheService.clearAllCache(userId);
-
-            System.out.println("All " + unreadNotices.size() + " notifications marked as read for user: " + userId);
+            
+            // 3. 更新数据库
+            List<NoticeEmployee> unreadNotices = noticeEmployeeRepository.findUnreadByReceiverId(userId);
+            if (!unreadNotices.isEmpty()) {
+                for (NoticeEmployee ne : unreadNotices) {
+                    ne.setNoticeStatus(NoticeStatus.VIEWED);
+                }
+                noticeEmployeeRepository.saveAll(unreadNotices);
+                
+                System.out.println("✅ 所有通知已标记为已读，数量: " + unreadNotices.size() + ", 用户: " + userId);
+            }
+            
+            // 4. 再次删除缓存
+            cacheService.clearAllCache(userId);
+            
+        } finally {
+            // 5. 释放锁
+            cacheService.releaseLock(lockKey, lockValue);
         }
     }
 

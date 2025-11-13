@@ -22,7 +22,7 @@ public class DashboardController {
     @Autowired
     private EmployeeRepository employeeRepository;
 
-    @GetMapping("/home")
+    @GetMapping
     // @AuthenticationPrincipal Employee currentUser: 将来集成 Spring Security
     // 后，可以这样直接获取当前登录用户
     public ResponseEntity<?> getHomepageDashboard(HttpServletRequest request) {

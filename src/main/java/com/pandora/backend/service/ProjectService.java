@@ -6,9 +6,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.pandora.backend.dto.ProjectCreateDTO;
+import com.pandora.backend.dto.TaskDTO;
 import com.pandora.backend.dto.TeamAssignmentOptionDTO;
 import com.pandora.backend.entity.Employee;
+import com.pandora.backend.entity.Task;
+import com.pandora.backend.enums.Priority;
 import com.pandora.backend.enums.Status;
+import com.pandora.backend.enums.TaskType;
 import com.pandora.backend.entity.Employee_Team;
 import com.pandora.backend.entity.Project;
 import com.pandora.backend.entity.Team;
@@ -16,6 +20,7 @@ import com.pandora.backend.dto.ProjectDTO;
 import com.pandora.backend.repository.EmployeeRepository;
 import com.pandora.backend.repository.EmployeeTeamRepository;
 import com.pandora.backend.repository.ProjectRepository;
+import com.pandora.backend.repository.TaskRepository;
 import com.pandora.backend.repository.TeamRepository;
 
 //TODO:权限控制
@@ -33,6 +38,9 @@ public class ProjectService {
 
     @Autowired
     private TeamRepository teamRepository;
+
+    @Autowired
+    private TaskRepository taskRepository;
 
     public ProjectDTO createProject(ProjectCreateDTO dto, Integer senderId) {
         Employee sender = employeeRepository.findById(senderId)
@@ -159,12 +167,19 @@ public class ProjectService {
             Status status = Status.fromCode(project.getProjectStatus());
             dto.setProjectStatus(status.getDesc());
         }
+
+        // 创建者信息
         if (project.getSender() != null) {
             dto.setSenderId(project.getSender().getEmployeeId());
+            dto.setSenderName(project.getSender().getEmployeeName());
         }
+
+        // 团队信息
         if (project.getTeam() != null) {
             dto.setTeamId(project.getTeam().getTeamId());
+            dto.setTeamName(project.getTeam().getTeamName());
         }
+
         return dto;
     }
 
@@ -261,6 +276,80 @@ public class ProjectService {
         dto.setTeamId(employeeTeam.getTeam().getTeamId());
         dto.setTeamName(employeeTeam.getTeam().getTeamName());
 
+        return dto;
+    }
+
+    /**
+     * 获取项目的所有任务
+     * 不区分权限,所有员工和领导都能看到项目的所有任务
+     * 返回的任务不包含日志信息
+     * 
+     * @param projectId 项目ID
+     * @return 任务列表
+     */
+    public List<TaskDTO> getAllTasksByProject(Integer projectId) {
+        // 验证项目是否存在
+        if (!projectRepository.existsById(projectId)) {
+            throw new RuntimeException("项目不存在");
+        }
+
+        // 查询项目的所有任务
+        List<Task> tasks = taskRepository.findByProjectId(projectId);
+
+        // 转换为DTO(不包含日志信息)
+        return tasks.stream()
+                .map(this::convertTaskToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 将Task实体转换为TaskDTO(不包含日志信息)
+     */
+    private TaskDTO convertTaskToDTO(Task task) {
+        TaskDTO dto = new TaskDTO();
+        dto.setTaskId(task.getTaskId());
+        dto.setTitle(task.getTitle());
+        dto.setContent(task.getContent());
+        dto.setStartTime(task.getStartTime());
+        dto.setEndTime(task.getEndTime());
+
+        // 转换任务状态
+        if (task.getTaskStatus() != null) {
+            Status status = Status.fromCode(task.getTaskStatus());
+            dto.setTaskStatus(status.getDesc());
+        }
+
+        // 转换任务优先级
+        if (task.getTaskPriority() != null) {
+            Priority priority = Priority.fromCode(task.getTaskPriority());
+            dto.setTaskPriority(priority.getDesc());
+        }
+
+        // 负责人信息
+        if (task.getAssignee() != null) {
+            dto.setAssigneeId(task.getAssignee().getEmployeeId());
+            dto.setAssigneeName(task.getAssignee().getEmployeeName());
+        }
+
+        // 创建者信息
+        if (task.getSender() != null) {
+            dto.setSenderId(task.getSender().getEmployeeId());
+            dto.setSenderName(task.getSender().getEmployeeName());
+        }
+
+        // 转换任务类型
+        if (task.getTaskType() != null) {
+            TaskType taskType = TaskType.fromCode(task.getTaskType());
+            dto.setTaskType(taskType.getDesc());
+        }
+
+        // 里程碑信息
+        if (task.getMilestone() != null) {
+            dto.setMilestoneId(task.getMilestone().getMilestoneId());
+            dto.setMilestoneName(task.getMilestone().getTitle());
+        }
+
+        // 注意: 不设置日志信息
         return dto;
     }
 }

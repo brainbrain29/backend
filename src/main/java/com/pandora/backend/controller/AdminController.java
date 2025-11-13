@@ -17,6 +17,8 @@ public class AdminController {
     @Autowired
     private AdminService adminService;
 
+
+
     // ========== 员工管理 ==========
 
     /**
@@ -191,6 +193,22 @@ public class AdminController {
             return ResponseEntity.badRequest().build();
         }
     }
+
+    //新添加的操控用户权限功能
+    @PutMapping("/employees/{employeeId}/position")
+    public ResponseEntity<?> updateEmployeePosition(
+            @PathVariable Integer employeeId,
+            @RequestBody UpdatePositionDTO updatePositionDTO) {
+
+        try {
+            EmployeeDTO updatedEmployee = adminService.updateEmployeePosition(employeeId, updatePositionDTO);
+            return ResponseEntity.ok(updatedEmployee);
+        } catch (RuntimeException e) {
+            // 捕获业务逻辑中可能抛出的异常，并返回一个清晰的错误信息
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
 
     /**
      * 删除重要任务

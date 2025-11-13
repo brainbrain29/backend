@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import jakarta.persistence.Entity; // <-- 确保导入了这个
+import jakarta.persistence.Table;  // <-- 如果你用了 @Table，也确保导入
 
 @Getter
 @Setter

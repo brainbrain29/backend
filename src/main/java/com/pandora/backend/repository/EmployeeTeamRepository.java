@@ -3,17 +3,25 @@ package com.pandora.backend.repository;
 import com.pandora.backend.entity.Employee;
 import com.pandora.backend.entity.EmployeeTeamId;
 import com.pandora.backend.entity.Employee_Team;
+import com.pandora.backend.entity.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface EmployeeTeamRepository extends JpaRepository<Employee_Team, EmployeeTeamId> {
     List<Employee_Team> findByTeamTeamId(Integer teamId);
     long countByTeamTeamId(Integer teamId);
+
+    // 根据团队和是否为领导查找关系，用于找到现任领导
+    Optional<Employee_Team> findByTeamAndIsLeader(Team team, byte isLeader);
+
+    // 根据员工和团队查找关系，用于检查成员资格并更新为新领导
+    Optional<Employee_Team> findByEmployeeAndTeam(Employee employee, Team team);
 
     /**
      * 查询指定团队中符合职位要求的员工

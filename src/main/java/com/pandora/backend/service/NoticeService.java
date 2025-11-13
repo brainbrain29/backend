@@ -1,5 +1,6 @@
 package com.pandora.backend.service;
 
+import com.pandora.backend.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -18,12 +19,17 @@ import com.pandora.backend.entity.Task;
 import com.pandora.backend.enums.NoticeStatus;
 
 import java.time.LocalDateTime;
+import com.pandora.backend.entity.Employee;
+import com.pandora.backend.enums.NoticeType;
 
 //TODO:检查Redis缓存逻辑
 @Service
 public class NoticeService {
     @Autowired
     private NoticeRepository noticeRepository;
+
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
     @Autowired
     private NoticeEmployeeRepository noticeEmployeeRepository;
@@ -150,6 +156,126 @@ public class NoticeService {
         pushService.pushNotification(receiverId, dto);
 
         System.out.println("任务分配通知已创建并推送给用户: " + receiverId);
+    }
+
+    /**
+     * 2. 创建任务状态更新通知
+     * @param task      已更新状态的任务实体
+     * @param updater   执行更新操作的员工实体
+     */
+    public void createTaskUpdateNotice(Task task, Employee updater) {
+        if (task.getAssignee() == null) {
+            return; // 任务没有负责人，无需通知
+        }
+        // 如果更新者和负责人是同一个人，不发送通知
+        if (updater.getEmployeeId().equals(task.getAssignee().getEmployeeId())) {
+            return;
+        }
+
+        // 1. 保存通知到数据库
+        Notice notice = new Notice();
+        notice.setSender(updater); // 操作者是发送方
+        notice.setNoticeType((byte) NoticeType.TASK_UPDATE.getCode()); // 使用枚举
+        String content = String.format("你的任务 '%s' 状态已更新", task.getTitle());
+        notice.setContent(content);
+        notice.setCreatedTime(LocalDateTime.now());
+        Notice savedNotice = noticeRepository.save(notice);
+
+        // 2. 创建通知与接收者的关联关系
+        NoticeEmployee ne = createNoticeEmployeeLink(savedNotice, task.getAssignee());
+
+        // 3. 转换为 DTO 并推送/缓存
+        sendAndCacheNotice(ne);
+
+        System.out.println("任务状态更新通知已创建并推送给用户: " + task.getAssignee().getEmployeeId());
+    }
+
+    /**
+     * 3. 创建并广播公司重要事项通知
+     * @param createdNotice 已创建的重要事项实体
+     */
+    public void createCompanyMatterNotice(Notice createdNotice) {
+        // 获取所有员工 (在实际生产中，这里可能需要优化为分页处理，避免一次性加载过多用户)
+        List<Employee> allEmployees = employeeRepository.findAll();
+
+        // 为每个员工创建通知
+        for (Employee employee : allEmployees) {
+            // 自己不给自己发通知
+            if (employee.getEmployeeId().equals(createdNotice.getSender().getEmployeeId())) {
+                continue;
+            }
+
+            // 1. 创建通知与接收者的关联关系
+            NoticeEmployee ne = createNoticeEmployeeLink(createdNotice, employee);
+
+            // 2. 转换为 DTO 并推送/缓存
+            sendAndCacheNotice(ne);
+        }
+
+        System.out.println("公司重要事项 '" + createdNotice.getNoticeId() + "' 已广播给 " + (allEmployees.size() -1) + " 个用户");
+    }
+
+    /**
+     * 4. 创建并广播公司重要任务通知
+     * @param importantTask 已创建的重要任务实体
+     */
+    public void createImportantTaskNotice(Task importantTask) {
+        // 同样，广播给所有员工
+        List<Employee> allEmployees = employeeRepository.findAll();
+
+        for (Employee employee : allEmployees) {
+            // 发送者不接收通知
+            if (employee.getEmployeeId().equals(importantTask.getSender().getEmployeeId())) {
+                continue;
+            }
+
+            // 1. 先为这个任务创建一个独立的通知实体
+            Notice notice = new Notice();
+            notice.setSender(importantTask.getSender());
+            notice.setNoticeType((byte) NoticeType.IMPORTANT_TASK.getCode());
+            String content = String.format("公司发布了新的重要任务: '%s'", importantTask.getTitle());
+            notice.setContent(content);
+            notice.setCreatedTime(LocalDateTime.now());
+            Notice savedNotice = noticeRepository.save(notice);
+
+            // 2. 创建通知与接收者的关联关系
+            NoticeEmployee ne = createNoticeEmployeeLink(savedNotice, employee);
+
+            // 3. 转换为 DTO 并推送/缓存
+            sendAndCacheNotice(ne);
+        }
+        System.out.println("公司重要任务 '" + importantTask.getTitle() + "' 已广播给 " + (allEmployees.size() -1) + " 个用户");
+    }
+
+
+    // ==== 新增的、用于重构和简化代码的私有辅助方法 ====
+
+    /**
+     * 辅助方法：创建 Notice 和 Employee 的关联记录
+     */
+    private NoticeEmployee createNoticeEmployeeLink(Notice notice, Employee receiver) {
+        NoticeEmployee ne = new NoticeEmployee();
+        NoticeEmployeeId id = new NoticeEmployeeId(notice.getNoticeId(), receiver.getEmployeeId());
+        ne.setId(id);
+        ne.setNotice(notice);
+        ne.setReceiver(receiver);
+        ne.setNoticeStatus(NoticeStatus.NOT_VIEWED);
+        return noticeEmployeeRepository.save(ne);
+    }
+
+    /**
+     * 辅助方法：发送并缓存通知
+     */
+    private void sendAndCacheNotice(NoticeEmployee ne) {
+        NoticeDTO dto = toDTO(ne);
+        Integer receiverId = ne.getReceiver().getEmployeeId();
+
+        // 更新 Redis 缓存
+        cacheService.incrementUnreadCount(receiverId);
+        cacheService.cacheRecentNotice(receiverId, dto);
+
+        // SSE 实时推送
+        pushService.pushNotification(receiverId, dto);
     }
 
     /**

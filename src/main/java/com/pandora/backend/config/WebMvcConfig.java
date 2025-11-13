@@ -16,6 +16,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Autowired
     private LoginInterceptor loginInterceptor;
 
+
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
 

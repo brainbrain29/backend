@@ -2,7 +2,13 @@ package com.pandora.backend.controller;
 
 import com.pandora.backend.dto.LogDTO;
 import com.pandora.backend.entity.Log; // 导入实体类 Log
+import com.pandora.backend.entity.LogAttachment;
+import com.pandora.backend.repository.LogAttachmentRepository;
 import com.pandora.backend.service.LogService;
+import com.pandora.backend.service.FileStorageService;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -23,6 +29,12 @@ public class LogController {
 
     @Autowired
     private LogService logService;
+
+    @Autowired
+    private FileStorageService fileStorageService;
+
+    @Autowired
+    private LogAttachmentRepository logAttachmentRepository;
 
     // 根据时间获取当天所有日志
     @GetMapping("/byDate")
@@ -165,6 +177,34 @@ public class LogController {
         } else {
             return ResponseEntity.ok(
                     logService.queryLogsInMonth(userId, startDate, endDate));
+        }
+    }
+
+    /**
+     * API 接口：下载附件
+     * @param attachmentId 附件的数据库ID
+     */
+    @GetMapping("/attachments/{id}")
+    public ResponseEntity<Resource> downloadAttachment(@PathVariable("id") Long attachmentId, HttpServletRequest request) {
+        
+        try {
+            // 1. 从数据库查找附件信息
+            LogAttachment attachment = logAttachmentRepository.findById(attachmentId)
+                    .orElseThrow(() -> new RuntimeException("文件未找到 ID: " + attachmentId));
+
+            // 2. 从磁盘加载文件
+            Resource resource = fileStorageService.loadFileAsResource(attachment.getStoredFilename());
+
+            // 3. 构建下载响应
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + attachment.getOriginalFilename() + "\"")
+                    .contentType(MediaType.parseMediaType(attachment.getFileType()))
+                    .contentLength(attachment.getFileSize())
+                    .body(resource);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 未找到
         }
     }
 }

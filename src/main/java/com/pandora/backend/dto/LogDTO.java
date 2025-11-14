@@ -3,6 +3,7 @@ package com.pandora.backend.dto;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import java.util.Set; // 导入Set
 
 @Getter
 @Setter
@@ -16,7 +17,7 @@ public class LogDTO {
     private LocalDateTime createdTime;
     private String content;
     private String emoji;
-    private String attachment;
+    private Set<AttachmentDTO> attachments;
     private String employeeLocation;
     private Byte position;
 }

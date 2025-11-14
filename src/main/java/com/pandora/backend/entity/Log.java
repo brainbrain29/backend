@@ -3,12 +3,21 @@ package com.pandora.backend.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString; 
 import java.time.LocalDateTime;
+
+import java.util.Set;
+import java.util.HashSet;
+// import jakarta.persistence.OneToMany; (已通过 jakarta.persistence.* 导入)
+// import jakarta.persistence.CascadeType; (已通过 jakarta.persistence.* 导入)
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 @Getter
 @Setter
+// 2. (推荐) 添加 @ToString 并排除所有关联对象
+// 这可以防止日志(logging)时因循环引用导致堆栈溢出
+@ToString(exclude = {"employee", "task", "attachments"}) 
 @Entity
 @Table(name = "log")
 public class Log {
@@ -35,12 +44,18 @@ public class Log {
     @Column(nullable = false)
     private Byte emoji;
 
-    @Column(length = 255)
-    private String attachment;
 
     @Column(length = 50)
     private String employeeLocation;
 
     @Column(name = "employee_position")
     private Byte employeePosition;
+
+    // 4. --- 新增的附件集合 ---
+    @OneToMany(
+        mappedBy = "log", // 对应 LogAttachment 实体中的 "log" 字段
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
+    private Set<LogAttachment> attachments = new HashSet<>();
 }

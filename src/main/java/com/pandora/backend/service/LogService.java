@@ -107,7 +107,8 @@ public class LogService {
                     attachment.setStoredFilename(storedFilename);
                     attachment.setFileType(file.getContentType());
                     attachment.setFileSize(file.getSize());
-                    // uploadedAt 会通过 @PrePersist 自动设置
+                    attachment.setUploadedBy(userId); // 设置上传者ID
+                    // uploadTime 会通过 @PrePersist 自动设置
 
                     logAttachmentRepository.save(attachment);
 
@@ -249,6 +250,7 @@ public class LogService {
                     attDto.setOriginalFilename(att.getOriginalFilename());
                     attDto.setFileType(att.getFileType());
                     attDto.setFileSize(att.getFileSize());
+                    attDto.setUploadTime(att.getUploadTime());
                     return attDto;
                 })
                 .collect(Collectors.toSet());

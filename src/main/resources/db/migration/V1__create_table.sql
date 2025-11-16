@@ -86,20 +86,22 @@ CREATE TABLE log (
     content VARCHAR(255) NOT NULL COMMENT '日志内容',
     emoji TINYINT NOT NULL COMMENT '心情表情',
     attachment VARCHAR(255) COMMENT '附件路径',
-    employee_location VARCHAR(50) COMMENT '员工位置'
+    employee_location VARCHAR(50) COMMENT '员工位置',
+    employee_position TINYINT COMMENT '员工职位'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='日志表';
 
 -- 9. 日志附件表
 CREATE TABLE log_attachment (
-    attachment_id INT PRIMARY KEY AUTO_INCREMENT COMMENT '附件ID',
+    attachment_id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '附件ID',
     log_id INT NOT NULL COMMENT '关联的日志ID',
-    file_name VARCHAR(255) NOT NULL COMMENT '原始文件名',
-    file_type VARCHAR(100) NOT NULL COMMENT '文件MIME类型',
-    file_size BIGINT NOT NULL COMMENT '文件大小(字节)',
-    file_data LONGBLOB NOT NULL COMMENT '文件内容(二进制)',
-    file_category TINYINT NOT NULL COMMENT '文件分类: 1=图片, 2=文档',
-    upload_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
-    uploaded_by INT COMMENT '上传者ID'
+    original_filename VARCHAR(255) NOT NULL COMMENT '原始文件名',
+    stored_filename VARCHAR(255) NOT NULL UNIQUE COMMENT '存储在服务器上的安全文件名',
+    file_type VARCHAR(100) COMMENT '文件MIME类型',
+    file_size BIGINT COMMENT '文件大小(字节)',
+    upload_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+    uploaded_by INT COMMENT '上传者ID',
+    FOREIGN KEY (log_id) REFERENCES log(log_id)
+        ON DELETE CASCADE -- 核心：删除日志时，自动删除此条附件记录
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='日志附件表';
 
 -- 10. 重要事项表

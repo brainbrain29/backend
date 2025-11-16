@@ -40,12 +40,15 @@ public class LogAttachment {
     @Column(name = "file_size")
     private Long fileSize;
 
-    @Column(name = "uploaded_at", updatable = false)
-    private LocalDateTime uploadedAt;
+    @Column(name = "upload_time", updatable = false)
+    private LocalDateTime uploadTime;
+    
+    @Column(name = "uploaded_by")
+    private Integer uploadedBy;
 
     @PrePersist
     protected void onCreate() {
-        uploadedAt = LocalDateTime.now();
+        uploadTime = LocalDateTime.now();
     }
 
 }

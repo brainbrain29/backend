@@ -1,5 +1,9 @@
 package com.pandora.backend.dto;
 
+import lombok.Getter;
+
+@Getter
+
 public class NoticeStatusDTO {
     private boolean hasUnreadNotice;
     private int unreadCount;
@@ -13,7 +17,4 @@ public class NoticeStatusDTO {
         return hasUnreadNotice;
     }
 
-    public int getUnreadCount() {
-        return unreadCount;
-    }
 }

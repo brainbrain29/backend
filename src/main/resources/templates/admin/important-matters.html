@@ -31,7 +31,7 @@
     <td th:text="${m.matterStatus}"></td>
     <td th:text="${m.matterPriority}"></td>
     <td th:text="${m.serialNum}"></td>
-    <td th:text="${m.visibleRange}"></td>
+    <td th:text="${m.visibleRange == 0 ? '全员' : (m.visibleRange == 1 ? '管理层' : '部门内')}"></td>
     <td>
       <form th:action="@{'/admin/web/important-matters/' + ${m.matterId}}" method="post" style="display:inline-block">
         <input type="text" name="content" th:value="${m.content}" required/>
@@ -42,7 +42,11 @@
         <input type="number" name="matterStatus" th:value="${m.matterStatus}" min="0" max="2"/>
         <input type="number" name="matterPriority" th:value="${m.matterPriority}" min="0" max="2"/>
         <input type="number" name="serialNum" th:value="${m.serialNum}" min="1" max="10"/>
-        <input type="number" name="visibleRange" th:value="${m.visibleRange}" min="0" max="2"/>
+        <select name="visibleRange">
+          <option value="0" th:selected="${m.visibleRange == 0}">全员</option>
+          <option value="1" th:selected="${m.visibleRange == 1}">管理层</option>
+          <option value="2" th:selected="${m.visibleRange == 2}">部门内</option>
+        </select>
         <button type="submit">Update</button>
       </form>
       <form th:action="@{'/admin/web/important-matters/' + ${m.matterId} + '/delete'}" method="post" style="display:inline-block">
@@ -63,6 +67,11 @@
   <input type="number" th:field="*{matterStatus}" min="0" max="2" placeholder="Status"/>
   <input type="number" th:field="*{matterPriority}" min="0" max="2" placeholder="Priority"/>
   <input type="number" th:field="*{serialNum}" min="1" max="10" placeholder="Serial"/>
+  <select th:field="*{visibleRange}">
+    <option value="0">全员</option>
+    <option value="1">管理层</option>
+    <option value="2">部门内</option>
+  </select>
   <button type="submit">Create</button>
 </form>
 </body>

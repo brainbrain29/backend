@@ -3,6 +3,84 @@
 <head>
   <meta charset="UTF-8">
   <title>Top-10 Important Person Tasks</title>
+  <style>
+    .task-tags {
+        margin-top: 5px;
+    }
+    .tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        margin-right: 5px;
+    }
+    .tag-completed { 
+        background: #f0f9ff; 
+        color: #67C23A; 
+        border: 1px solid #67C23A;
+    }
+    .tag-in-progress { 
+        background: #e1f3ff; 
+        color: #409EFF; 
+        border: 1px solid #409EFF;
+    }
+    .tag-pending { 
+        background: #fff4e6; 
+        color: #E6A23C; 
+        border: 1px solid #E6A23C;
+    }
+    .tag-low { 
+        background: #f5f7fa; 
+        color: #909399; 
+        border: 1px solid #909399;
+    }
+    .tag-medium { 
+        background: #e6f7ff; 
+        color: #1890ff; 
+        border: 1px solid #1890ff;
+    }
+    .tag-high { 
+        background: #fff2e8; 
+        color: #fa8c16; 
+        border: 1px solid #fa8c16;
+    }
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+    }
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+    form {
+        display: inline-block;
+        margin: 2px;
+    }
+    input, select {
+        margin: 0 2px;
+        padding: 4px;
+    }
+    button {
+        padding: 4px 8px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+    button:hover {
+        background-color: #45a049;
+    }
+  </style>
 </head>
 <body>
 <h2>Top-10 Important Person Tasks</h2>
@@ -29,8 +107,16 @@
     <td th:text="${t.employeeName}"></td>
     <td th:text="${t.taskContent}"></td>
     <td th:text="${#temporals.format(t.deadline, 'yyyy-MM-dd HH:mm')}"></td>
-    <td th:text="${t.taskStatus}"></td>
-    <td th:text="${t.taskPriority}"></td>
+    <td>
+      <div class="task-tags">
+        <span class="tag" th:classappend="${t.taskStatus == '已完成'} ? 'tag-completed' : (${t.taskStatus == '进行中'} ? 'tag-in-progress' : 'tag-pending')" th:text="${t.taskStatus}"></span>
+      </div>
+    </td>
+    <td>
+      <div class="task-tags">
+        <span class="tag" th:classappend="${t.taskPriority == '高'} ? 'tag-high' : (${t.taskPriority == '中'} ? 'tag-medium' : 'tag-low')" th:text="${t.taskPriority}"></span>
+      </div>
+    </td>
     <td th:text="${t.serialNum}"></td>
     <td th:text="${#temporals.format(t.createdTime, 'yyyy-MM-dd HH:mm')}"></td>
     <td th:text="${#temporals.format(t.updatedTime, 'yyyy-MM-dd HH:mm')}"></td>
@@ -41,8 +127,16 @@
         </select>
         <input type="text" name="taskContent" th:value="${t.taskContent}" required/>
         <input type="datetime-local" name="deadline" th:value="${#temporals.format(t.deadline, 'yyyy-MM-dd''T''HH:mm')}" required/>
-        <input type="number" name="taskStatus" th:value="${t.taskStatus}" min="0" max="2"/>
-        <input type="number" name="taskPriority" th:value="${t.taskPriority}" min="0" max="2"/>
+        <select name="taskStatus">
+          <option value="待处理" th:selected="${t.taskStatus == '待处理'}" th:text="'待处理'"></option>
+          <option value="进行中" th:selected="${t.taskStatus == '进行中'}" th:text="'进行中'"></option>
+          <option value="已完成" th:selected="${t.taskStatus == '已完成'}" th:text="'已完成'"></option>
+        </select>
+        <select name="taskPriority">
+          <option value="低" th:selected="${t.taskPriority == '低'}" th:text="'低'"></option>
+          <option value="中" th:selected="${t.taskPriority == '中'}" th:text="'中'"></option>
+          <option value="高" th:selected="${t.taskPriority == '高'}" th:text="'高'"></option>
+        </select>
         <input type="number" name="serialNum" th:value="${t.serialNum}" min="1" max="10"/>
         <button type="submit">Update</button>
       </form>
@@ -61,8 +155,18 @@
   </select>
   <input type="text" th:field="*{taskContent}" placeholder="Content" required/>
   <input type="datetime-local" th:field="*{deadline}" required/>
-  <input type="number" th:field="*{taskStatus}" min="0" max="2" placeholder="Status"/>
-  <input type="number" th:field="*{taskPriority}" min="0" max="2" placeholder="Priority"/>
+  <select th:field="*{taskStatus}">
+    <option value="">-- Select Status --</option>
+    <option value="待处理">待处理</option>
+    <option value="进行中">进行中</option>
+    <option value="已完成">已完成</option>
+  </select>
+  <select th:field="*{taskPriority}">
+    <option value="">-- Select Priority --</option>
+    <option value="低">低</option>
+    <option value="中">中</option>
+    <option value="高">高</option>
+  </select>
   <input type="number" th:field="*{serialNum}" min="1" max="10" placeholder="Serial"/>
   <button type="submit">Create</button>
 </form>

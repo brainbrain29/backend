@@ -76,15 +76,19 @@ public class LogService {
         newLog.setTask(task);
         newLog.setContent(dto.getContent());
         
-        // 假设 DTO 中的 emoji 是 String, 并且可能是 null
+        // 设置 emoji，将DTO中的字符串转换为Emoji枚举
         if (dto.getEmoji() != null) {
-            newLog.setEmoji(Byte.parseByte(dto.getEmoji())); 
+            try {
+                // 尝试将字符串解析为数字代码
+                int emojiCode = Integer.parseInt(dto.getEmoji());
+                newLog.setEmoji(Emoji.fromCode(emojiCode));
+            } catch (NumberFormatException e) {
+                // 如果不是数字，则尝试通过描述查找
+                newLog.setEmoji(Emoji.fromDesc(dto.getEmoji()));
+            }
         } else {
-            newLog.setEmoji((byte) Emoji.PEACE.getCode()); // 默认值
+            newLog.setEmoji(Emoji.PEACE); // 默认值
         }
-        
-        newLog.setEmployeeLocation(dto.getEmployeeLocation());
-        newLog.setEmployeePosition(employee.getPosition()); // 建议从 Employee 实体获取
         newLog.setCreatedTime(LocalDateTime.now());
 
         // 第一次保存 (获取 logId)
@@ -162,9 +166,15 @@ public class LogService {
 
         existingLog.setContent(logDTO.getContent());
         if (logDTO.getEmoji() != null) {
-            existingLog.setEmoji(Byte.parseByte(logDTO.getEmoji()));
+            try {
+                // 尝试将字符串解析为数字代码
+                int emojiCode = Integer.parseInt(logDTO.getEmoji());
+                existingLog.setEmoji(Emoji.fromCode(emojiCode));
+            } catch (NumberFormatException e) {
+                // 如果不是数字，则尝试通过描述查找
+                existingLog.setEmoji(Emoji.fromDesc(logDTO.getEmoji()));
+            }
         }
-        existingLog.setEmployeeLocation(logDTO.getEmployeeLocation());
         
         // (注意：附件的更新逻辑很复杂，通常是单独的接口)
         // (这个 updateLog 暂不处理附件的增删)
@@ -227,7 +237,6 @@ public class LogService {
         if (log.getEmployee() != null) {
             dto.setEmployeeName(log.getEmployee().getEmployeeName());
             dto.setEmployeeId(log.getEmployee().getEmployeeId());
-            dto.setPosition(log.getEmployee().getPosition()); // 职位
         }
         
         if (log.getTask() != null) {
@@ -237,8 +246,8 @@ public class LogService {
         
         dto.setCreatedTime(log.getCreatedTime());
         dto.setContent(log.getContent());
-        dto.setEmoji(Emoji.fromCode(log.getEmoji()).getDesc());
-        dto.setEmployeeLocation(log.getEmployeeLocation());
+        // 将Emoji枚举转换为汉字描述
+        dto.setEmoji(log.getEmoji().getDesc());
         
         // --- 核心修复 ---
         // 转换附件集合

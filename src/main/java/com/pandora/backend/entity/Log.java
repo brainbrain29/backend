@@ -1,5 +1,6 @@
 package com.pandora.backend.entity;
 
+import com.pandora.backend.enums.Emoji;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,8 +9,6 @@ import java.time.LocalDateTime;
 
 import java.util.Set;
 import java.util.HashSet;
-// import jakarta.persistence.OneToMany; (已通过 jakarta.persistence.* 导入)
-// import jakarta.persistence.CascadeType; (已通过 jakarta.persistence.* 导入)
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
@@ -42,14 +41,8 @@ public class Log {
     private String content;
 
     @Column(nullable = false)
-    private Byte emoji;
-
-
-    @Column(length = 50)
-    private String employeeLocation;
-
-    @Column(name = "employee_position")
-    private Byte employeePosition;
+    @Enumerated(EnumType.ORDINAL)
+    private Emoji emoji;
 
     // 4. --- 新增的附件集合 ---
     @OneToMany(

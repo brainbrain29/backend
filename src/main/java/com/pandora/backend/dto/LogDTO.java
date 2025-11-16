@@ -16,7 +16,7 @@ public class LogDTO {
     private Integer taskId;
     private LocalDateTime createdTime;
     private String content;
-    private String emoji;
+    private String emoji; // 存储汉字描述
     private Set<AttachmentDTO> attachments;
     private String employeeLocation;
 }

@@ -4,6 +4,7 @@ import com.pandora.backend.dto.LogDTO;
 import com.pandora.backend.dto.TaskDTO;
 import com.pandora.backend.entity.Log; // 导入实体类 Log
 import com.pandora.backend.entity.LogAttachment;
+import com.pandora.backend.enums.Emoji;
 import com.pandora.backend.repository.LogAttachmentRepository;
 import com.pandora.backend.service.LogService;
 import com.pandora.backend.service.FileStorageService;
@@ -77,9 +78,9 @@ public class LogController {
             LogDTO dto = new LogDTO();
             dto.setEmployeeId(userId);
             dto.setContent(content);
+            // 直接设置mood字符串，后续在service中会转换为Emoji枚举
             dto.setEmoji(mood);
             dto.setTaskId(taskId);
-            dto.setEmployeeLocation(employeeLocation);
 
             // 创建日志并处理附件
             Log createdLog = logService.createLogWithAttachments(dto, files, userId);

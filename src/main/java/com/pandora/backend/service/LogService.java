@@ -78,15 +78,15 @@ public class LogService {
         newLog.setTask(task);
         newLog.setContent(dto.getContent());
 
-        // 假设 DTO 中的 emoji 是 String, 并且可能是 null
+        // DTO 中的 emoji 传的是 Emoji 的中文描述，例如 "平静"、"开心"
         if (dto.getEmoji() != null) {
-            newLog.setEmoji(Byte.parseByte(dto.getEmoji()));
+            // 将中文描述转换为 Emoji 枚举
+            Emoji emoji = Emoji.fromDesc(dto.getEmoji());
+            newLog.setEmoji(emoji);
         } else {
-            newLog.setEmoji((byte) Emoji.PEACE.getCode()); // 默认值
+            // 未传则使用默认表情
+            newLog.setEmoji(Emoji.PEACE);
         }
-
-        newLog.setEmployeeLocation(dto.getEmployeeLocation());
-        newLog.setEmployeePosition(employee.getPosition()); // 建议从 Employee 实体获取
         newLog.setCreatedTime(LocalDateTime.now());
 
         // 第一次保存 (获取 logId)
@@ -168,10 +168,9 @@ public class LogService {
     public LogDTO updateLog(Integer id, LogDTO logDTO) {
         Log existingLog = logRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Log not found with id: " + id));
-
         existingLog.setContent(logDTO.getContent());
         if (logDTO.getEmoji() != null) {
-            existingLog.setEmoji(Byte.parseByte(logDTO.getEmoji()));
+            existingLog.setEmoji(Emoji.fromDesc(logDTO.getEmoji()));
         }
         existingLog.setEmployeeLocation(logDTO.getEmployeeLocation());
 
@@ -248,7 +247,7 @@ public class LogService {
 
         dto.setCreatedTime(log.getCreatedTime());
         dto.setContent(log.getContent());
-        dto.setEmoji(Emoji.fromCode(log.getEmoji()).getDesc());
+        dto.setEmoji(log.getEmoji().getDesc());
         dto.setEmployeeLocation(log.getEmployeeLocation());
 
         // --- 核心修复 ---

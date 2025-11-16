@@ -1,9 +1,10 @@
 package com.pandora.backend.controller;
 
 import com.pandora.backend.dto.LogDTO;
+import com.pandora.backend.dto.TaskDTO;
 import com.pandora.backend.entity.Log; // 导入实体类 Log
 import com.pandora.backend.service.LogService;
-
+import com.pandora.backend.service.TaskService;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,9 @@ public class LogController {
 
     @Autowired
     private LogService logService;
+
+    @Autowired
+    private TaskService taskService;
 
     // 根据时间获取当天所有日志
     @GetMapping("/byDate")
@@ -97,7 +101,7 @@ public class LogController {
         if (uidObj == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid token");
         }
-        LogDTO log = logService.getLogById((Integer) uidObj);
+        LogDTO log = logService.getLogById((Integer) id);
         return ResponseEntity.ok(log);
     }
 
@@ -166,5 +170,18 @@ public class LogController {
             return ResponseEntity.ok(
                     logService.queryLogsInMonth(userId, startDate, endDate));
         }
+    }
+
+    // 当前登录用户负责的未完成任务列表,用于日志关联
+    @GetMapping("/tasks")
+    public ResponseEntity<?> getUnfinishedTasksForLog(HttpServletRequest request) {
+        Object uidObj = request.getAttribute("userId");
+        if (uidObj == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid token");
+        }
+        Integer userId = (Integer) uidObj;
+
+        List<TaskDTO> tasks = taskService.getUnfinishedTasksForLog(userId);
+        return ResponseEntity.ok(tasks);
     }
 }

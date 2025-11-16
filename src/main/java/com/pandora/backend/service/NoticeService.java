@@ -1,5 +1,6 @@
 package com.pandora.backend.service;
 
+import com.pandora.backend.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -16,14 +17,21 @@ import com.pandora.backend.entity.NoticeEmployee;
 import com.pandora.backend.entity.NoticeEmployeeId;
 import com.pandora.backend.entity.Task;
 import com.pandora.backend.enums.NoticeStatus;
+import com.pandora.backend.enums.Status;
+import com.pandora.backend.enums.Position;
 
 import java.time.LocalDateTime;
+import com.pandora.backend.entity.Employee;
+import com.pandora.backend.enums.NoticeType;
 
 //TODO:检查Redis缓存逻辑
 @Service
 public class NoticeService {
     @Autowired
     private NoticeRepository noticeRepository;
+
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
     @Autowired
     private NoticeEmployeeRepository noticeEmployeeRepository;
@@ -122,18 +130,19 @@ public class NoticeService {
         // 1. 保存通知到数据库
         Notice notice = new Notice();
         notice.setSender(task.getSender());
-        notice.setNoticeType((byte) 1);
-        String title = task.getTitle() != null ? task.getTitle() : "";
-        notice.setContent("你被指派了任务: " + title);
+        notice.setNoticeType((byte) com.pandora.backend.enums.NoticeType.NEW_TASK.getCode());
+        String taskTitle = task.getTitle() != null ? task.getTitle() : "";
+        notice.setContent("你被指派了任务: " + taskTitle);
+        notice.setRelatedId(task.getTaskId()); // 保存关联的任务ID
         notice.setCreatedTime(LocalDateTime.now());
         Notice saved = noticeRepository.save(notice);
 
         Integer receiverId = task.getAssignee().getEmployeeId();
-        
+
         // 判断用户是否在线，设置初始状态
         boolean isOnline = pushService.isUserOnline(receiverId);
         NoticeStatus initialStatus = isOnline ? NoticeStatus.NOT_VIEWED : NoticeStatus.NOT_RECEIVED;
-        
+
         NoticeEmployee ne = new NoticeEmployee();
         NoticeEmployeeId id = new NoticeEmployeeId();
         id.setNoticeId(saved.getNoticeId());
@@ -182,13 +191,164 @@ public class NoticeService {
     }
 
     /**
+     * 2. 创建任务状态更新通知
+     * 
+     * @param task      已更新状态的任务实体
+     * @param updater   执行更新操作的员工实体
+     * @param receiver  通知接收人（可能是负责人，也可能是任务发布人）
+     * @param oldStatus 旧的任务状态
+     * @param newStatus 新的任务状态
+     */
+    public void createTaskUpdateNotice(Task task, Employee updater, Employee receiver, Status oldStatus,
+            Status newStatus) {
+        if (receiver == null || receiver.getEmployeeId() == null) {
+            return; // 没有明确接收人时不发送通知
+        }
+        // 如果更新者和接收人是同一个人，不发送通知
+        if (updater.getEmployeeId().equals(receiver.getEmployeeId())) {
+            return;
+        }
+
+        // 1. 构建通知内容
+        String title = task.getTitle() != null ? task.getTitle() : "";
+        String oldStatusDesc = oldStatus != null ? oldStatus.getDesc() : "";
+        String newStatusDesc = newStatus != null ? newStatus.getDesc() : "";
+
+        String baseContent = String.format("你的任务 '%s' 从 '%s' 更新为 '%s'", title, oldStatusDesc, newStatusDesc);
+
+        String roleName = Position.getDescriptionByCode(updater.getPosition());
+        String updaterName = updater.getEmployeeName();
+        String extraContent = "";
+
+        if (oldStatus == Status.PENDING_REVIEW && newStatus == Status.COMPLETED) {
+            extraContent = String.format("%s %s 通过了你的任务提交", roleName, updaterName);
+        } else if (oldStatus == Status.PENDING_REVIEW && newStatus == Status.NOT_FINISHED) {
+            extraContent = String.format("%s %s 拒绝了你的任务提交", roleName, updaterName);
+        }
+
+        String finalContent = extraContent.isEmpty() ? baseContent : baseContent + "，" + extraContent;
+
+        // 2. 保存通知到数据库
+        Notice notice = new Notice();
+        notice.setSender(updater); // 操作者是发送方
+        notice.setNoticeType((byte) NoticeType.TASK_UPDATE.getCode()); // 使用枚举
+        notice.setContent(finalContent);
+        notice.setRelatedId(task.getTaskId()); // 保存关联的任务ID
+        notice.setCreatedTime(LocalDateTime.now());
+        Notice savedNotice = noticeRepository.save(notice);
+
+        // 3. 创建通知与接收者的关联关系
+        NoticeEmployee ne = createNoticeEmployeeLink(savedNotice, receiver);
+
+        // 4. 转换为 DTO 并推送/缓存
+        sendAndCacheNotice(ne);
+
+        System.out.println("任务状态更新通知已创建并推送给用户: " + receiver.getEmployeeId());
+    }
+
+    /**
+     * 3. 创建并广播公司重要事项通知
+     * 
+     * @param createdNotice 已创建的重要事项实体
+     * @param matterId      重要事项ID
+     */
+    public void createCompanyMatterNotice(Notice createdNotice, Integer matterId) {
+        // 设置 relatedId
+        createdNotice.setRelatedId(matterId);
+        noticeRepository.save(createdNotice);
+
+        // 获取所有员工 (在实际生产中，这里可能需要优化为分页处理，避免一次性加载过多用户)
+        List<Employee> allEmployees = employeeRepository.findAll();
+
+        // 为每个员工创建通知
+        for (Employee employee : allEmployees) {
+            // 自己不给自己发通知
+            if (employee.getEmployeeId().equals(createdNotice.getSender().getEmployeeId())) {
+                continue;
+            }
+
+            // 1. 创建通知与接收者的关联关系
+            NoticeEmployee ne = createNoticeEmployeeLink(createdNotice, employee);
+
+            // 2. 转换为 DTO 并推送/缓存
+            sendAndCacheNotice(ne);
+        }
+
+        System.out.println("公司重要事项 '" + createdNotice.getNoticeId() + "' 已广播给 " + (allEmployees.size() - 1) + " 个用户");
+    }
+
+    /**
+     * 4. 创建并广播公司重要任务通知
+     * 
+     * @param importantTask 已创建的重要任务实体
+     */
+    public void createImportantTaskNotice(Task importantTask) {
+        // 同样，广播给所有员工
+        List<Employee> allEmployees = employeeRepository.findAll();
+
+        for (Employee employee : allEmployees) {
+            // 发送者不接收通知
+            if (employee.getEmployeeId().equals(importantTask.getSender().getEmployeeId())) {
+                continue;
+            }
+
+            // 1. 先为这个任务创建一个独立的通知实体
+            Notice notice = new Notice();
+            notice.setSender(importantTask.getSender());
+            notice.setNoticeType((byte) NoticeType.IMPORTANT_TASK.getCode());
+            String content = String.format("公司发布了新的重要任务: '%s'", importantTask.getTitle());
+            notice.setContent(content);
+            notice.setRelatedId(importantTask.getTaskId()); // 保存关联的任务ID
+            notice.setCreatedTime(LocalDateTime.now());
+            Notice savedNotice = noticeRepository.save(notice);
+
+            // 2. 创建通知与接收者的关联关系
+            NoticeEmployee ne = createNoticeEmployeeLink(savedNotice, employee);
+
+            // 3. 转换为 DTO 并推送/缓存
+            sendAndCacheNotice(ne);
+        }
+        System.out.println("公司重要任务 '" + importantTask.getTitle() + "' 已广播给 " + (allEmployees.size() - 1) + " 个用户");
+    }
+
+    // ==== 新增的、用于重构和简化代码的私有辅助方法 ====
+
+    /**
+     * 辅助方法：创建 Notice 和 Employee 的关联记录
+     */
+    private NoticeEmployee createNoticeEmployeeLink(Notice notice, Employee receiver) {
+        NoticeEmployee ne = new NoticeEmployee();
+        NoticeEmployeeId id = new NoticeEmployeeId(notice.getNoticeId(), receiver.getEmployeeId());
+        ne.setId(id);
+        ne.setNotice(notice);
+        ne.setReceiver(receiver);
+        ne.setNoticeStatus(NoticeStatus.NOT_VIEWED);
+        return noticeEmployeeRepository.save(ne);
+    }
+
+    /**
+     * 辅助方法：发送并缓存通知
+     */
+    private void sendAndCacheNotice(NoticeEmployee ne) {
+        NoticeDTO dto = toDTO(ne);
+        Integer receiverId = ne.getReceiver().getEmployeeId();
+
+        // 更新 Redis 缓存
+        cacheService.incrementUnreadCount(receiverId);
+        cacheService.cacheRecentNotice(receiverId, dto);
+
+        // SSE 实时推送
+        pushService.pushNotification(receiverId, dto);
+    }
+
+    /**
      * 标记单个通知为已读
      * 使用分布式锁防止读到脏数据
      */
     public void markAsRead(Integer userId, Integer noticeId) {
         String lockKey = "lock:notice:" + userId;
         String lockValue = java.util.UUID.randomUUID().toString();
-        
+
         try {
             // 1. 获取分布式锁（超时5秒）
             Boolean locked = cacheService.tryLock(lockKey, lockValue, 5, java.util.concurrent.TimeUnit.SECONDS);
@@ -196,26 +356,26 @@ public class NoticeService {
                 System.out.println("⚠️ 获取锁失败，用户: " + userId + " 可能有并发操作");
                 throw new RuntimeException("操作过于频繁，请稍后重试");
             }
-            
+
             // 2. 先删除缓存（防止读到旧数据）
             cacheService.clearAllCache(userId);
-            
+
             // 3. 更新数据库
             NoticeEmployeeId id = new NoticeEmployeeId();
             id.setNoticeId(noticeId);
             id.setReceiverId(userId);
-            
+
             NoticeEmployee ne = noticeEmployeeRepository.findById(id).orElse(null);
             if (ne != null && ne.getNoticeStatus() == NoticeStatus.NOT_VIEWED) {
                 ne.setNoticeStatus(NoticeStatus.VIEWED);
                 noticeEmployeeRepository.save(ne);
-                
+
                 System.out.println("✅ 通知已标记为已读，noticeId: " + noticeId + ", 用户: " + userId);
             }
-            
+
             // 4. 再次删除缓存（延迟双删）
             cacheService.clearAllCache(userId);
-            
+
         } finally {
             // 5. 释放锁
             cacheService.releaseLock(lockKey, lockValue);
@@ -229,7 +389,7 @@ public class NoticeService {
     public void markAllAsRead(Integer userId) {
         String lockKey = "lock:notice:" + userId;
         String lockValue = java.util.UUID.randomUUID().toString();
-        
+
         try {
             // 1. 获取分布式锁
             Boolean locked = cacheService.tryLock(lockKey, lockValue, 5, java.util.concurrent.TimeUnit.SECONDS);
@@ -237,10 +397,10 @@ public class NoticeService {
                 System.out.println("⚠️ 获取锁失败，用户: " + userId + " 可能有并发操作");
                 throw new RuntimeException("操作过于频繁，请稍后重试");
             }
-            
+
             // 2. 先删除缓存
             cacheService.clearAllCache(userId);
-            
+
             // 3. 更新数据库
             List<NoticeEmployee> unreadNotices = noticeEmployeeRepository.findUnreadByReceiverId(userId);
             if (!unreadNotices.isEmpty()) {
@@ -248,13 +408,13 @@ public class NoticeService {
                     ne.setNoticeStatus(NoticeStatus.VIEWED);
                 }
                 noticeEmployeeRepository.saveAll(unreadNotices);
-                
+
                 System.out.println("✅ 所有通知已标记为已读，数量: " + unreadNotices.size() + ", 用户: " + userId);
             }
-            
+
             // 4. 再次删除缓存
             cacheService.clearAllCache(userId);
-            
+
         } finally {
             // 5. 释放锁
             cacheService.releaseLock(lockKey, lockValue);
@@ -290,10 +450,14 @@ public class NoticeService {
         Notice n = ne.getNotice();
         NoticeDTO dto = new NoticeDTO();
         dto.setNoticeId(n.getNoticeId());
+        dto.setTitle(
+                n.getNoticeType() != null ? com.pandora.backend.enums.NoticeType.fromCode(n.getNoticeType()).getDesc()
+                        : null);
         dto.setContent(n.getContent());
         dto.setSenderName(n.getSender() != null ? n.getSender().getEmployeeName() : null);
         dto.setCreatedTime(n.getCreatedTime());
-        dto.setStatus(ne.getNoticeStatus() != null ? ne.getNoticeStatus().getCode() : null);
+        dto.setStatus(ne.getNoticeStatus() != null ? ne.getNoticeStatus().getDesc() : null);
+        dto.setRelatedId(n.getRelatedId()); // 设置关联ID
         return dto;
     }
 }

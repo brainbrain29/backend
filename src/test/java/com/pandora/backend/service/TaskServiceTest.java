@@ -198,7 +198,7 @@ class TaskServiceTest {
         when(employeeRepository.findById(1)).thenReturn(Optional.of(sender));
         when(milestoneRepository.findById(10)).thenReturn(Optional.of(milestone));
         when(taskRepository.save(any(Task.class))).thenReturn(task);
-        doNothing().when(noticeService).createTaskAssignmentNotice(any(Task.class));
+        lenient().doNothing().when(noticeService).createTaskAssignmentNotice(any(Task.class));
 
         // Execute
         TaskDTO result = taskService.createTask(taskDTO);
@@ -585,5 +585,363 @@ class TaskServiceTest {
         });
 
         assertEquals("任务状态不能为空", exception.getMessage());
+    }
+
+    /**
+     * Test: Update task with all null fields (should keep original values)
+     */
+    @Test
+    void testUpdateTask_AllNullFields() {
+        TaskDTO updateDTO = new TaskDTO();
+        // 所有字段都为 null
+        
+        when(taskRepository.findById(100)).thenReturn(Optional.of(task));
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        
+        TaskDTO result = taskService.updateTask(100, updateDTO);
+        
+        assertNotNull(result);
+        // 原始值应该保持不变
+        assertEquals("完成项目报告", result.getTitle());
+    }
+
+    /**
+     * Test: Update task - only update title
+     */
+    @Test
+    void testUpdateTask_OnlyTitle() {
+        TaskDTO updateDTO = new TaskDTO();
+        updateDTO.setTitle("新标题");
+        
+        when(taskRepository.findById(100)).thenReturn(Optional.of(task));
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        
+        TaskDTO result = taskService.updateTask(100, updateDTO);
+        
+        assertNotNull(result);
+        verify(taskRepository, times(1)).save(any(Task.class));
+    }
+
+    /**
+     * Test: Update task - only update content
+     */
+    @Test
+    void testUpdateTask_OnlyContent() {
+        TaskDTO updateDTO = new TaskDTO();
+        updateDTO.setContent("新内容");
+        
+        when(taskRepository.findById(100)).thenReturn(Optional.of(task));
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        
+        TaskDTO result = taskService.updateTask(100, updateDTO);
+        
+        assertNotNull(result);
+    }
+
+    /**
+     * Test: Update task - only update start time
+     */
+    @Test
+    void testUpdateTask_OnlyStartTime() {
+        TaskDTO updateDTO = new TaskDTO();
+        updateDTO.setStartTime(LocalDateTime.now().plusDays(1));
+        
+        when(taskRepository.findById(100)).thenReturn(Optional.of(task));
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        
+        TaskDTO result = taskService.updateTask(100, updateDTO);
+        
+        assertNotNull(result);
+    }
+
+    /**
+     * Test: Update task - only update end time
+     */
+    @Test
+    void testUpdateTask_OnlyEndTime() {
+        TaskDTO updateDTO = new TaskDTO();
+        updateDTO.setEndTime(LocalDateTime.now().plusDays(7));
+        
+        when(taskRepository.findById(100)).thenReturn(Optional.of(task));
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        
+        TaskDTO result = taskService.updateTask(100, updateDTO);
+        
+        assertNotNull(result);
+    }
+
+    /**
+     * Test: Update task - only update priority
+     */
+    @Test
+    void testUpdateTask_OnlyPriority() {
+        TaskDTO updateDTO = new TaskDTO();
+        updateDTO.setTaskPriority("高");
+        
+        when(taskRepository.findById(100)).thenReturn(Optional.of(task));
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        
+        TaskDTO result = taskService.updateTask(100, updateDTO);
+        
+        assertNotNull(result);
+    }
+
+    /**
+     * Test: Update task - only update type
+     */
+    @Test
+    void testUpdateTask_OnlyType() {
+        TaskDTO updateDTO = new TaskDTO();
+        updateDTO.setTaskType("个人任务");
+        
+        when(taskRepository.findById(100)).thenReturn(Optional.of(task));
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        
+        TaskDTO result = taskService.updateTask(100, updateDTO);
+        
+        assertNotNull(result);
+    }
+
+    /**
+     * Test: Update task status without notification (status not changed)
+     */
+    @Test
+    void testUpdateTask_StatusNotChanged() {
+        Task oldTask = new Task();
+        oldTask.setTaskId(100);
+        oldTask.setTaskStatus((byte) 1); // 进行中
+        oldTask.setSender(sender);
+        
+        TaskDTO updateDTO = new TaskDTO();
+        updateDTO.setTaskStatus("进行中"); // 相同状态
+        
+        when(taskRepository.findById(100)).thenReturn(Optional.of(oldTask));
+        when(taskRepository.save(any(Task.class))).thenReturn(oldTask);
+        
+        TaskDTO result = taskService.updateTask(100, updateDTO);
+        
+        assertNotNull(result);
+        // 不应该发送通知
+        verify(noticeService, never()).createTaskUpdateNotice(any(), any());
+    }
+
+    /**
+     * Test: Update task status without sender (should not send notification)
+     */
+    @Test
+    void testUpdateTask_StatusChangedButNoSender() {
+        Task oldTask = new Task();
+        oldTask.setTaskId(100);
+        oldTask.setTaskStatus((byte) 0);
+        oldTask.setSender(null); // 没有发送者
+        
+        TaskDTO updateDTO = new TaskDTO();
+        updateDTO.setTaskStatus("进行中");
+        
+        when(taskRepository.findById(100)).thenReturn(Optional.of(oldTask));
+        when(taskRepository.save(any(Task.class))).thenReturn(oldTask);
+        
+        TaskDTO result = taskService.updateTask(100, updateDTO);
+        
+        assertNotNull(result);
+        verify(noticeService, never()).createTaskUpdateNotice(any(), any());
+    }
+
+    /**
+     * Test: ConvertToDTO with all null fields
+     */
+    @Test
+    void testConvertToDTO_AllNullFields() {
+        Task taskWithNulls = new Task();
+        taskWithNulls.setTaskId(999);
+        taskWithNulls.setTitle("测试任务");
+        taskWithNulls.setTaskStatus(null);
+        taskWithNulls.setTaskPriority(null);
+        taskWithNulls.setTaskType(null);
+        taskWithNulls.setAssignee(null);
+        taskWithNulls.setSender(null);
+        taskWithNulls.setMilestone(null);
+        
+        when(taskRepository.findById(999)).thenReturn(Optional.of(taskWithNulls));
+        
+        TaskDTO result = taskService.getTaskById(999);
+        
+        assertNotNull(result);
+        assertNull(result.getTaskStatus());
+        assertNull(result.getTaskPriority());
+        assertNull(result.getTaskType());
+        assertNull(result.getAssigneeId());
+        assertNull(result.getSenderId());
+        assertNull(result.getMilestoneId());
+    }
+
+    /**
+     * Test: Create task without milestone (optional field)
+     */
+    @Test
+    void testCreateTask_WithoutMilestone() {
+        taskDTO.setMilestoneId(null);
+        
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(employeeRepository.findById(2)).thenReturn(Optional.of(assignee));
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        
+        TaskDTO result = taskService.createTask(taskDTO);
+        
+        assertNotNull(result);
+        verify(milestoneRepository, never()).findById(anyInt());
+    }
+
+    /**
+     * Test: Create task with null status (should skip status setting)
+     */
+    @Test
+    void testCreateTask_WithNullStatus() {
+        taskDTO.setTaskStatus(null);
+        
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(employeeRepository.findById(2)).thenReturn(Optional.of(assignee));
+        when(milestoneRepository.findById(10)).thenReturn(Optional.of(milestone));
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        
+        TaskDTO result = taskService.createTask(taskDTO);
+        
+        assertNotNull(result);
+    }
+
+    /**
+     * Test: Create task with null priority (should skip priority setting)
+     */
+    @Test
+    void testCreateTask_WithNullPriority() {
+        taskDTO.setTaskPriority(null);
+        
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(employeeRepository.findById(2)).thenReturn(Optional.of(assignee));
+        when(milestoneRepository.findById(10)).thenReturn(Optional.of(milestone));
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        
+        TaskDTO result = taskService.createTask(taskDTO);
+        
+        assertNotNull(result);
+    }
+
+    /**
+     * Test: Create task with null task type (should skip type setting)
+     */
+    @Test
+    void testCreateTask_WithNullTaskType() {
+        taskDTO.setTaskType(null);
+        
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(employeeRepository.findById(2)).thenReturn(Optional.of(assignee));
+        when(milestoneRepository.findById(10)).thenReturn(Optional.of(milestone));
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        
+        TaskDTO result = taskService.createTask(taskDTO);
+        
+        assertNotNull(result);
+    }
+
+    /**
+     * Test: Create important task (should broadcast notification)
+     */
+    @Test
+    void testCreateTask_ImportantTask() {
+        Task importantTask = new Task();
+        importantTask.setTaskId(100);
+        importantTask.setTitle("重要任务");
+        importantTask.setTaskType((byte) 4); // IMPORTANT_TASK code
+        importantTask.setSender(sender);
+        importantTask.setAssignee(assignee);
+        importantTask.setMilestone(milestone);
+        
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(employeeRepository.findById(2)).thenReturn(Optional.of(assignee));
+        when(milestoneRepository.findById(10)).thenReturn(Optional.of(milestone));
+        when(taskRepository.save(any(Task.class))).thenReturn(importantTask);
+        
+        TaskDTO result = taskService.createTask(taskDTO);
+        
+        assertNotNull(result);
+        verify(noticeService, times(1)).createImportantTaskNotice(any(Task.class));
+        verify(noticeService, never()).createTaskAssignmentNotice(any(Task.class));
+    }
+
+    /**
+     * Test: Update task with milestone change
+     */
+    @Test
+    void testUpdateTask_ChangeMilestone() {
+        Milestone newMilestone = new Milestone();
+        newMilestone.setMilestoneId(20);
+        newMilestone.setTitle("新里程碑");
+        
+        TaskDTO updateDTO = new TaskDTO();
+        updateDTO.setTitle("更新标题");
+        updateDTO.setSenderId(1);
+        updateDTO.setAssigneeId(2);
+        updateDTO.setMilestoneId(20);
+        
+        when(taskRepository.findById(100)).thenReturn(Optional.of(task));
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(employeeRepository.findById(2)).thenReturn(Optional.of(assignee));
+        when(milestoneRepository.findById(20)).thenReturn(Optional.of(newMilestone));
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        
+        TaskDTO result = taskService.updateTask(100, updateDTO);
+        
+        assertNotNull(result);
+        verify(milestoneRepository, times(1)).findById(20);
+    }
+
+    /**
+     * Test: Update task without milestone
+     */
+    @Test
+    void testUpdateTask_WithoutMilestone() {
+        TaskDTO updateDTO = new TaskDTO();
+        updateDTO.setTitle("更新标题");
+        updateDTO.setSenderId(1);
+        updateDTO.setAssigneeId(2);
+        updateDTO.setMilestoneId(null);
+        
+        when(taskRepository.findById(100)).thenReturn(Optional.of(task));
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(employeeRepository.findById(2)).thenReturn(Optional.of(assignee));
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        
+        TaskDTO result = taskService.updateTask(100, updateDTO);
+        
+        assertNotNull(result);
+        verify(milestoneRepository, never()).findById(anyInt());
+    }
+
+    /**
+     * Test: Update task status triggers notification
+     */
+    @Test
+    void testUpdateTask_StatusChangeTriggersNotification() {
+        Task oldTask = new Task();
+        oldTask.setTaskId(100);
+        oldTask.setTaskStatus((byte) 0); // 未开始
+        oldTask.setSender(sender);
+        oldTask.setAssignee(assignee);
+        
+        TaskDTO updateDTO = new TaskDTO();
+        updateDTO.setTitle("更新标题");
+        updateDTO.setTaskStatus("进行中");
+        updateDTO.setSenderId(1);
+        updateDTO.setAssigneeId(2);
+        
+        when(taskRepository.findById(100)).thenReturn(Optional.of(oldTask));
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(employeeRepository.findById(2)).thenReturn(Optional.of(assignee));
+        when(taskRepository.save(any(Task.class))).thenReturn(oldTask);
+        
+        TaskDTO result = taskService.updateTask(100, updateDTO);
+        
+        assertNotNull(result);
+        verify(noticeService, times(1)).createTaskUpdateNotice(any(Task.class), any(Employee.class));
     }
 }

@@ -8,13 +8,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -32,8 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * NoticeController 单元测试
  */
-@WebMvcTest(value = NoticeController.class,
-    excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthFilter.class))
+@WebMvcTest(value = NoticeController.class, excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthFilter.class))
 @DisplayName("Notice Controller 测试")
 class NoticeControllerTest {
 
@@ -51,17 +48,21 @@ class NoticeControllerTest {
         // 准备测试通知
         NoticeDTO notice1 = new NoticeDTO();
         notice1.setNoticeId(1);
+        notice1.setTitle("新任务派发");
         notice1.setContent("测试通知1");
         notice1.setSenderName("张三");
         notice1.setCreatedTime(LocalDateTime.now());
-        notice1.setStatus(0); // 0=未读
+        notice1.setStatus("未查看");
+        notice1.setRelatedId(101);
 
         NoticeDTO notice2 = new NoticeDTO();
         notice2.setNoticeId(2);
+        notice2.setTitle("任务状态更新");
         notice2.setContent("测试通知2");
         notice2.setSenderName("李四");
         notice2.setCreatedTime(LocalDateTime.now());
-        notice2.setStatus(0);
+        notice2.setStatus("未查看");
+        notice2.setRelatedId(102);
 
         testNotices = Arrays.asList(notice1, notice2);
 

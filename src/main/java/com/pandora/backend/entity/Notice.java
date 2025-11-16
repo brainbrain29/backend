@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import jakarta.persistence.Entity; // <-- 确保导入了这个
+import jakarta.persistence.Table; // <-- 如果你用了 @Table，也确保导入
 
 @Getter
 @Setter
@@ -24,6 +26,9 @@ public class Notice {
 
     @Column(length = 255)
     private String content;
+
+    @Column(name = "related_id")
+    private Integer relatedId; // 关联ID(任务ID/重要事项ID等)
 
     @Column(nullable = false)
     private LocalDateTime createdTime;

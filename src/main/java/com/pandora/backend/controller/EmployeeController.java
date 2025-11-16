@@ -32,13 +32,7 @@ public class EmployeeController {
 
     @GetMapping("/me")
     public ResponseEntity<EmployeeDTO> getCurrentEmployee(@RequestAttribute("userId") Integer userId) {
-        Employee emp = employeeService.getEmployeeById(userId);
-        EmployeeDTO dto = new EmployeeDTO();
-        dto.setEmployeeName(emp.getEmployeeName());
-        dto.setGender(emp.getGender().getDesc());
-        dto.setPhone(emp.getPhone());
-        dto.setEmail(emp.getEmail());
-        dto.setPosition(emp.getPosition());
+        EmployeeDTO dto = employeeService.getEmployeeDetails(userId);
         return ResponseEntity.ok(dto);
     }
 
@@ -70,18 +64,18 @@ public class EmployeeController {
         // 获取所有员工（排除自己）
         List<Employee> allEmployees = employeeService.getAllEmployees();
         List<Map<String, Object>> assignableEmployees = allEmployees.stream()
-            .filter(emp -> !emp.getEmployeeId().equals(currentUserId))  // 排除自己
-            .map(emp -> {
-                Map<String, Object> empMap = new HashMap<>();
-                empMap.put("employeeId", emp.getEmployeeId());
-                empMap.put("employeeName", emp.getEmployeeName());
-                empMap.put("position", emp.getPosition());
-                empMap.put("positionName", Position.fromCode(emp.getPosition()).getDescription());
-                empMap.put("phone", emp.getPhone());
-                empMap.put("email", emp.getEmail());
-                return empMap;
-            })
-            .collect(Collectors.toList());
+                .filter(emp -> !emp.getEmployeeId().equals(currentUserId)) // 排除自己
+                .map(emp -> {
+                    Map<String, Object> empMap = new HashMap<>();
+                    empMap.put("employeeId", emp.getEmployeeId());
+                    empMap.put("employeeName", emp.getEmployeeName());
+                    empMap.put("position", emp.getPosition());
+                    empMap.put("positionName", Position.getDescriptionByCode(emp.getPosition()));
+                    empMap.put("phone", emp.getPhone());
+                    empMap.put("email", emp.getEmail());
+                    return empMap;
+                })
+                .collect(Collectors.toList());
 
         Map<String, Object> response = new HashMap<>();
         response.put("employees", assignableEmployees);

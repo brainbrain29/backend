@@ -4,6 +4,7 @@ import com.pandora.backend.dto.LogDTO;
 import com.pandora.backend.entity.Employee;
 import com.pandora.backend.entity.Log;
 import com.pandora.backend.entity.Task;
+import com.pandora.backend.entity.LogAttachment;
 import com.pandora.backend.enums.Emoji;
 import com.pandora.backend.repository.EmployeeRepository;
 import com.pandora.backend.repository.LogAttachmentRepository;
@@ -21,7 +22,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -202,7 +202,7 @@ class LogServiceTest {
         List<Log> logs = Arrays.asList(log);
 
         // Mock repository response
-        when(logRepository.findAll()).thenReturn(logs);
+        when(logRepository.findAllWithDetails()).thenReturn(logs);
 
         // Execute
         List<LogDTO> result = logService.getAllLogs();
@@ -212,7 +212,7 @@ class LogServiceTest {
         assertEquals(1, result.size());
         assertEquals("张三", result.get(0).getEmployeeName());
         assertEquals("完成项目报告", result.get(0).getTaskName());
-        verify(logRepository, times(1)).findAll();
+        verify(logRepository, times(1)).findAllWithDetails();
     }
 
     /**
@@ -221,7 +221,7 @@ class LogServiceTest {
     @Test
     void testGetLogById_Success() {
         // Mock repository response
-        when(logRepository.findById(1)).thenReturn(Optional.of(log));
+        when(logRepository.findByIdWithDetails(1)).thenReturn(Optional.of(log));
 
         // Execute
         LogDTO result = logService.getLogById(1);
@@ -231,7 +231,7 @@ class LogServiceTest {
         assertEquals(1, result.getLogId());
         assertEquals("今天完成了项目报告的初稿", result.getContent());
         assertEquals("张三", result.getEmployeeName());
-        verify(logRepository, times(1)).findById(1);
+        verify(logRepository, times(1)).findByIdWithDetails(1);
     }
 
     /**
@@ -240,14 +240,15 @@ class LogServiceTest {
     @Test
     void testGetLogById_LogNotFound() {
         // Mock log not found
-        when(logRepository.findById(999)).thenReturn(Optional.empty());
+        when(logRepository.findByIdWithDetails(999)).thenReturn(Optional.empty());
 
         // Execute and verify exception
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             logService.getLogById(999);
         });
 
-        assertTrue(exception.getMessage().contains("Log not found"));
+        // Verify exception message
+        assertEquals("Log not found with id: 999", exception.getMessage());
     }
 
     /**
@@ -602,4 +603,176 @@ class LogServiceTest {
         verify(logRepository, times(1)).save(any(Log.class));
         verify(logAttachmentRepository, never()).save(any());
     }
+
+    /**
+     * Test: Query logs in week with null end date (should default to 7 days)
+     */
+    @Test
+    void testQueryLogsInWeek_NullEndDate() {
+        LocalDate startDate = LocalDate.of(2025, 11, 1);
+        List<Log> logs = Arrays.asList(log);
+
+        when(logRepository.findByEmployeeEmployeeIdAndCreatedTimeBetween(
+                eq(1), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(logs);
+
+        List<LogDTO> result = logService.queryLogsInWeek(1, startDate, null);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+    }
+
+    /**
+     * Test: Query logs in week with specified end date
+     */
+    @Test
+    void testQueryLogsInWeek_WithEndDate() {
+        LocalDate startDate = LocalDate.of(2025, 11, 1);
+        LocalDate endDate = LocalDate.of(2025, 11, 7);
+        List<Log> logs = Arrays.asList(log);
+
+        when(logRepository.findByEmployeeEmployeeIdAndCreatedTimeBetween(
+                eq(1), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(logs);
+
+        List<LogDTO> result = logService.queryLogsInWeek(1, startDate, endDate);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+    }
+
+    /**
+     * Test: Query logs in month with null end date (should default to end of month)
+     */
+    @Test
+    void testQueryLogsInMonth_NullEndDate() {
+        LocalDate startDate = LocalDate.of(2025, 11, 1);
+        List<Log> logs = Arrays.asList(log);
+
+        when(logRepository.findByEmployeeEmployeeIdAndCreatedTimeBetween(
+                eq(1), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(logs);
+
+        List<LogDTO> result = logService.queryLogsInMonth(1, startDate, null);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+    }
+
+    /**
+     * Test: Query logs in month with specified end date
+     */
+    @Test
+    void testQueryLogsInMonth_WithEndDate() {
+        LocalDate startDate = LocalDate.of(2025, 11, 1);
+        LocalDate endDate = LocalDate.of(2025, 11, 30);
+        List<Log> logs = Arrays.asList(log);
+
+        when(logRepository.findByEmployeeEmployeeIdAndCreatedTimeBetween(
+                eq(1), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(logs);
+
+        List<LogDTO> result = logService.queryLogsInMonth(1, startDate, endDate);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+    }
+
+    /**
+     * Test: Create log with attachments - file size validation
+     */
+    @Test
+    void testCreateLogWithAttachments_FileTooLarge() throws Exception {
+        MultipartFile largeFile = mock(MultipartFile.class);
+        when(largeFile.isEmpty()).thenReturn(false);
+        when(largeFile.getSize()).thenReturn(11L * 1024 * 1024); // 11MB
+        when(largeFile.getOriginalFilename()).thenReturn("large.jpg");
+
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(employee));
+        when(taskRepository.findById(100)).thenReturn(Optional.of(task));
+        when(logRepository.save(any(Log.class))).thenReturn(log);
+
+        MultipartFile[] files = { largeFile };
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            logService.createLogWithAttachments(logDTO, files, 1);
+        });
+
+        assertTrue(exception.getMessage().contains("文件大小不能超过 10MB"));
+    }
+
+    /**
+     * Test: Create log with attachments - null content type
+     */
+    @Test
+    void testCreateLogWithAttachments_NullContentType() throws Exception {
+        MultipartFile fileWithNullType = mock(MultipartFile.class);
+        when(fileWithNullType.isEmpty()).thenReturn(false);
+        when(fileWithNullType.getSize()).thenReturn(1024L);
+        when(fileWithNullType.getOriginalFilename()).thenReturn("test.jpg");
+        when(fileWithNullType.getContentType()).thenReturn(null);
+
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(employee));
+        when(taskRepository.findById(100)).thenReturn(Optional.of(task));
+        when(logRepository.save(any(Log.class))).thenReturn(log);
+
+        MultipartFile[] files = { fileWithNullType };
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            logService.createLogWithAttachments(logDTO, files, 1);
+        });
+
+        assertTrue(exception.getMessage().contains("无法确定文件类型"));
+    }
+
+    /**
+     * Test: Create log with attachments - image file
+     */
+    @Test
+    void testCreateLogWithAttachments_ImageFile() throws Exception {
+        MultipartFile imageFile = mock(MultipartFile.class);
+        when(imageFile.isEmpty()).thenReturn(false);
+        when(imageFile.getSize()).thenReturn(1024L);
+        when(imageFile.getOriginalFilename()).thenReturn("test.jpg");
+        when(imageFile.getContentType()).thenReturn("image/jpeg");
+        when(imageFile.getBytes()).thenReturn(new byte[1024]);
+
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(employee));
+        when(taskRepository.findById(100)).thenReturn(Optional.of(task));
+        when(logRepository.save(any(Log.class))).thenReturn(log);
+        when(logAttachmentRepository.save(any(LogAttachment.class))).thenReturn(new LogAttachment());
+
+        MultipartFile[] files = { imageFile };
+
+        Log result = logService.createLogWithAttachments(logDTO, files, 1);
+
+        assertNotNull(result);
+        verify(logAttachmentRepository, times(1)).save(any(LogAttachment.class));
+    }
+
+    /**
+     * Test: Create log with attachments - document file (PDF)
+     */
+    @Test
+    void testCreateLogWithAttachments_PdfFile() throws Exception {
+        MultipartFile pdfFile = mock(MultipartFile.class);
+        when(pdfFile.isEmpty()).thenReturn(false);
+        when(pdfFile.getSize()).thenReturn(2048L);
+        when(pdfFile.getOriginalFilename()).thenReturn("document.pdf");
+        when(pdfFile.getContentType()).thenReturn("application/pdf");
+        when(pdfFile.getBytes()).thenReturn(new byte[2048]);
+
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(employee));
+        when(taskRepository.findById(100)).thenReturn(Optional.of(task));
+        when(logRepository.save(any(Log.class))).thenReturn(log);
+        when(logAttachmentRepository.save(any(LogAttachment.class))).thenReturn(new LogAttachment());
+
+        MultipartFile[] files = { pdfFile };
+
+        Log result = logService.createLogWithAttachments(logDTO, files, 1);
+
+        assertNotNull(result);
+        verify(logAttachmentRepository, times(1)).save(any(LogAttachment.class));
+    }
+
 }

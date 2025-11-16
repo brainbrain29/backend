@@ -1,23 +1,24 @@
 package com.pandora.backend.enums;
 
 /**
- * 职位枚举
+ * 职位枚举类
+ * 统一管理职位代码和名称的映射关系
  */
 public enum Position {
     CEO(0, "CEO"),
     DEPARTMENT_MANAGER(1, "部门经理"),
-    PROJECT_MANAGER(2, "项目经理"),
-    EMPLOYEE(3, "普通员工");
+    TEAM_LEADER(2, "团队长"),
+    EMPLOYEE(3, "员工");
 
-    private final Integer code;
+    private final byte code;
     private final String description;
 
-    Position(Integer code, String description) {
-        this.code = code;
+    Position(int code, String description) {
+        this.code = (byte) code;
         this.description = description;
     }
 
-    public Integer getCode() {
+    public byte getCode() {
         return code;
     }
 
@@ -26,39 +27,41 @@ public enum Position {
     }
 
     /**
-     * 根据 code 获取枚举
+     * 根据职位代码获取职位名称
      */
-    public static Position fromCode(Integer code) {
+    public static String getDescriptionByCode(Byte code) {
         if (code == null) {
-            return EMPLOYEE; // 默认普通员工
+            return "未知";
         }
-        for (Position position : Position.values()) {
-            if (position.code.equals(code)) {
-                return position;
+
+        for (Position position : values()) {
+            if (position.getCode() == code) {
+                return position.getDescription();
             }
         }
-        return EMPLOYEE; // 默认普通员工
+        return "未知";
     }
 
     /**
-     * 根据 Byte code 获取枚举
+     * 根据职位代码获取枚举
+     */
+    public static Position getByCode(Byte code) {
+        if (code == null) {
+            return null;
+        }
+
+        for (Position position : values()) {
+            if (position.getCode() == code) {
+                return position;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 根据职位代码获取枚举（别名方法）
      */
     public static Position fromCode(Byte code) {
-        return fromCode(code == null ? null : code.intValue());
-    }
-
-    /**
-     * 根据描述获取枚举
-     */
-    public static Position fromDescription(String description) {
-        if (description == null) {
-            return EMPLOYEE;
-        }
-        for (Position position : Position.values()) {
-            if (position.description.equals(description)) {
-                return position;
-            }
-        }
-        return EMPLOYEE;
+        return getByCode(code);
     }
 }

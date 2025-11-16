@@ -59,8 +59,8 @@ public class TaskController {
         }
     }
 
-    // 老板创建任务(需要权限)
-    // TODO: 验证身份一定是负责团队的团队长或是创建项目的项目经理
+    // 为项目创建任务（需要权限）
+    // 权限要求：必须是项目创建者或负责该项目的团队长
     @PostMapping("/assign")
     public ResponseEntity<?> assignTask(HttpServletRequest request, @RequestBody TaskDTO body) {
         Object uidObj = request.getAttribute("userId");
@@ -68,22 +68,30 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid token");
         }
         Integer userId = (Integer) uidObj;
-        Employee emp = employeeRepository.findById(userId).orElse(null);
-        if (emp == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
-        }
-        if (emp.getPosition() < 2) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Permission denied");
-        }
+
         try {
+            // 验证输入参数
             if (body.getSenderId() == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Sender ID is required");
             }
             if (!userId.equals(body.getSenderId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Sender mismatch");
             }
-            TaskDTO created = taskService.createTask(body);
+            if (body.getMilestoneId() == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Milestone ID is required");
+            }
+
+            // 验证用户身份
+            Employee emp = employeeRepository.findById(userId).orElse(null);
+            if (emp == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
+            }
+
+            // 执行权限检查和创建任务
+            TaskDTO created = taskService.createTaskWithPermission(body, userId);
             return new ResponseEntity<>(created, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
@@ -105,7 +113,7 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Sender mismatch");
         }
         try {
-            TaskDTO updatedTask = taskService.updateTask(id, taskDTO);
+            TaskDTO updatedTask = taskService.updateTask(id, taskDTO, userId);
             return new ResponseEntity<>(updatedTask, HttpStatus.OK);
         } catch (RuntimeException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -114,7 +122,7 @@ public class TaskController {
         }
     }
 
-    // TODO:只传一个任务状态吗,需要做权限检查吗
+    // TODO:更改url为/status更合理
     // 更新任务状态
     @PutMapping("{taskId}/status")
     public ResponseEntity<TaskDTO> updateTaskStatus(
@@ -262,15 +270,7 @@ public class TaskController {
         }
         Integer userId = (Integer) uidObj;
         Object positionObj = request.getAttribute("position");
-
-        // 调试日志 - 查看类型和值
-        System.out.println("DEBUG - userId: " + userId);
-        System.out.println(
-                "DEBUG - positionObj type: " + (positionObj != null ? positionObj.getClass().getName() : "null"));
-        System.out.println("DEBUG - positionObj value: " + positionObj);
-
         Byte position = (Byte) positionObj;
-        System.out.println("DEBUG - position after cast: " + position);
 
         // 只有部门经理(1) 和团队长(2) 可以调用
         if (position == null || position > 2) {

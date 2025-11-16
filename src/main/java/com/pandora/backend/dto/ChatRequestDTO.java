@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * Chat request DTO for GLM API.
+ * GLM API 聊天请求 DTO
  */
 @Data
 @NoArgsConstructor
@@ -15,27 +15,27 @@ import java.util.List;
 public class ChatRequestDTO {
     
     /**
-     * List of chat messages.
+     * 聊天消息列表
      */
     private List<ChatMessageDTO> messages;
     
     /**
-     * Model name (default: glm-4).
+     * 模型名称 (默认: glm-4)
      */
     private String model = "glm-4";
     
     /**
-     * Whether to use streaming mode.
+     * 是否使用流式模式
      */
     private Boolean stream = false;
     
     /**
-     * Temperature for response randomness (0.0-1.0).
+     * 响应随机性温度参数 (0.0-1.0)
      */
     private Double temperature;
     
     /**
-     * Maximum tokens to generate.
+     * 生成的最大 token 数
      */
     private Integer maxTokens;
 }

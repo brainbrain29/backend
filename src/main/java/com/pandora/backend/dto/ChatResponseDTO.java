@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Chat response DTO for GLM API.
+ * GLM API 聊天响应 DTO
  */
 @Data
 @Builder
@@ -15,22 +15,22 @@ import lombok.NoArgsConstructor;
 public class ChatResponseDTO {
     
     /**
-     * Response content.
+     * 响应内容
      */
     private String content;
     
     /**
-     * Model used for generation.
+     * 用于生成的模型
      */
     private String model;
     
     /**
-     * Finish reason (stop, length, etc.).
+     * 结束原因 (stop, length 等)
      */
     private String finishReason;
     
     /**
-     * Total tokens used.
+     * 使用的总 token 数
      */
     private Integer totalTokens;
 }

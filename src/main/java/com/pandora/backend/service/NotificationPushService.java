@@ -27,13 +27,10 @@ public class NotificationPushService {
     /**
      * 注册 SSE 连接
      */
-    public void registerConnection(Integer userId, SseEmitter emitter) {
+    public void registerConnection(Integer userId, String userName, SseEmitter emitter) {
         emitters.put(userId, emitter);
-        System.out.println("=== SSE Connection Registered ===");
-        System.out.println("User ID: " + userId);
-        System.out.println("Total online users: " + emitters.size());
-        System.out.println("Online user IDs: " + emitters.keySet());
-        System.out.println("================================");
+
+        System.out.println("SSE 连接已建立 - 用户: " + userName + " (ID: " + userId + "), 当前在线: " + emitters.size());
 
         // 连接关闭时清理
         emitter.onCompletion(() -> {
@@ -60,7 +57,7 @@ public class NotificationPushService {
     private java.util.List<Integer> pushPendingNotifications(Integer userId, SseEmitter emitter) {
         java.util.List<NoticeDTO> pendingNotices = cacheService.getPendingNotices(userId);
         java.util.List<Integer> successIds = new java.util.ArrayList<>();
-        
+
         if (pendingNotices.isEmpty()) {
             System.out.println("✅ 用户 " + userId + " 没有待推送通知");
             return successIds;
@@ -85,10 +82,10 @@ public class NotificationPushService {
             cacheService.clearPendingNotices(userId);
             System.out.println("✅ 成功推送 " + successIds.size() + " 条通知给用户: " + userId);
         }
-        
+
         return successIds;
     }
-    
+
     /**
      * 获取推送成功的通知 ID 列表（供外部调用）
      */
@@ -117,7 +114,7 @@ public class NotificationPushService {
                 // 推送失败，连接可能已断开
                 emitters.remove(userId);
                 emitter.completeWithError(e);
-                
+
                 // 加入待推送队列
                 cacheService.addPendingNotice(userId, notice);
                 System.out.println("⚠️ 推送失败，通知已加入待推送队列，用户: " + userId);
@@ -135,11 +132,13 @@ public class NotificationPushService {
      */
     @Scheduled(fixedRate = 30000)
     public void sendHeartbeat() {
-        if (emitters.isEmpty()) {
+        int onlineCount = emitters.size();
+        System.out.println("💓 心跳检测 - 当前在线用户数: " + onlineCount);
+        
+        if (onlineCount == 0) {
             return;
         }
 
-        System.out.println("Sending heartbeat to " + emitters.size() + " online users");
         emitters.forEach((userId, emitter) -> {
             try {
                 emitter.send(SseEmitter.event()

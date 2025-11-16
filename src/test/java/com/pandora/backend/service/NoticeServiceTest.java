@@ -41,6 +41,9 @@ class NoticeServiceTest {
     private NoticeEmployeeRepository noticeEmployeeRepository;
 
     @Mock
+    private com.pandora.backend.repository.EmployeeRepository employeeRepository;
+
+    @Mock
     private NotificationCacheService cacheService;
 
     @Mock
@@ -311,14 +314,256 @@ class NoticeServiceTest {
         verify(cacheService, times(1)).clearAllCache(userId);
     }
 
+    /**
+     * 测试：获取所有通知（包括已读和未读）
+     */
+    @Test
+    void testGetAllNotice() {
+        // 准备数据
+        Integer userId = 2;
+        List<NoticeEmployee> noticeList = Arrays.asList(noticeEmployee);
+        
+        when(noticeEmployeeRepository.findAllByReceiverId(userId)).thenReturn(noticeList);
+        
+        // 执行
+        List<NoticeDTO> result = noticeService.getAllNotice(userId);
+        
+        // 验证
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(100, result.get(0).getNoticeId());
+        verify(noticeEmployeeRepository, times(1)).findAllByReceiverId(userId);
+    }
+
+    /**
+     * 测试：创建任务分配通知（正常情况）
+     */
+    @Test
+    void testCreateTaskAssignmentNotice_Success() {
+        // 准备数据
+        Task task = new Task();
+        task.setTaskId(1);
+        task.setTitle("完成项目报告");
+        task.setAssignee(receiver);
+        task.setSender(sender);
+        
+        when(noticeRepository.save(any(Notice.class))).thenReturn(notice);
+        when(pushService.isUserOnline(receiver.getEmployeeId())).thenReturn(true);
+        when(noticeEmployeeRepository.save(any(NoticeEmployee.class))).thenReturn(noticeEmployee);
+        
+        // 执行
+        noticeService.createTaskAssignmentNotice(task);
+        
+        // 验证
+        verify(noticeRepository, times(1)).save(any(Notice.class));
+        verify(noticeEmployeeRepository, times(1)).save(any(NoticeEmployee.class));
+        verify(cacheService, times(1)).incrementUnreadCount(receiver.getEmployeeId());
+        verify(cacheService, times(1)).cacheRecentNotice(eq(receiver.getEmployeeId()), any(NoticeDTO.class));
+        verify(pushService, times(1)).pushNotification(eq(receiver.getEmployeeId()), any(NoticeDTO.class));
+    }
+
+    /**
+     * 测试：创建任务分配通知（分配者和执行者是同一人）
+     */
+    @Test
+    void testCreateTaskAssignmentNotice_SamePerson() {
+        // 准备数据
+        Task task = new Task();
+        task.setTaskId(1);
+        task.setTitle("完成项目报告");
+        task.setAssignee(sender);  // 分配者和执行者是同一人
+        task.setSender(sender);
+        
+        // 执行
+        noticeService.createTaskAssignmentNotice(task);
+        
+        // 验证：不应该创建通知
+        verify(noticeRepository, never()).save(any(Notice.class));
+        verify(noticeEmployeeRepository, never()).save(any(NoticeEmployee.class));
+    }
+
+    /**
+     * 测试：创建任务分配通知（缺少必要信息）
+     */
+    @Test
+    void testCreateTaskAssignmentNotice_MissingInfo() {
+        // 准备数据：缺少 assignee
+        Task task = new Task();
+        task.setTaskId(1);
+        task.setTitle("完成项目报告");
+        task.setSender(sender);
+        // task.setAssignee(null);  // 没有分配执行者
+        
+        // 执行
+        noticeService.createTaskAssignmentNotice(task);
+        
+        // 验证：不应该创建通知
+        verify(noticeRepository, never()).save(any(Notice.class));
+    }
+
+    /**
+     * 测试：批量更新通知状态为已接收
+     */
+    @Test
+    void testMarkAsReceived() {
+        // 准备数据
+        Integer userId = 2;
+        List<Integer> noticeIds = Arrays.asList(100, 101);
+        
+        NoticeEmployeeId id1 = new NoticeEmployeeId(100, userId);
+        NoticeEmployee ne1 = new NoticeEmployee();
+        ne1.setId(id1);
+        ne1.setNoticeStatus(NoticeStatus.NOT_RECEIVED);
+        
+        NoticeEmployeeId id2 = new NoticeEmployeeId(101, userId);
+        NoticeEmployee ne2 = new NoticeEmployee();
+        ne2.setId(id2);
+        ne2.setNoticeStatus(NoticeStatus.NOT_RECEIVED);
+        
+        when(noticeEmployeeRepository.findById(id1)).thenReturn(Optional.of(ne1));
+        when(noticeEmployeeRepository.findById(id2)).thenReturn(Optional.of(ne2));
+        
+        // 执行
+        noticeService.markAsReceived(userId, noticeIds);
+        
+        // 验证
+        assertEquals(NoticeStatus.NOT_VIEWED, ne1.getNoticeStatus());
+        assertEquals(NoticeStatus.NOT_VIEWED, ne2.getNoticeStatus());
+        verify(noticeEmployeeRepository, times(2)).save(any(NoticeEmployee.class));
+    }
+
+    /**
+     * 测试：批量更新通知状态为已接收（空列表）
+     */
+    @Test
+    void testMarkAsReceived_EmptyList() {
+        // 执行
+        noticeService.markAsReceived(2, null);
+        noticeService.markAsReceived(2, Arrays.asList());
+        
+        // 验证：不应该有任何操作
+        verify(noticeEmployeeRepository, never()).findById(any());
+    }
+
+    /**
+     * 测试：创建任务状态更新通知
+     */
+    @Test
+    void testCreateTaskUpdateNotice() {
+        // 准备数据
+        Task task = new Task();
+        task.setTaskId(1);
+        task.setTitle("完成项目报告");
+        task.setAssignee(receiver);
+        
+        Employee updater = new Employee();
+        updater.setEmployeeId(3);
+        updater.setEmployeeName("王五");
+        
+        when(noticeRepository.save(any(Notice.class))).thenReturn(notice);
+        when(noticeEmployeeRepository.save(any(NoticeEmployee.class))).thenReturn(noticeEmployee);
+        
+        // 执行
+        noticeService.createTaskUpdateNotice(task, updater);
+        
+        // 验证
+        verify(noticeRepository, times(1)).save(any(Notice.class));
+        verify(noticeEmployeeRepository, times(1)).save(any(NoticeEmployee.class));
+        verify(cacheService, times(1)).incrementUnreadCount(receiver.getEmployeeId());
+        verify(pushService, times(1)).pushNotification(eq(receiver.getEmployeeId()), any(NoticeDTO.class));
+    }
+
+    /**
+     * 测试：创建任务状态更新通知（更新者和负责人是同一人）
+     */
+    @Test
+    void testCreateTaskUpdateNotice_SamePerson() {
+        // 准备数据
+        Task task = new Task();
+        task.setTaskId(1);
+        task.setTitle("完成项目报告");
+        task.setAssignee(sender);
+        
+        // 执行：更新者和负责人是同一人
+        noticeService.createTaskUpdateNotice(task, sender);
+        
+        // 验证：不应该创建通知
+        verify(noticeRepository, never()).save(any(Notice.class));
+    }
+
+    /**
+     * 测试：创建公司重要事项通知
+     */
+    @Test
+    void testCreateCompanyMatterNotice() {
+        // 准备数据
+        Employee employee1 = new Employee();
+        employee1.setEmployeeId(2);
+        employee1.setEmployeeName("李四");
+        
+        Employee employee2 = new Employee();
+        employee2.setEmployeeId(3);
+        employee2.setEmployeeName("王五");
+        
+        List<Employee> allEmployees = Arrays.asList(sender, employee1, employee2);
+        
+        when(employeeRepository.findAll()).thenReturn(allEmployees);
+        when(noticeEmployeeRepository.save(any(NoticeEmployee.class))).thenReturn(noticeEmployee);
+        
+        // 执行
+        noticeService.createCompanyMatterNotice(notice, 1); // 传入测试用的matterId
+        
+        // 验证：应该为除发送者外的所有员工创建通知（2个）
+        verify(noticeEmployeeRepository, times(2)).save(any(NoticeEmployee.class));
+        verify(cacheService, times(2)).incrementUnreadCount(anyInt());
+        verify(pushService, times(2)).pushNotification(anyInt(), any(NoticeDTO.class));
+    }
+
+    /**
+     * 测试：创建公司重要任务通知
+     */
+    @Test
+    void testCreateImportantTaskNotice() {
+        // 准备数据
+        Task importantTask = new Task();
+        importantTask.setTaskId(1);
+        importantTask.setTitle("重要任务：完成年度报告");
+        importantTask.setSender(sender);
+        
+        Employee employee1 = new Employee();
+        employee1.setEmployeeId(2);
+        employee1.setEmployeeName("李四");
+        
+        Employee employee2 = new Employee();
+        employee2.setEmployeeId(3);
+        employee2.setEmployeeName("王五");
+        
+        List<Employee> allEmployees = Arrays.asList(sender, employee1, employee2);
+        
+        when(employeeRepository.findAll()).thenReturn(allEmployees);
+        when(noticeRepository.save(any(Notice.class))).thenReturn(notice);
+        when(noticeEmployeeRepository.save(any(NoticeEmployee.class))).thenReturn(noticeEmployee);
+        
+        // 执行
+        noticeService.createImportantTaskNotice(importantTask);
+        
+        // 验证：应该为除发送者外的所有员工创建通知（2个）
+        verify(noticeRepository, times(2)).save(any(Notice.class));
+        verify(noticeEmployeeRepository, times(2)).save(any(NoticeEmployee.class));
+        verify(cacheService, times(2)).incrementUnreadCount(anyInt());
+        verify(pushService, times(2)).pushNotification(anyInt(), any(NoticeDTO.class));
+    }
+
     // 辅助方法
     private NoticeDTO createNoticeDTO(Integer noticeId, String content, Integer status) {
         NoticeDTO dto = new NoticeDTO();
         dto.setNoticeId(noticeId);
+        dto.setTitle("新任务派发"); // 默认使用新任务派发类型
         dto.setContent(content);
         dto.setSenderName("张三");
         dto.setCreatedTime(LocalDateTime.now());
-        dto.setStatus(status);
+        dto.setStatus(com.pandora.backend.enums.NoticeStatus.fromCode(status).getDesc());
+        dto.setRelatedId(100); // 默认关联ID
         return dto;
     }
 }

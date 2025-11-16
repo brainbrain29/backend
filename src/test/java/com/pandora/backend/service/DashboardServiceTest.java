@@ -7,8 +7,6 @@ import com.pandora.backend.entity.ImportantMatter;
 import com.pandora.backend.entity.ImportantTask;
 import com.pandora.backend.entity.Log;
 import com.pandora.backend.entity.Task;
-import com.pandora.backend.enums.Priority;
-import com.pandora.backend.enums.Status;
 import com.pandora.backend.repository.ImportantMatterRepository;
 import com.pandora.backend.repository.ImportantTaskRepository;
 import com.pandora.backend.repository.LogRepository;
@@ -22,7 +20,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;

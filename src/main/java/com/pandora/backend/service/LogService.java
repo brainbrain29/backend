@@ -11,10 +11,12 @@ import com.pandora.backend.repository.LogAttachmentRepository;
 import com.pandora.backend.entity.LogAttachment;
 import com.pandora.backend.enums.Emoji;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -80,7 +82,6 @@ public class LogService {
         return logRepository.save(log);
     }
 
-    // TODO:检查代码
     /**
      * 创建日志并处理附件上传
      * 
@@ -89,6 +90,7 @@ public class LogService {
      * @param userId 上传者ID
      * @return 创建的日志实体
      */
+    @Transactional // 添加此注解
     public Log createLogWithAttachments(LogDTO dto, MultipartFile[] files, Integer userId) {
         // 1. 创建日志
         Log log = createLog(dto);
@@ -144,8 +146,12 @@ public class LogService {
                     // 保存附件
                     logAttachmentRepository.save(attachment);
 
-                } catch (Exception e) {
-                    throw new RuntimeException("上传文件失败: " + file.getOriginalFilename() + ", " + e.getMessage());
+                } catch (IOException e) {
+                    // 这是由文件读写操作（如 getBytes）引起的
+                    throw new RuntimeException("处理文件时发生IO错误: " + file.getOriginalFilename(), e);
+                } catch (RuntimeException e) {
+                    // 重新抛出已知的运行时异常
+                    throw e;
                 }
             }
         }
@@ -156,7 +162,7 @@ public class LogService {
     // 2.1 查询所有日志 (Read All)
     // 直接返回实体列表，因为某些场景可能需要完整的实体信息
     public List<LogDTO> getAllLogs() {
-        return logRepository.findAll().stream()
+        return logRepository.findAllWithDetails().stream()
                 .map(log -> {
                     LogDTO dto = new LogDTO();
                     dto.setLogId(log.getLogId());
@@ -198,27 +204,19 @@ public class LogService {
         return convertToDtoList(logs);
     }
 
-    // TODO
-    // 2.2 查询单个日志 (Read by ID)
+    /**
+     * 根据ID查询单个日志 (已优化)
+     * 
+     * @param logId 日志ID
+     * @return 日志的DTO表示
+     */
     public LogDTO getLogById(Integer logId) {
-        Log log = logRepository.findById(logId)
+        // 1. 调用优化后的查询方法，一次性获取所有数据
+        Log log = logRepository.findByIdWithDetails(logId)
                 .orElseThrow(() -> new RuntimeException("Log not found with id: " + logId));
 
-        LogDTO dto = new LogDTO();
-        dto.setLogId(log.getLogId());
-        dto.setEmployeeId(log.getEmployee() != null ? log.getEmployee().getEmployeeId() : null);
-        dto.setEmployeeName(log.getEmployee() != null ? log.getEmployee().getEmployeeName() : null);
-        dto.setTaskId(log.getTask() != null ? log.getTask().getTaskId() : null);
-        dto.setTaskName(log.getTask() != null ? log.getTask().getTitle() : null);
-        dto.setCreatedTime(log.getCreatedTime());
-        dto.setContent(log.getContent());
-        if (log.getEmoji() != null) {
-            dto.setEmoji(Emoji.fromCode(log.getEmoji()).getDesc());
-        }
-        dto.setAttachment(log.getAttachment());
-        dto.setEmployeeLocation(log.getEmployeeLocation());
-
-        return dto;
+        // 2. 复用通用的转换方法，避免代码重复
+        return convertToDto(log);
     }
 
     // 3. 更新/编辑日志 (Update)
@@ -314,7 +312,8 @@ public class LogService {
         return logs.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 
-    // TODO 使用批处理减少employeeId,name等查询
+    // TODO 使用批处理减少employeeId,name等查询（解决了）
+    // 前面已经完成修改，解决了N+1问题
     // 将单个 Log 实体转换为 LogDTO 的通用方法
     private LogDTO convertToDto(Log log) {
         LogDTO dto = new LogDTO();

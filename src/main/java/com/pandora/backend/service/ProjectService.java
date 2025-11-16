@@ -347,6 +347,12 @@ public class ProjectService {
         if (task.getMilestone() != null) {
             dto.setMilestoneId(task.getMilestone().getMilestoneId());
             dto.setMilestoneName(task.getMilestone().getTitle());
+            
+            // 项目信息(通过里程碑获取)
+            if (task.getMilestone().getProject() != null) {
+                dto.setProjectId(task.getMilestone().getProject().getProjectId());
+                dto.setProjectName(task.getMilestone().getProject().getTitle());
+            }
         }
 
         // 注意: 不设置日志信息

@@ -29,13 +29,18 @@ public class TaskDTO {
     private Integer milestoneId;
     private String milestoneName;
 
+    // 项目信息
+    private Integer projectId;
+    private String projectName;
+
     public TaskDTO() {
     }
 
     public TaskDTO(Integer taskId, String title, String content, LocalDateTime startTime,
             LocalDateTime endTime, String taskStatus, String taskPriority,
             Integer assigneeId, String assigneeName, Integer senderId, String senderName,
-            String taskType, Integer milestoneId, String milestoneName) {
+            String taskType, Integer milestoneId, String milestoneName,
+            Integer projectId, String projectName) {
         this.taskId = taskId;
         this.title = title;
         this.content = content;
@@ -50,5 +55,7 @@ public class TaskDTO {
         this.taskType = taskType;
         this.milestoneId = milestoneId;
         this.milestoneName = milestoneName;
+        this.projectId = projectId;
+        this.projectName = projectName;
     }
 }

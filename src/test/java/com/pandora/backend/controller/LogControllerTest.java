@@ -479,4 +479,30 @@ class LogControllerTest {
 
         verify(logService, never()).getLogsByDate(any(), any());
     }
+
+    /**
+     * Test: Create log with exception
+     */
+    @Test
+    void testCreateLog_Exception() throws Exception {
+        when(logService.createLog(any(LogDTO.class)))
+                .thenThrow(new RuntimeException("创建失败"));
+
+        mockMvc.perform(post("/logs")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(logDTO)))
+                .andExpect(status().is4xxClientError());
+    }
+
+    /**
+     * Test: Get log by ID with exception
+     */
+    @Test
+    void testGetLogById_Exception() throws Exception {
+        when(logService.getLogById(999))
+                .thenThrow(new RuntimeException("Log not found"));
+
+        mockMvc.perform(get("/logs/999"))
+                .andExpect(status().is4xxClientError());
+    }
 }

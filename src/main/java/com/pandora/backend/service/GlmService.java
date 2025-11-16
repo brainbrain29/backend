@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
- * Service for GLM-4.6 API integration.
+ * GLM-4.6 API 集成服务
  */
 @Slf4j
 @Service
@@ -35,10 +35,10 @@ public class GlmService {
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     
     /**
-     * Non-streaming chat completion.
+     * 非流式聊天完成
      *
-     * @param messages List of chat messages
-     * @return ChatResponseDTO with complete response
+     * @param messages 聊天消息列表
+     * @return 包含完整响应的 ChatResponseDTO
      */
     public ChatResponseDTO chat(List<ChatMessageDTO> messages) {
         try {
@@ -48,7 +48,7 @@ public class GlmService {
             request.setStream(false);
             
             String requestBody = objectMapper.writeValueAsString(request);
-            log.info("Sending non-streaming request to GLM API");
+            log.info("发送非流式请求到 GLM API");
             
             URL url = new URL(glmConfig.getApiUrl() + "/chat/completions");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -82,7 +82,7 @@ public class GlmService {
                     JsonNode usage = jsonResponse.get("usage");
                     int totalTokens = usage.get("total_tokens").asInt();
                     
-                    log.info("Received complete response from GLM API");
+                    log.info("从 GLM API 收到完整响应");
                     
                     return ChatResponseDTO.builder()
                             .content(content)
@@ -92,21 +92,21 @@ public class GlmService {
                             .build();
                 }
             } else {
-                log.error("GLM API error: {}", responseCode);
-                throw new RuntimeException("GLM API returned error code: " + responseCode);
+                log.error("GLM API 错误: {}", responseCode);
+                throw new RuntimeException("GLM API 返回错误代码: " + responseCode);
             }
             
         } catch (Exception e) {
-            log.error("Error calling GLM API", e);
-            throw new RuntimeException("Failed to call GLM API", e);
+            log.error("调用 GLM API 错误", e);
+            throw new RuntimeException("调用 GLM API 失败", e);
         }
     }
     
     /**
-     * Streaming chat completion using SSE.
+     * 使用 SSE 的流式聊天完成
      *
-     * @param messages List of chat messages
-     * @param emitter SSE emitter for streaming response
+     * @param messages 聊天消息列表
+     * @param emitter 用于流式响应的 SSE 发射器
      */
     public void chatStream(List<ChatMessageDTO> messages, SseEmitter emitter) {
         executorService.execute(() -> {
@@ -117,7 +117,7 @@ public class GlmService {
                 request.setStream(true);
                 
                 String requestBody = objectMapper.writeValueAsString(request);
-                log.info("Sending streaming request to GLM API");
+                log.info("发送流式请求到 GLM API");
                 
                 URL url = new URL(glmConfig.getApiUrl() + "/chat/completions");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -143,7 +143,7 @@ public class GlmService {
                                 String data = line.substring(6);
                                 
                                 if ("[DONE]".equals(data)) {
-                                    log.info("Stream completed");
+                                    log.info("流式响应完成");
                                     emitter.send(SseEmitter.event()
                                             .name("done")
                                             .data("[DONE]"));
@@ -168,19 +168,19 @@ public class GlmService {
                                         }
                                     }
                                 } catch (Exception e) {
-                                    log.warn("Error parsing stream data: {}", data, e);
+                                    log.warn("解析流式数据错误: {}", data, e);
                                 }
                             }
                         }
                     }
                 } else {
-                    log.error("GLM API error: {}", responseCode);
+                    log.error("GLM API 错误: {}", responseCode);
                     emitter.completeWithError(
-                            new RuntimeException("GLM API returned error code: " + responseCode));
+                            new RuntimeException("GLM API 返回错误代码: " + responseCode));
                 }
                 
             } catch (Exception e) {
-                log.error("Error in streaming chat", e);
+                log.error("流式聊天错误", e);
                 emitter.completeWithError(e);
             }
         });

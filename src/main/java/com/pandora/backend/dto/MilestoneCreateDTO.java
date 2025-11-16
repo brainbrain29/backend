@@ -4,7 +4,6 @@ public class MilestoneCreateDTO {
     private String title;
     private String content;
     private Integer projectId;
-    private Byte milestoneNo;
 
     public String getTitle() {
         return title;
@@ -28,13 +27,5 @@ public class MilestoneCreateDTO {
 
     public void setProjectId(Integer projectId) {
         this.projectId = projectId;
-    }
-
-    public Byte getMilestoneNo() {
-        return milestoneNo;
-    }
-
-    public void setMilestoneNo(Byte milestoneNo) {
-        this.milestoneNo = milestoneNo;
     }
 }

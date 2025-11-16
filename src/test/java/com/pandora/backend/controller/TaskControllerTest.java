@@ -204,10 +204,11 @@ class TaskControllerTest {
         requestDTO.setTitle("团队任务");
         requestDTO.setSenderId(1);
         requestDTO.setAssigneeId(2);
+        requestDTO.setMilestoneId(10);
 
         // Mock repository and service
         when(employeeRepository.findById(1)).thenReturn(Optional.of(employee));
-        when(taskService.createTask(any(TaskDTO.class))).thenReturn(taskDTO);
+        when(taskService.createTaskWithPermission(any(TaskDTO.class), eq(1))).thenReturn(taskDTO);
 
         // Execute and verify
         mockMvc.perform(post("/tasks/assign")
@@ -217,7 +218,7 @@ class TaskControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.taskId").value(100));
 
-        verify(taskService, times(1)).createTask(any(TaskDTO.class));
+        verify(taskService, times(1)).createTaskWithPermission(any(TaskDTO.class), eq(1));
     }
 
     /**
@@ -228,15 +229,20 @@ class TaskControllerTest {
         // 准备没有权限的员工（普通员工，职位 = 1）
         Employee regularEmployee = new Employee();
         regularEmployee.setEmployeeId(1);
-        regularEmployee.setPosition((byte) 1);  // 职位 < 2，没有分配权限
+        regularEmployee.setEmployeeName("普通员工");
+        regularEmployee.setPosition((byte) 1);
 
         // 准备请求数据
         TaskDTO requestDTO = new TaskDTO();
-        requestDTO.setTitle("团队任务");
+        requestDTO.setTitle("任务");
         requestDTO.setSenderId(1);
+        requestDTO.setAssigneeId(2);
+        requestDTO.setMilestoneId(10);
 
-        // Mock repository
+        // Mock repository and service to throw exception
         when(employeeRepository.findById(1)).thenReturn(Optional.of(regularEmployee));
+        when(taskService.createTaskWithPermission(any(TaskDTO.class), eq(1)))
+                .thenThrow(new IllegalArgumentException("权限不足"));
 
         // 执行请求并验证结果
         mockMvc.perform(post("/tasks/assign")
@@ -491,5 +497,81 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$[0].taskId").value(100));
 
         verify(taskService, times(1)).getTasksByTeam(1);
+    }
+
+    /**
+     * Test: Create task with exception
+     */
+    @Test
+    void testCreateTask_Exception() throws Exception {
+        TaskDTO requestDTO = new TaskDTO();
+        requestDTO.setTitle("测试任务");
+        requestDTO.setSenderId(1);
+
+        when(taskService.createTask(any(TaskDTO.class)))
+                .thenThrow(new RuntimeException("创建失败"));
+
+        mockMvc.perform(post("/tasks")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDTO)))
+                .andExpect(status().is4xxClientError());
+    }
+
+    /**
+     * Test: Update task with exception
+     */
+    @Test
+    void testUpdateTask_Exception() throws Exception {
+        when(taskService.updateTask(eq(999), any(TaskDTO.class)))
+                .thenThrow(new RuntimeException("Task not found"));
+
+        mockMvc.perform(put("/tasks/999")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(taskDTO)))
+                .andExpect(status().is4xxClientError());
+    }
+
+    /**
+     * Test: Delete task with exception
+     */
+    @Test
+    void testDeleteTask_Exception() throws Exception {
+        doThrow(new RuntimeException("Task not found"))
+                .when(taskService).deleteTask(999);
+
+        mockMvc.perform(delete("/tasks/999"))
+                .andExpect(status().is4xxClientError());
+    }
+
+    /**
+     * Test: Get task by ID with exception
+     */
+    @Test
+    void testGetTaskById_Exception() throws Exception {
+        when(taskService.getTaskById(999))
+                .thenThrow(new RuntimeException("Task not found"));
+
+        mockMvc.perform(get("/tasks/999"))
+                .andExpect(status().is4xxClientError());
+    }
+
+    /**
+     * Test: Update task status with exception
+     */
+    @Test
+    void testUpdateTaskStatus_Exception() throws Exception {
+        TaskStatusDTO statusDTO = new TaskStatusDTO();
+        statusDTO.setTaskId(999);
+        statusDTO.setTaskStatus("已完成");
+
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(employee));
+        when(taskService.updateTaskStatus(any(TaskStatusDTO.class), eq(1), eq((byte) 2)))
+                .thenThrow(new RuntimeException("任务不存在"));
+
+        mockMvc.perform(put("/tasks/status")
+                .requestAttr("userId", 1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(statusDTO)))
+                .andExpect(status().is4xxClientError());
     }
 }

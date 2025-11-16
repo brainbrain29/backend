@@ -44,6 +44,32 @@ public class EmployeeService {
                 .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
     }
 
+    /**
+     * 获取员工详情（包含部门信息）
+     * 在事务内主动加载 department，避免懒加载异常
+     */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public EmployeeDTO getEmployeeDetails(Integer id) {
+        Employee emp = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+        
+        EmployeeDTO dto = new EmployeeDTO();
+        dto.setEmployeeId(emp.getEmployeeId());
+        dto.setEmployeeName(emp.getEmployeeName());
+        dto.setGender(emp.getGender().getDesc());
+        dto.setPhone(emp.getPhone());
+        dto.setEmail(emp.getEmail());
+        dto.setPosition(emp.getPosition());
+        
+        // 在事务内访问懒加载的 department
+        if (emp.getDepartment() != null) {
+            dto.setOrgId(emp.getDepartment().getOrgId());
+            dto.setOrgName(emp.getDepartment().getOrgName());
+        }
+        
+        return dto;
+    }
+
     // 获取所有员工列表
     public List<Employee> getAllEmployees() {
         return employeeRepository.findAll();

@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-//TODO:应该思考是否需要限制登录设备数量,现在每次登录都有新的token
+// TODO:应该思考是否需要限制登录设备数量,现在每次登录都有新的token
 @RestController
 @RequestMapping("/auth")
 public class AuthController {

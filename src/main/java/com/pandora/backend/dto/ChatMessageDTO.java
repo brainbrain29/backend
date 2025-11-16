@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Chat message DTO for GLM API.
+ * GLM API 聊天消息 DTO
  */
 @Data
 @NoArgsConstructor
@@ -13,12 +13,12 @@ import lombok.NoArgsConstructor;
 public class ChatMessageDTO {
     
     /**
-     * Role of the message sender (user, assistant, system).
+     * 消息发送者的角色 (user, assistant, system)
      */
     private String role;
     
     /**
-     * Content of the message.
+     * 消息内容
      */
     private String content;
 }

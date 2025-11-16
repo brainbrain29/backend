@@ -11,6 +11,7 @@ import com.pandora.backend.dto.*;
 import com.pandora.backend.entity.*;
 import com.pandora.backend.repository.*;
 import com.pandora.backend.enums.Gender;
+import com.pandora.backend.enums.Position;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -25,7 +26,6 @@ import java.nio.file.StandardCopyOption;
 
 @Service
 public class AdminService {
-
     @Autowired
     private EmployeeRepository employeeRepository;
 
@@ -413,6 +413,153 @@ public class AdminService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 更新员工职位，并处理关联表的数据一致性。
+     * 使用 @Transactional 注解确保所有数据库操作的原子性。
+     *
+     * @param employeeId 要更新的员工ID
+     * @param dto        包含新职位和关联目标ID的数据
+     * @return 更新后的员工信息DTO
+     */
+    @Transactional
+    public EmployeeDTO updateEmployeePosition(Integer employeeId, UpdatePositionDTO dto) {
+        // 1. 查找需要被更新的员工
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee not found with id: " + employeeId));
+
+        Position newPosition = dto.getNewPosition();
+        if (newPosition == null) {
+            throw new IllegalArgumentException("New position cannot be null.");
+        }
+
+        // 2. 清理该员工旧的职位职责，防止数据冲突
+        cleanupOldPositionResponsibilities(employee);
+
+        // 3. 根据新职位，执行不同的业务逻辑
+        switch (newPosition) {
+            case DEPARTMENT_MANAGER:
+                if (dto.getTargetId() == null) {
+                    throw new IllegalArgumentException("Department ID is required to set a Department Manager.");
+                }
+                Department department = departmentRepository.findById(dto.getTargetId())
+                        .orElseThrow(() -> new RuntimeException("Department not found with id: " + dto.getTargetId()));
+
+                // 可选：检查该部门是否已有经理，如果有，则先将其降级
+                if (department.getManager() != null && !department.getManager().equals(employee)) {
+                    Employee oldManager = department.getManager();
+                    oldManager.setPosition(Position.EMPLOYEE.getCode()); // 降级为普通员工
+                    employeeRepository.save(oldManager);
+                }
+
+                department.setManager(employee);
+                departmentRepository.save(department);
+                break;
+
+            case TEAM_LEADER:
+                if (dto.getTargetId() == null) {
+                    throw new IllegalArgumentException("Team ID is required to set a Team Leader.");
+                }
+                Team team = teamRepository.findById(dto.getTargetId())
+                        .orElseThrow(() -> new RuntimeException("Team not found with id: " + dto.getTargetId()));
+
+                // 将该员工设为新领导
+                setTeamLeader(team, employee);
+                break;
+
+            case CEO:
+            case EMPLOYEE:
+                // CEO 和普通员工职位，目前没有关联表操作
+                break;
+
+            default:
+                throw new UnsupportedOperationException(
+                        "Position update for " + newPosition.name() + " is not supported yet.");
+        }
+
+        // 4. 最后，更新 employee 表中的 position 字段
+        employee.setPosition(newPosition.getCode());
+        Employee savedEmployee = employeeRepository.save(employee);
+
+        // 5. 返回更新后的员工信息（复用您已有的转换逻辑）
+        return convertToEmployeeDto(savedEmployee);
+    }
+
+    /**
+     * 辅助方法：清理员工旧的职位职责，确保数据一致性。
+     * 
+     * @param employee 需要被清理的员工
+     */
+    private void cleanupOldPositionResponsibilities(Employee employee) {
+        // 如果该员工之前是某个部门的经理，则将该部门的经理字段置空
+        departmentRepository.findByManager(employee).ifPresent(dept -> {
+            dept.setManager(null);
+            departmentRepository.save(dept);
+        });
+
+        // 如果该员工之前是某个团队的队长，则将他的 is_leader 标志位移除
+        employeeTeamRepository.findAll().forEach(relation -> {
+            if (relation.getEmployee().equals(employee) && relation.getIsLeader() == 1) {
+                relation.setIsLeader((byte) 0);
+                employeeTeamRepository.save(relation);
+            }
+        });
+    }
+
+    /**
+     * 辅助方法：设置团队的新领导，并自动处理旧领导的降职。
+     * 
+     * @param team      目标团队
+     * @param newLeader 新的领导者
+     */
+    private void setTeamLeader(Team team, Employee newLeader) {
+        // 检查：新领导必须是该团队的成员
+        Employee_Team newLeaderRelation = employeeTeamRepository.findByEmployeeAndTeam(newLeader, team)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Cannot make an employee a Team Leader of a team they are not a member of."));
+
+        // 找到并降级现任领导（如果存在）
+        employeeTeamRepository.findByTeamAndIsLeader(team, (byte) 1).ifPresent(oldLeaderRelation -> {
+            if (!oldLeaderRelation.equals(newLeaderRelation)) {
+                oldLeaderRelation.setIsLeader((byte) 0);
+                employeeTeamRepository.save(oldLeaderRelation);
+                // 同时更新旧领导在 employee 表中的职位
+                Employee oldLeader = oldLeaderRelation.getEmployee();
+                if (oldLeader.getPosition() == Position.TEAM_LEADER.getCode()) {
+                    oldLeader.setPosition(Position.EMPLOYEE.getCode());
+                    employeeRepository.save(oldLeader);
+                }
+            }
+        });
+
+        // 提升新领导
+        newLeaderRelation.setIsLeader((byte) 1);
+        employeeTeamRepository.save(newLeaderRelation);
+    }
+
+    /**
+     * 辅助方法：将 Employee 实体转换为 EmployeeDTO。
+     * (从您的 getAllEmployees 方法中提取的通用逻辑)
+     * 
+     * @param emp 员工实体
+     * @return 员工DTO
+     */
+    private EmployeeDTO convertToEmployeeDto(Employee emp) {
+        EmployeeDTO dto = new EmployeeDTO();
+        dto.setEmployeeId(emp.getEmployeeId());
+        dto.setEmployeeName(emp.getEmployeeName());
+        if (emp.getGender() != null) {
+            dto.setGender(emp.getGender().getDesc());
+        }
+        dto.setPhone(emp.getPhone());
+        dto.setEmail(emp.getEmail());
+        dto.setPosition(emp.getPosition());
+        if (emp.getDepartment() != null) {
+            dto.setOrgId(emp.getDepartment().getOrgId());
+            dto.setOrgName(emp.getDepartment().getOrgName());
+        }
+        return dto;
+    }
+
     // ========== 十大重要事项管理 ==========
 
     /**
@@ -423,13 +570,24 @@ public class AdminService {
         return matters.stream()
                 .map(matter -> {
                     ImportantMatterDTO dto = new ImportantMatterDTO();
-                    dto.setEventId(matter.getMatterId());
+                    dto.setMatterId(matter.getMatterId());
                     dto.setTitle(matter.getTitle());
                     dto.setContent(matter.getContent());
                     if (matter.getDepartment() != null) {
+                        dto.setDepartmentId(matter.getDepartment().getOrgId());
                         dto.setDepartmentName(matter.getDepartment().getOrgName());
                     }
                     dto.setPublishTime(matter.getPublishTime());
+
+                    // 添加默认值以兼容前端模板
+                    dto.setDeadline(matter.getPublishTime()); // 使用发布时间作为截止日期
+                    dto.setAssigneeName("系统"); // 默认负责人
+                    dto.setAssigneeId(1); // 默认负责人ID
+                    dto.setMatterStatus((byte) 0); // 默认状态：待处理
+                    dto.setMatterPriority((byte) 1); // 默认优先级：中
+                    dto.setSerialNum((byte) 1); // 默认序号
+                    dto.setVisibleRange(0); // 默认可见范围
+
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -450,12 +608,14 @@ public class AdminService {
             Department department = departmentRepository.findById(dto.getDepartmentId())
                     .orElseThrow(() -> new RuntimeException("Department not found"));
             matter.setDepartment(department);
+        } else {
+            matter.setDepartment(null);
         }
 
         ImportantMatter saved = importantMatterRepository.save(matter);
 
         ImportantMatterDTO result = new ImportantMatterDTO();
-        result.setEventId(saved.getMatterId());
+        result.setMatterId(saved.getMatterId());
         result.setTitle(saved.getTitle());
         result.setContent(saved.getContent());
         if (saved.getDepartment() != null) {
@@ -483,12 +643,14 @@ public class AdminService {
             Department department = departmentRepository.findById(dto.getDepartmentId())
                     .orElseThrow(() -> new RuntimeException("Department not found"));
             matter.setDepartment(department);
+        } else {
+            matter.setDepartment(null);
         }
 
         ImportantMatter saved = importantMatterRepository.save(matter);
 
         ImportantMatterDTO result = new ImportantMatterDTO();
-        result.setEventId(saved.getMatterId());
+        result.setMatterId(saved.getMatterId());
         result.setTitle(saved.getTitle());
         result.setContent(saved.getContent());
         if (saved.getDepartment() != null) {

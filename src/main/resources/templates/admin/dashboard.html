@@ -473,9 +473,29 @@
     /* Tab内容 */
     .tab-content {
       display: none;
+      height: calc(100vh - 130px); /* 固定高度，留出导航和标题空间 */
+      overflow-y: auto; /* 垂直滚动条 */
+    
+      padding-right: 8px; /* 给滚动条留出空间 */
     }
     .tab-content.active {
       display: block;
+    }
+    
+    /* 自定义滚动条样式 */
+    .tab-content::-webkit-scrollbar {
+      width: 6px;
+    }
+    .tab-content::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    .tab-content::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+    }
+    .tab-content::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
     }
     
     /* 动画 */
@@ -551,14 +571,14 @@
             <div class="task-content">
               <div class="task-title" th:text="${matter.content}">完成新产品线的市场调研与规划</div>
               <div class="task-meta">
-                <span>截止日期: <span th:text="${#temporals.format(matter.deadline, 'yyyy-MM-dd')}">2023-12-15</span></span>
+                <span>发布时间: <span th:text="${#temporals.format(matter.publishTime, 'yyyy-MM-dd')}">2023-12-15</span></span>
               </div>
               <div class="task-tags">
                 <span class="tag tag-completed" th:if="${matter.matterStatus == 2}">已完成</span>
                 <span class="tag tag-in-progress" th:if="${matter.matterStatus == 1}">进行中</span>
                 <span class="tag tag-pending" th:if="${matter.matterStatus == 0}">待处理</span>
                 <span style="font-size: 13px; color: #606266;">
-                  负责人: <span th:text="${matter.assigneeName}">张总</span>
+                  部门: <span th:text="${matter.departmentName != null ? matter.departmentName : '未指定'}">技术部</span>
                 </span>
               </div>
             </div>
@@ -807,10 +827,6 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">序号 (1-10) <span class="required">*</span></label>
-            <input type="number" name="serialNum" id="matterSerial" class="form-control" min="1" max="10" required>
-          </div>
-          <div class="form-group">
             <label class="form-label">可见范围</label>
             <select name="visibleRange" id="matterVisible" class="form-control">
               <option value="0">仅自己</option>
@@ -911,10 +927,6 @@
               <option value="1">中</option>
               <option value="2">高</option>
             </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">序号 (1-10) <span class="required">*</span></label>
-            <input type="number" name="serialNum" id="taskSerial" class="form-control" min="1" max="10" required>
           </div>
         </div>
         <div class="modal-footer">
@@ -1042,15 +1054,22 @@
       const title = document.getElementById('matterModalTitle');
       
       if (matterId) {
-        // 编辑模式
+        // 编辑模式 - 加载现有数据
         title.textContent = '编辑重要事项';
         form.action = '/admin/web/important-matters/' + matterId;
-        // 这里可以通过AJAX加载数据，目前简化处理
+        // 使用PUT方法
+        form.method = 'POST';
+        
+        // 通过AJAX加载现有数据
+        loadMatterData(matterId);
       } else {
         // 新增模式
         title.textContent = '添加重要事项';
         form.action = '/admin/web/important-matters';
+        form.method = 'POST';
         form.reset();
+        // 隐藏ID字段
+        document.getElementById('matterId').value = '';
       }
       
       modal.classList.add('show');
@@ -1060,6 +1079,31 @@
       document.getElementById('matterModal').classList.remove('show');
     }
     
+    // 加载重要事项数据（编辑模式）
+    function loadMatterData(matterId) {
+      fetch(`/admin/important-matters/${matterId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        // 填充表单数据
+        document.getElementById('matterId').value = data.matterId;
+        document.getElementById('matterContent').value = data.content || '';
+        document.getElementById('matterDeadline').value = data.deadline || '';
+        document.getElementById('matterAssignee').value = data.assigneeId || '';
+        document.getElementById('matterStatus').value = data.matterStatus || '0';
+        document.getElementById('matterPriority').value = data.matterPriority || '1';
+        document.getElementById('matterVisible').value = data.visibleRange || '2';
+      })
+      .catch(error => {
+        console.error('加载数据失败:', error);
+        alert('加载数据失败，请稍后重试');
+      });
+    }
+    
     // 任务模态框
     function openTaskModal(taskId) {
       const modal = document.getElementById('taskModal');
@@ -1067,12 +1111,22 @@
       const title = document.getElementById('taskModalTitle');
       
       if (taskId) {
+        // 编辑模式 - 加载现有数据
         title.textContent = '编辑重要任务';
         form.action = '/admin/web/important-person-tasks/' + taskId;
+        // 使用PUT方法
+        form.method = 'POST';
+        
+        // 通过AJAX加载现有数据
+        loadTaskData(taskId);
       } else {
+        // 新增模式
         title.textContent = '添加重要任务';
         form.action = '/admin/web/important-person-tasks';
+        form.method = 'POST';
         form.reset();
+        // 隐藏ID字段
+        document.getElementById('taskId').value = '';
       }
       
       modal.classList.add('show');
@@ -1080,6 +1134,30 @@
     
     function closeTaskModal() {
       document.getElementById('taskModal').classList.remove('show');
+    }
+    
+    // 加载重要任务数据（编辑模式）
+    function loadTaskData(taskId) {
+      fetch(`/admin/important-tasks/${taskId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        // 填充表单数据
+        document.getElementById('taskId').value = data.taskId;
+        document.getElementById('taskContent').value = data.taskContent || '';
+        document.getElementById('taskDeadline').value = data.deadline || '';
+        document.getElementById('taskEmployee').value = data.employeeId || '';
+        document.getElementById('taskStatus').value = data.taskStatus || '0';
+        document.getElementById('taskPriority').value = data.priority || '1';
+      })
+      .catch(error => {
+        console.error('加载数据失败:', error);
+        alert('加载数据失败，请稍后重试');
+      });
     }
     
     // 员工模态框

@@ -24,7 +24,4 @@ public class Milestone {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", referencedColumnName = "project_id", nullable = false, foreignKey = @ForeignKey(name = "fk_milestone_project"))
     private Project project;
-
-    @Column(name = "milestone_no", nullable = false)
-    private Byte milestoneNo;
 }

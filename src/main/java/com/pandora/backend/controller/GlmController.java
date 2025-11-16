@@ -16,27 +16,27 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.List;
 
 /**
- * Controller for GLM-4.6 API integration.
+ * GLM-4.6 API 集成控制器
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/glm")
 @RequiredArgsConstructor
-@Tag(name = "GLM API", description = "GLM-4.6 Chat API endpoints")
+@Tag(name = "GLM API", description = "GLM-4.6 聊天 API 接口")
 public class GlmController {
     
     private final GlmService glmService;
     
     /**
-     * Non-streaming chat endpoint.
+     * 非流式聊天接口
      *
-     * @param request Chat request with messages
-     * @return Complete chat response
+     * @param request 包含消息的聊天请求
+     * @return 完整的聊天响应
      */
     @PostMapping("/chat")
-    @Operation(summary = "Non-streaming chat", description = "Send a chat request and get complete response")
+    @Operation(summary = "非流式聊天", description = "发送聊天请求并获取完整响应")
     public ResponseEntity<ChatResponseDTO> chat(@RequestBody ChatRequestDTO request) {
-        log.info("Received non-streaming chat request with {} messages", 
+        log.info("收到非流式聊天请求,包含 {} 条消息", 
                 request.getMessages().size());
         
         ChatResponseDTO response = glmService.chat(request.getMessages());
@@ -44,26 +44,26 @@ public class GlmController {
     }
     
     /**
-     * Streaming chat endpoint using SSE.
+     * 使用 SSE 的流式聊天接口
      *
-     * @param request Chat request with messages
-     * @return SSE emitter for streaming response
+     * @param request 包含消息的聊天请求
+     * @return 用于流式响应的 SSE 发射器
      */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(summary = "Streaming chat", description = "Send a chat request and get streaming response via SSE")
+    @Operation(summary = "流式聊天", description = "发送聊天请求并通过 SSE 获取流式响应")
     public SseEmitter chatStream(@RequestBody ChatRequestDTO request) {
-        log.info("Received streaming chat request with {} messages", 
+        log.info("收到流式聊天请求,包含 {} 条消息", 
                 request.getMessages().size());
         
-        SseEmitter emitter = new SseEmitter(300000L); // 5 minutes timeout
+        SseEmitter emitter = new SseEmitter(300000L); // 5分钟超时
         
-        emitter.onCompletion(() -> log.info("SSE completed"));
+        emitter.onCompletion(() -> log.info("SSE 完成"));
         emitter.onTimeout(() -> {
-            log.warn("SSE timeout");
+            log.warn("SSE 超时");
             emitter.complete();
         });
         emitter.onError((ex) -> {
-            log.error("SSE error", ex);
+            log.error("SSE 错误", ex);
             emitter.completeWithError(ex);
         });
         
@@ -73,15 +73,15 @@ public class GlmController {
     }
     
     /**
-     * Simple test endpoint for quick testing.
+     * 用于快速测试的简单测试接口
      *
-     * @param message User message
-     * @return SSE emitter for streaming response
+     * @param message 用户消息
+     * @return 用于流式响应的 SSE 发射器
      */
     @GetMapping(value = "/test/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(summary = "Test streaming chat", description = "Quick test endpoint for streaming chat")
+    @Operation(summary = "测试流式聊天", description = "用于流式聊天的快速测试接口")
     public SseEmitter testStream(@RequestParam(defaultValue = "你好") String message) {
-        log.info("Test streaming chat with message: {}", message);
+        log.info("测试流式聊天,消息: {}", message);
         
         List<ChatMessageDTO> messages = List.of(
                 new ChatMessageDTO("user", message)
@@ -89,13 +89,13 @@ public class GlmController {
         
         SseEmitter emitter = new SseEmitter(300000L);
         
-        emitter.onCompletion(() -> log.info("Test SSE completed"));
+        emitter.onCompletion(() -> log.info("测试 SSE 完成"));
         emitter.onTimeout(() -> {
-            log.warn("Test SSE timeout");
+            log.warn("测试 SSE 超时");
             emitter.complete();
         });
         emitter.onError((ex) -> {
-            log.error("Test SSE error", ex);
+            log.error("测试 SSE 错误", ex);
             emitter.completeWithError(ex);
         });
         

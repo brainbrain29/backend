@@ -25,7 +25,7 @@ public class MilestoneService {
     public List<MilestoneDTO> getMilestonesByProjectId(Integer projectId) {
         List<Milestone> milestones = milestoneRepository.findByProjectProjectId(projectId);
         return milestones.stream()
-                .map(m -> new MilestoneDTO(m.getTitle(), m.getMilestoneNo()))
+                .map(m -> new MilestoneDTO(m.getMilestoneId(), m.getTitle()))
                 .collect(Collectors.toList());
     }
 
@@ -37,9 +37,8 @@ public class MilestoneService {
         m.setTitle(dto.getTitle());
         m.setContent(dto.getContent());
         m.setProject(project);
-        m.setMilestoneNo(dto.getMilestoneNo());
 
         Milestone saved = milestoneRepository.save(m);
-        return new MilestoneDTO(saved.getTitle(), saved.getMilestoneNo());
+        return new MilestoneDTO(saved.getMilestoneId(), saved.getTitle());
     }
 }

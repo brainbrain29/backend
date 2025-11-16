@@ -6,12 +6,20 @@ import lombok.Setter;
 @Getter
 @Setter
 public class MilestoneDTO {
+    private Integer milestoneId;
     private String title;
-    private Byte milestoneNo;
 
-    public MilestoneDTO(String title, Byte milestoneNo) {
+    public MilestoneDTO(Integer milestoneId, String title) {
+        this.milestoneId = milestoneId;
         this.title = title;
-        this.milestoneNo = milestoneNo;
+    }
+
+    public Integer getMilestoneId() {
+        return milestoneId;
+    }
+
+    public void setMilestoneId(Integer milestoneId) {
+        this.milestoneId = milestoneId;
     }
 
     public String getTitle() {
@@ -20,13 +28,5 @@ public class MilestoneDTO {
 
     public void setTitle(String title) {
         this.title = title;
-    }
-
-    public Byte getMilestoneNo() {
-        return milestoneNo;
-    }
-
-    public void setMilestoneNo(Byte milestoneNo) {
-        this.milestoneNo = milestoneNo;
     }
 }

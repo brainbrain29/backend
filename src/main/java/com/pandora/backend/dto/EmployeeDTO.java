@@ -57,7 +57,7 @@ public class EmployeeDTO {
     public void setPosition(Byte position) {
         this.position = position;
         // 自动设置 positionName
-        this.positionName = Position.fromCode(position).getDescription();
+        this.positionName = Position.getDescriptionByCode(position);
     }
 
     /**
@@ -65,6 +65,6 @@ public class EmployeeDTO {
      */
     public void setPositionWithName(Byte position) {
         this.position = position;
-        this.positionName = Position.fromCode(position).getDescription();
+        this.positionName = Position.getDescriptionByCode(position);
     }
 }

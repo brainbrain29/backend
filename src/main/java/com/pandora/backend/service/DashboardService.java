@@ -3,27 +3,24 @@ package com.pandora.backend.service;
 import com.pandora.backend.dto.HomepageDashboardDTO;
 import com.pandora.backend.dto.ImportantMatterDTO;
 import com.pandora.backend.dto.ImportantTaskDTO;
-import com.pandora.backend.dto.LogSummaryDTO;
-import com.pandora.backend.dto.TaskSummaryDTO;
-import com.pandora.backend.enums.Status;
-import com.pandora.backend.enums.Priority;
+import com.pandora.backend.dto.LogDTO;
+import com.pandora.backend.dto.TaskDTO;
 import com.pandora.backend.entity.ImportantMatter;
 import com.pandora.backend.entity.ImportantTask;
-import com.pandora.backend.entity.Log;
-import com.pandora.backend.entity.Task;
 import com.pandora.backend.repository.ImportantMatterRepository;
 import com.pandora.backend.repository.ImportantTaskRepository;
-import com.pandora.backend.repository.LogRepository;
-import com.pandora.backend.repository.TaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class DashboardService {
 
@@ -32,30 +29,38 @@ public class DashboardService {
     @Autowired
     private ImportantTaskRepository importantTaskRepository;
     @Autowired
-    private TaskRepository taskRepository;
+    private TaskService taskService;
     @Autowired
-    private LogRepository logRepository;
+    private LogService logService;
 
     public HomepageDashboardDTO getDashboardData(Integer currentUserId) {
+        log.info("获取用户 {} 的首页仪表盘数据", currentUserId);
         Pageable topTen = PageRequest.of(0, 10);
 
         // 1. 获取公司十大事项
         List<ImportantMatterDTO> importantMatters = importantMatterRepository.findTopMatters(topTen)
                 .stream().map(this::convertToImportantMatterDto).collect(Collectors.toList());
+        log.debug("公司事项数量: {}", importantMatters.size());
 
         // 2. 获取公司十大任务
         List<ImportantTaskDTO> companyTasks = importantTaskRepository.findTopTasks(topTen)
                 .stream().map(this::convertToImportantTaskDto).collect(Collectors.toList());
+        log.debug("公司任务数量: {}", companyTasks.size());
 
-        // 3. 获取个人十大任务
-        List<TaskSummaryDTO> personalTasks = taskRepository.findTop10PersonalTasks(currentUserId, topTen)
-                .stream().map(this::convertToTaskSummaryDto).collect(Collectors.toList());
+        // 3. 复用 TaskService.getTasksByUserId() - 获取个人任务,然后转换为 Summary 格式
+        List<TaskDTO> personalTasksFullDTO = taskService.getTasksByUserId(currentUserId);
+        List<com.pandora.backend.dto.TaskSummaryDTO> personalTasks = personalTasksFullDTO.stream()
+                .map(this::convertTaskDTOToSummary)
+                .collect(Collectors.toList());
+        log.debug("用户 {} 的个人任务数量: {}", currentUserId, personalTasks.size());
 
-        // 4. 获取今日日志
-        List<LogSummaryDTO> todayLogs = logRepository
-                .findTodayLogsByEmployeeId(currentUserId, LocalDate.now().atStartOfDay(),
-                        LocalDate.now().plusDays(1).atStartOfDay())
-                .stream().map(this::convertToLogSummaryDto).collect(Collectors.toList());
+        // 4. 复用 LogService.getLogsByDate() - 获取今日日志,然后转换为 Summary 格式
+        LocalDateTime today = LocalDate.now().atStartOfDay();
+        List<LogDTO> todayLogsFullDTO = logService.getLogsByDate(currentUserId, today);
+        List<com.pandora.backend.dto.LogSummaryDTO> todayLogs = todayLogsFullDTO.stream()
+                .map(this::convertLogDTOToSummary)
+                .collect(Collectors.toList());
+        log.debug("用户 {} 的今日日志数量: {}", currentUserId, todayLogs.size());
 
         // 组装最终的 DTO
         HomepageDashboardDTO dashboard = new HomepageDashboardDTO();
@@ -63,8 +68,33 @@ public class DashboardService {
         dashboard.setCompanyTasks(companyTasks);
         dashboard.setPersonalTasks(personalTasks);
         dashboard.setTodayLogs(todayLogs);
-
         return dashboard;
+    }
+
+    /**
+     * Get important matter by ID
+     * 
+     * @param matterId the matter ID
+     * @return ImportantMatterDTO or null if not found
+     */
+    public ImportantMatterDTO getImportantMatterById(Integer matterId) {
+        log.info("获取重要事项,ID: {}", matterId);
+        return importantMatterRepository.findById(matterId)
+                .map(this::convertToImportantMatterDto)
+                .orElse(null);
+    }
+
+    /**
+     * Get important task by ID
+     * 
+     * @param taskId the task ID
+     * @return ImportantTaskDTO or null if not found
+     */
+    public ImportantTaskDTO getImportantTaskById(Integer taskId) {
+        log.info("获取重要任务,ID: {}", taskId);
+        return importantTaskRepository.findById(taskId)
+                .map(this::convertToImportantTaskDto)
+                .orElse(null);
     }
 
     // ==============================================================
@@ -73,17 +103,28 @@ public class DashboardService {
 
     private ImportantMatterDTO convertToImportantMatterDto(ImportantMatter matter) {
         ImportantMatterDTO dto = new ImportantMatterDTO();
-        dto.setEventId(matter.getMatterId());
+        // 问题(1): 设置 matterId
+        dto.setMatterId(matter.getMatterId());
         dto.setTitle(matter.getTitle());
         dto.setContent(matter.getContent());
 
         // 设置部门名称
         if (matter.getDepartment() != null) {
+            dto.setDepartmentId(matter.getDepartment().getOrgId());
             dto.setDepartmentName(matter.getDepartment().getOrgName());
         }
 
         // 设置发布时间
         dto.setPublishTime(matter.getPublishTime());
+
+        // 添加默认值以兼容前端模板
+        dto.setDeadline(matter.getPublishTime()); // 使用发布时间作为截止日期
+        dto.setAssigneeName("系统"); // 默认负责人
+        dto.setAssigneeId(1); // 默认负责人ID
+        dto.setMatterStatus((byte) 0); // 默认状态：待处理
+        dto.setMatterPriority((byte) 1); // 默认优先级：中
+        dto.setSerialNum((byte) 1); // 默认序号
+        dto.setVisibleRange(0); // 默认可见范围
 
         return dto;
     }
@@ -94,6 +135,10 @@ public class DashboardService {
         dto.setTaskContent(task.getTaskContent());
         dto.setDeadline(task.getDeadline());
         dto.setSerialNum(task.getSerialNum());
+
+        // 问题(2): 设置 createdTime 和 updatedTime
+        dto.setCreatedTime(task.getCreatedTime());
+        dto.setUpdatedTime(task.getUpdatedTime());
 
         // 设置员工信息
         if (task.getEmployee() != null) {
@@ -126,50 +171,41 @@ public class DashboardService {
         return dto;
     }
 
-    private TaskSummaryDTO convertToTaskSummaryDto(Task task) {
-        TaskSummaryDTO dto = new TaskSummaryDTO();
-        dto.setTaskId(task.getTaskId());
-        dto.setTitle(task.getTitle());
-
-        // 将 code 转换为中文描述
-        if (task.getTaskPriority() != null) {
-            Priority priority = Priority.fromCode(task.getTaskPriority());
-            dto.setTaskPriority(priority.getDesc());
+    /**
+     * 将完整的 TaskDTO 转换为 TaskSummaryDTO（用于仪表盘展示）
+     */
+    private com.pandora.backend.dto.TaskSummaryDTO convertTaskDTOToSummary(TaskDTO taskDTO) {
+        com.pandora.backend.dto.TaskSummaryDTO summary = new com.pandora.backend.dto.TaskSummaryDTO();
+        summary.setTaskId(taskDTO.getTaskId());
+        summary.setTitle(taskDTO.getTitle());
+        summary.setTaskPriority(taskDTO.getTaskPriority());
+        summary.setTaskStatus(taskDTO.getTaskStatus());
+        summary.setAssigneeName(taskDTO.getAssigneeName());
+        
+        // 将 LocalDateTime 转换为 LocalDate
+        if (taskDTO.getEndTime() != null) {
+            summary.setDueDate(taskDTO.getEndTime().toLocalDate());
         }
-        if (task.getTaskStatus() != null) {
-            Status status = Status.fromCode(task.getTaskStatus());
-            dto.setTaskStatus(status.getDesc());
-        }
-
-        if (task.getAssignee() != null) {
-            dto.setAssigneeName(task.getAssignee().getEmployeeName());
-        }
-        if (task.getEndTime() != null) {
-            dto.setDueDate(task.getEndTime().toLocalDate());
-        }
-        return dto;
+        
+        return summary;
     }
 
-    private String abbreviate(String text, int maxLength) {
-        if (text == null) {
-            return null;
-        }
-        if (text.length() <= maxLength) {
-            return text;
-        }
-        return text.substring(0, maxLength) + "...";
-    }
-
-    private LogSummaryDTO convertToLogSummaryDto(Log log) {
-        LogSummaryDTO dto = new LogSummaryDTO();
-        dto.setLogId(log.getLogId());
-        dto.setCreatedTime(log.getCreatedTime());
+    /**
+     * 将完整的 LogDTO 转换为 LogSummaryDTO（用于仪表盘展示）
+     */
+    private com.pandora.backend.dto.LogSummaryDTO convertLogDTOToSummary(LogDTO logDTO) {
+        com.pandora.backend.dto.LogSummaryDTO summary = new com.pandora.backend.dto.LogSummaryDTO();
+        summary.setLogId(logDTO.getLogId());
+        summary.setCreatedTime(logDTO.getCreatedTime());
+        
         // 内容摘要：截取内容的前 50 个字符
-        if (log.getContent() != null && log.getContent().length() > 50) {
-            dto.setContentSummary(log.getContent().substring(0, 50) + "...");
+        String content = logDTO.getContent();
+        if (content != null && content.length() > 50) {
+            summary.setContentSummary(content.substring(0, 50) + "...");
         } else {
-            dto.setContentSummary(log.getContent());
+            summary.setContentSummary(content);
         }
-        return dto;
+        
+        return summary;
     }
 }

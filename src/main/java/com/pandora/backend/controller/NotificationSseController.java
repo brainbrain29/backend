@@ -52,11 +52,16 @@ public class NotificationSseController {
             return ResponseEntity.status(401).build();
         }
 
+        System.out.println("\n========================================");
+        System.out.println("📡 SSE 连接请求");
+        System.out.println("用户ID: " + userId + "  用户姓名: " + emp.getEmployeeName());
+        System.out.println("========================================\n");
+
         // 创建 SSE 连接，超时 30 分钟
         SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
 
         // 注册连接到推送服务（会自动推送待接收通知）
-        pushService.registerConnection(userId, emitter);
+        pushService.registerConnection(userId, emp.getEmployeeName(), emitter);
 
         // 异步更新待推送通知的状态（NOT_RECEIVED → NOT_VIEWED）
         new Thread(() -> statusUpdater.updatePendingNoticesStatus(userId)).start();

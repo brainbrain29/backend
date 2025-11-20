@@ -18,7 +18,6 @@ import com.pandora.backend.repository.LogAttachmentRepository;
 
 // 导入其他
 import com.pandora.backend.enums.Emoji;
-import com.pandora.backend.service.FileStorageService;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -77,6 +76,7 @@ public class LogService {
         newLog.setEmployee(employee);
         newLog.setTask(task);
         newLog.setContent(dto.getContent());
+        newLog.setEmployeeLocation(dto.getEmployeeLocation()); // 设置员工位置
 
         // DTO 中的 emoji 传的是 Emoji 的中文描述，例如 "平静"、"开心"
         if (dto.getEmoji() != null) {
@@ -126,12 +126,24 @@ public class LogService {
     // ==================================================
     // 你的已有方法 (已修复)
     // ==================================================
-
+    /**
+     * 根据任务ID查询所有日志
+     * 
+     * @param taskId 任务ID
+     * @return 任务所有日志的 DTO 列表
+     */
     public List<LogDTO> getLogsByTask(Integer taskId) {
         List<Log> logs = logRepository.findByTask_TaskId(taskId);
         return convertToDtoList(logs);
     }
 
+    /**
+     * 根据用户ID和日期查询所有日志
+     * 
+     * @param userId   用户ID
+     * @param dateTime 日期时间
+     * @return 该用户在指定日期的所有日志的 DTO 列表
+     */
     public List<LogDTO> getLogsByDate(Integer userId, LocalDateTime dateTime) {
         LocalDateTime startOfDay = dateTime.toLocalDate().atStartOfDay();
         LocalDateTime endOfDay = dateTime.toLocalDate().atTime(LocalTime.MAX);
@@ -144,12 +156,30 @@ public class LogService {
         return convertToDtoList(logs);
     }
 
-    public List<LogDTO> searchLogs(String keyword) {
+    /**
+     * 搜索日志
+     * 只返回创建人与当前员工ID相同的日志
+     * 
+     * @param keyword 搜索关键词（可为空）
+     * @param userId  当前用户ID
+     * @return 符合条件的日志列表
+     */
+    public List<LogDTO> searchLogs(String keyword, Integer userId) {
+        // 如果 keyword 为空，返回空列表
         if (keyword == null || keyword.trim().isEmpty()) {
             return Collections.emptyList();
         }
+
+        // 搜索所有匹配的日志
         List<Log> logs = logRepository.searchByKeyword(keyword.trim());
-        return convertToDtoList(logs);
+
+        // 过滤：只返回创建人与员工ID相同的日志
+        List<Log> filteredLogs = logs.stream()
+                .filter(log -> log.getEmployee() != null
+                        && log.getEmployee().getEmployeeId().equals(userId))
+                .collect(Collectors.toList());
+
+        return convertToDtoList(filteredLogs);
     }
 
     /**
@@ -267,7 +297,6 @@ public class LogService {
             dto.setAttachments(attachmentDTOs);
         }
         // --- 修复结束 ---
-
         return dto;
     }
 }

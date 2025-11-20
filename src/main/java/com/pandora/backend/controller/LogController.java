@@ -4,10 +4,12 @@ import com.pandora.backend.dto.LogDTO;
 import com.pandora.backend.dto.TaskDTO;
 import com.pandora.backend.entity.Log; // 导入实体类 Log
 import com.pandora.backend.entity.LogAttachment;
-import com.pandora.backend.enums.Emoji;
 import com.pandora.backend.repository.LogAttachmentRepository;
 import com.pandora.backend.service.LogService;
+import com.pandora.backend.service.AttachmentService;
 import com.pandora.backend.service.FileStorageService;
+import com.pandora.backend.service.TaskService;
+import com.pandora.backend.util.JwtUtil;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -22,10 +24,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @RestController
 @RequestMapping("/logs") // 建议使用复数形式 "/logs"，这是 RESTful 规范
 public class LogController {
@@ -34,13 +41,13 @@ public class LogController {
     private LogService logService;
 
     @Autowired
-    private FileStorageService fileStorageService;
-
-    @Autowired
-    private LogAttachmentRepository logAttachmentRepository;
+    private AttachmentService attachmentService;
 
     @Autowired
     private TaskService taskService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     // 根据时间获取当天所有日志
     @GetMapping("/byDate")
@@ -81,6 +88,7 @@ public class LogController {
             // 直接设置mood字符串，后续在service中会转换为Emoji枚举
             dto.setEmoji(mood);
             dto.setTaskId(taskId);
+            dto.setEmployeeLocation(employeeLocation); // 设置员工位置
 
             // 创建日志并处理附件
             Log createdLog = logService.createLogWithAttachments(dto, files, userId);
@@ -103,8 +111,16 @@ public class LogController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<LogDTO>> searchLogs(@RequestParam("keyword") String keyword) {
-        List<LogDTO> logs = logService.searchLogs(keyword);
+    public ResponseEntity<List<LogDTO>> searchLogs(
+            HttpServletRequest request,
+            @RequestParam(value = "keyword", required = false) String keyword) {
+        Object uidObj = request.getAttribute("userId");
+        if (uidObj == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        }
+        Integer userId = (Integer) uidObj;
+
+        List<LogDTO> logs = logService.searchLogs(keyword, userId);
         return ResponseEntity.ok(logs);
     }
 
@@ -200,33 +216,26 @@ public class LogController {
     }
 
     /**
-     * API 接口：下载附件
-     * 
-     * @param attachmentId 附件的数据库ID
+     * API 接口：下载日志附件
+     * 使用通用的 AttachmentService
      */
-    @GetMapping("/attachments/{id}")
-    public ResponseEntity<Resource> downloadAttachment(@PathVariable("id") Long attachmentId,
+    @GetMapping("/attachments/{id}/download")
+    public ResponseEntity<Resource> downloadAttachment(
+            @PathVariable("id") Long attachmentId,
+            @RequestParam(value = "token", required = false) String tokenParam,
             HttpServletRequest request) {
+        return attachmentService.downloadLogAttachment(attachmentId, tokenParam, request);
+    }
 
-        try {
-            // 1. 从数据库查找附件信息
-            LogAttachment attachment = logAttachmentRepository.findById(attachmentId)
-                    .orElseThrow(() -> new RuntimeException("文件未找到 ID: " + attachmentId));
-
-            // 2. 从磁盘加载文件
-            Resource resource = fileStorageService.loadFileAsResource(attachment.getStoredFilename());
-
-            // 3. 构建下载响应
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=\"" + attachment.getOriginalFilename() + "\"")
-                    .contentType(MediaType.parseMediaType(attachment.getFileType()))
-                    .contentLength(attachment.getFileSize())
-                    .body(resource);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 未找到
-        }
+    /**
+     * API 接口：预览日志附件
+     * 使用通用的 AttachmentService
+     */
+    @GetMapping("/attachments/{id}/preview")
+    public ResponseEntity<Resource> previewAttachment(
+            @PathVariable("id") Long attachmentId,
+            @RequestParam(value = "token", required = false) String tokenParam,
+            HttpServletRequest request) {
+        return attachmentService.previewLogAttachment(attachmentId, tokenParam, request);
     }
 }

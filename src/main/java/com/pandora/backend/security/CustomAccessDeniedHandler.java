@@ -39,6 +39,12 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         log.warn("Access denied - userId: {}, method: {}, uri: {}",
                 userId, httpMethod, requestUri);
 
+        // Check if response is already committed (e.g., SSE connection closed)
+        if (response.isCommitted()) {
+            log.debug("Response already committed, skipping error response for uri: {}", requestUri);
+            return;
+        }
+
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write("{\"error\":\"Access denied\"}");

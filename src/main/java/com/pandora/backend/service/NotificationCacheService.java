@@ -23,6 +23,7 @@ public class NotificationCacheService {
     private static final String UNREAD_COUNT_PREFIX = "unread_count:";
     private static final String RECENT_NOTICES_PREFIX = "recent_notices:";
     private static final String PENDING_NOTICES_PREFIX = "pending_notices:"; // 待推送通知队列
+    private static final String ONLINE_USER_PREFIX = "online_user:"; // 在线用户状态
 
     /**
      * 增加未读通知数量
@@ -132,25 +133,25 @@ public class NotificationCacheService {
      */
     public void addPendingNotice(Integer userId, NoticeDTO notice) {
         String key = PENDING_NOTICES_PREFIX + userId;
-        
+
         // 获取现有队列
         @SuppressWarnings("unchecked")
         List<NoticeDTO> pendingList = (List<NoticeDTO>) redisUtil.get(key);
         if (pendingList == null) {
             pendingList = new ArrayList<>();
         }
-        
+
         // 添加到队列尾部
         pendingList.add(notice);
-        
+
         // 限制队列长度，最多保存 50 条
         if (pendingList.size() > 50) {
             pendingList = pendingList.subList(pendingList.size() - 50, pendingList.size());
         }
-        
+
         // 缓存 7 天（用户可能长时间不上线）
         redisUtil.set(key, pendingList, 7, TimeUnit.DAYS);
-        
+
         System.out.println("📥 通知已加入待推送队列，用户: " + userId + ", 队列长度: " + pendingList.size());
     }
 
@@ -195,5 +196,45 @@ public class NotificationCacheService {
      */
     public Boolean releaseLock(String lockKey, String lockValue) {
         return redisUtil.releaseLock(lockKey, lockValue);
+    }
+
+    // ==================== 在线用户管理 ====================
+
+    /**
+     * 设置用户在线状态
+     * 过期时间 30 分钟（用户无活动自动下线）
+     */
+    public void setUserOnline(Integer userId) {
+        String key = ONLINE_USER_PREFIX + userId;
+        redisUtil.set(key, true, 30, TimeUnit.MINUTES);
+        System.out.println("🟢 用户上线，userId: " + userId);
+    }
+
+    /**
+     * 设置用户离线状态
+     */
+    public void setUserOffline(Integer userId) {
+        String key = ONLINE_USER_PREFIX + userId;
+        redisUtil.delete(key);
+        System.out.println("🔴 用户下线，userId: " + userId);
+    }
+
+    /**
+     * 判断用户是否在线
+     */
+    public boolean isUserOnline(Integer userId) {
+        String key = ONLINE_USER_PREFIX + userId;
+        return redisUtil.hasKey(key);
+    }
+
+    /**
+     * 刷新用户在线状态（延长过期时间）
+     * 用于心跳检测
+     */
+    public void refreshUserOnline(Integer userId) {
+        String key = ONLINE_USER_PREFIX + userId;
+        if (redisUtil.hasKey(key)) {
+            redisUtil.expire(key, 30, TimeUnit.MINUTES);
+        }
     }
 }

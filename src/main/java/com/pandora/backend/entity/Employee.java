@@ -48,6 +48,9 @@ public class Employee {
     @Column(name = "avatar_url", length = 255)
     private String avatarUrl;
 
+    @Column(name = "mbti", length = 4)
+    private String mbti;
+
     @OneToMany(mappedBy = "employee")
     private List<Employee_Team> employeeTeams;
 

@@ -1,6 +1,8 @@
 package com.pandora.backend.service;
 
 import com.pandora.backend.dto.NoticeDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class NotificationPushService {
 
+    private static final Logger logger = LoggerFactory.getLogger(NotificationPushService.class);
+
     // 存储所有活跃的 SSE 连接：userId -> SseEmitter
     private static final Map<Integer, SseEmitter> emitters = new ConcurrentHashMap<>();
 
@@ -30,20 +34,41 @@ public class NotificationPushService {
     public void registerConnection(Integer userId, String userName, SseEmitter emitter) {
         emitters.put(userId, emitter);
 
-        System.out.println("SSE 连接已建立 - 用户: " + userName + " (ID: " + userId + "), 当前在线: " + emitters.size());
+        // ✅ 使用 Redis 管理在线状态
+        cacheService.setUserOnline(userId);
+
+        logger.info("SSE 连接已建立 - 用户: {} (ID: {}), 当前在线: {}", userName, userId, emitters.size());
 
         // 连接关闭时清理
         emitter.onCompletion(() -> {
-            emitters.remove(userId);
-            System.out.println("SSE connection closed for user: " + userId + ", remaining online: " + emitters.size());
+            try {
+                emitters.remove(userId);
+                // ✅ 设置用户离线
+                cacheService.setUserOffline(userId);
+                logger.info("用户下线，userId: {}, 剩余在线: {}", userId, emitters.size());
+            } catch (Exception e) {
+                logger.error("处理 SSE 连接关闭时发生异常，userId: {}", userId, e);
+            }
         });
         emitter.onTimeout(() -> {
-            emitters.remove(userId);
-            System.out.println("SSE connection timeout for user: " + userId);
+            try {
+                emitters.remove(userId);
+                // ✅ 设置用户离线
+                cacheService.setUserOffline(userId);
+                logger.info("SSE 连接超时，userId: {}", userId);
+            } catch (Exception e) {
+                logger.error("处理 SSE 连接超时时发生异常，userId: {}", userId, e);
+            }
         });
         emitter.onError((e) -> {
-            emitters.remove(userId);
-            System.out.println("SSE connection error for user: " + userId);
+            try {
+                emitters.remove(userId);
+                // ✅ 设置用户离线
+                cacheService.setUserOffline(userId);
+                logger.debug("SSE 连接异常，userId: {} - {}", userId, e.getMessage());
+            } catch (Exception ex) {
+                logger.error("处理 SSE 连接错误时发生异常，userId: {}", userId, ex);
+            }
         });
 
         // 用户上线后，推送待接收的通知
@@ -53,6 +78,8 @@ public class NotificationPushService {
     /**
      * 推送用户的待接收通知（用户上线时调用）
      * 返回推送成功的通知 ID 列表，用于后续更新状态
+     * 
+     * 注意：不立即清空 Redis 队列，等待状态更新完成后再清空
      */
     private java.util.List<Integer> pushPendingNotifications(Integer userId, SseEmitter emitter) {
         java.util.List<NoticeDTO> pendingNotices = cacheService.getPendingNotices(userId);
@@ -77,10 +104,11 @@ public class NotificationPushService {
             }
         }
 
-        // 推送成功后，清空待推送队列
+        // ⚠️ 不在这里清空队列，改为在状态更新完成后清空
+        // 这样 updatePendingNoticesStatus() 可以从 Redis 获取到通知列表
         if (!successIds.isEmpty()) {
-            cacheService.clearPendingNotices(userId);
             System.out.println("✅ 成功推送 " + successIds.size() + " 条通知给用户: " + userId);
+            System.out.println("📋 待推送队列暂不清空，等待状态更新完成");
         }
 
         return successIds;
@@ -128,13 +156,18 @@ public class NotificationPushService {
 
     /**
      * 发送心跳给所有在线用户（每 30 秒）
-     * 保持 SSE 连接活跃
+     * 保持 SSE 连接活跃，并刷新 Redis 在线状态
      */
     @Scheduled(fixedRate = 30000)
     public void sendHeartbeat() {
         int onlineCount = emitters.size();
         System.out.println("💓 心跳检测 - 当前在线用户数: " + onlineCount);
-        
+
+        // ✅ 刷新所有在线用户的 Redis 状态（延长过期时间）
+        for (Integer userId : emitters.keySet()) {
+            cacheService.refreshUserOnline(userId);
+        }
+
         if (onlineCount == 0) {
             return;
         }
@@ -167,10 +200,11 @@ public class NotificationPushService {
     }
 
     /**
-     * 检查用户是否在线
+     * 判断用户是否在线
+     * ✅ 使用 Redis 判断（支持分布式）
      */
     public boolean isUserOnline(Integer userId) {
-        return emitters.containsKey(userId);
+        return cacheService.isUserOnline(userId);
     }
 
     /**

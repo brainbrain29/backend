@@ -5,6 +5,8 @@ import com.pandora.backend.repository.EmployeeRepository;
 import com.pandora.backend.service.NotificationPushService;
 import com.pandora.backend.service.NotificationStatusUpdater;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/notifications")
 public class NotificationSseController {
+
+    private static final Logger logger = LoggerFactory.getLogger(NotificationSseController.class);
 
     @Autowired
     private EmployeeRepository employeeRepository;
@@ -52,10 +56,7 @@ public class NotificationSseController {
             return ResponseEntity.status(401).build();
         }
 
-        System.out.println("\n========================================");
-        System.out.println("📡 SSE 连接请求");
-        System.out.println("用户ID: " + userId + "  用户姓名: " + emp.getEmployeeName());
-        System.out.println("========================================\n");
+        logger.info("📡 SSE 连接请求 - 用户ID: {}, 用户姓名: {}", userId, emp.getEmployeeName());
 
         // 创建 SSE 连接，超时 30 分钟
         SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
@@ -72,6 +73,7 @@ public class NotificationSseController {
                     .name("connected")
                     .data("SSE connection established"));
         } catch (IOException e) {
+            logger.debug("SSE 连接初始化失败，userId: {} - {}", userId, e.getMessage());
             emitter.completeWithError(e);
         }
 

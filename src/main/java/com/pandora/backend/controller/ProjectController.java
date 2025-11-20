@@ -6,8 +6,11 @@ import com.pandora.backend.dto.ProjectCreateDTO;
 import com.pandora.backend.dto.ProjectDTO;
 import com.pandora.backend.dto.TaskDTO;
 import com.pandora.backend.dto.TeamAssignmentOptionDTO;
+import com.pandora.backend.dto.TeamNameDTO;
+import com.pandora.backend.entity.Department;
 import com.pandora.backend.entity.Employee;
 import com.pandora.backend.repository.EmployeeRepository;
+import com.pandora.backend.repository.TeamRepository;
 import com.pandora.backend.service.MilestoneService;
 import com.pandora.backend.service.ProjectService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/projects")
@@ -29,6 +33,9 @@ public class ProjectController { // TODO: 项目创建者才能修改项目,但�
 
     @Autowired
     private MilestoneService milestoneService;
+
+    @Autowired
+    private TeamRepository teamRepository;
 
     @PostMapping
     public ResponseEntity<?> createProject(HttpServletRequest request, @RequestBody ProjectCreateDTO body) {
@@ -207,6 +214,69 @@ public class ProjectController { // TODO: 项目创建者才能修改项目,但�
             return new ResponseEntity<>(tasks, HttpStatus.OK);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取团队名称列表
+     * - CEO(position=0): 返回所有团队
+     * - 部门经理(position=1): 返回本部门的所有团队
+     * - 其他权限: 无权调用
+     * GET /projects/teams
+     */
+    @GetMapping("/teams")
+    public ResponseEntity<?> getTeamNames(HttpServletRequest request) {
+        Object uidObj = request.getAttribute("userId");
+        if (uidObj == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid token");
+        }
+        Integer userId = (Integer) uidObj;
+
+        Employee emp = employeeRepository.findById(userId).orElse(null);
+        if (emp == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
+        }
+
+        Byte position = emp.getPosition();
+
+        // 权限检查：只有CEO(0)和部门经理(1)可以调用
+        if (position == null || position > 1) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only CEO and department managers can access team information");
+        }
+
+        try {
+            List<TeamNameDTO> teams;
+
+            if (position == 0) {
+                // CEO: 返回所有团队
+                teams = teamRepository.findAll().stream()
+                        .map(team -> new TeamNameDTO(
+                                team.getTeamId(),
+                                team.getTeamName(),
+                                team.getDepartment().getOrgId(),
+                                team.getDepartment().getOrgName()))
+                        .collect(Collectors.toList());
+            } else {
+                // 部门经理(position=1): 返回本部门的团队
+                Department department = emp.getDepartment();
+                if (department == null) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body("Department manager must belong to a department");
+                }
+
+                teams = department.getTeams().stream()
+                        .map(team -> new TeamNameDTO(
+                                team.getTeamId(),
+                                team.getTeamName(),
+                                department.getOrgId(),
+                                department.getOrgName()))
+                        .collect(Collectors.toList());
+            }
+
+            return new ResponseEntity<>(teams, HttpStatus.OK);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }

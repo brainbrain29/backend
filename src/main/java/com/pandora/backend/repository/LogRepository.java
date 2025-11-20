@@ -1,7 +1,6 @@
 package com.pandora.backend.repository;
 
 import com.pandora.backend.entity.Log;
-import com.pandora.backend.entity.Task;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,29 +12,34 @@ import java.util.Optional;
 
 @Repository
 public interface LogRepository extends JpaRepository<Log, Integer> {
-    // 使用 JOIN FETCH 优化 findByTask_TaskId
-    @Query("SELECT l FROM Log l LEFT JOIN FETCH l.employee LEFT JOIN FETCH l.task WHERE l.task.taskId = :taskId")
-    List<Log> findByTask_TaskId(@Param("taskId") Integer taskId);
+        // 使用 JOIN FETCH 优化 findByTask_TaskId
+        @Query("SELECT l FROM Log l LEFT JOIN FETCH l.employee LEFT JOIN FETCH l.task WHERE l.task.taskId = :taskId")
+        List<Log> findByTask_TaskId(@Param("taskId") Integer taskId);
 
-    // 使用 JOIN FETCH 优化 findByEmployeeEmployeeIdAndCreatedTimeBetween
-    @Query("SELECT l FROM Log l LEFT JOIN FETCH l.employee LEFT JOIN FETCH l.task WHERE l.employee.employeeId = :userId AND l.createdTime BETWEEN :start AND :end")
-    List<Log> findByEmployeeEmployeeIdAndCreatedTimeBetween(@Param("userId") Integer userId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+        // 使用 JOIN FETCH 优化 findByEmployeeEmployeeIdAndCreatedTimeBetween
+        @Query("SELECT l FROM Log l LEFT JOIN FETCH l.employee LEFT JOIN FETCH l.task WHERE l.employee.employeeId = :userId AND l.createdTime BETWEEN :start AND :end")
+        List<Log> findByEmployeeEmployeeIdAndCreatedTimeBetween(@Param("userId") Integer userId,
+                        @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    // 使用 JOIN FETCH 优化 findAll
-    @Query("SELECT l FROM Log l LEFT JOIN FETCH l.employee LEFT JOIN FETCH l.task")
-    List<Log> findAllWithDetails();
+        // 使用 JOIN FETCH 优化 findAll
+        @Query("SELECT l FROM Log l LEFT JOIN FETCH l.employee LEFT JOIN FETCH l.task")
+        List<Log> findAllWithDetails();
 
-    // 搜索方法也需要优化
-    @Query("SELECT l FROM Log l LEFT JOIN FETCH l.employee LEFT JOIN FETCH l.task WHERE l.content LIKE %:keyword%")
-    List<Log> searchByKeyword(@Param("keyword") String keyword);
+        // 搜索方法：搜索日志内容、关联任务标题、创建人姓名，不区分大小写，处理 NULL 值
+        @Query("SELECT DISTINCT l FROM Log l LEFT JOIN FETCH l.employee LEFT JOIN FETCH l.task " +
+                        "WHERE LOWER(COALESCE(l.content, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                        "OR LOWER(COALESCE(l.task.title, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                        "OR LOWER(COALESCE(l.employee.employeeName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+        List<Log> searchByKeyword(@Param("keyword") String keyword);
 
-    @Query("SELECT l FROM Log l LEFT JOIN FETCH l.employee LEFT JOIN FETCH l.task WHERE l.logId = :logId")
-    Optional<Log> findByIdWithDetails(@Param("logId") Integer logId);
+        @Query("SELECT l FROM Log l LEFT JOIN FETCH l.employee LEFT JOIN FETCH l.task WHERE l.logId = :logId")
+        Optional<Log> findByIdWithDetails(@Param("logId") Integer logId);
 
-    /**
-     * 查询员工今日日志
-     */
-    @Query("SELECT l FROM Log l LEFT JOIN FETCH l.employee LEFT JOIN FETCH l.task WHERE l.employee.employeeId = :employeeId AND l.createdTime BETWEEN :startTime AND :endTime")
-    List<Log> findTodayLogsByEmployeeId(@Param("employeeId") Integer employeeId, @Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
+        /**
+         * 查询员工今日日志
+         */
+        @Query("SELECT l FROM Log l LEFT JOIN FETCH l.employee LEFT JOIN FETCH l.task WHERE l.employee.employeeId = :employeeId AND l.createdTime BETWEEN :startTime AND :endTime")
+        List<Log> findTodayLogsByEmployeeId(@Param("employeeId") Integer employeeId,
+                        @Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
 
 }

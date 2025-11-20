@@ -2,6 +2,9 @@ package com.pandora.backend.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -591,6 +594,63 @@ public class AdminService {
                     return dto;
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 搜索重要事项（优化版：使用数据库查询）
+     * 
+     * 注意：ImportantMatter 实体类中没有 status 字段，已移除状态过滤
+     * 如需状态过滤，请在内存中进行
+     * 
+     * @param assigneeId 负责人ID（部门ID，null=全部）
+     * @param keyword    搜索关键词（null=全部）
+     * @param page       页码（从1开始）
+     * @param size       每页大小
+     * @return 包含分页信息的结果
+     */
+    public java.util.Map<String, Object> searchImportantMatters(
+            Integer assigneeId, String keyword, int page, int size) {
+
+        // 创建分页参数（Spring Data JPA 的页码从 0 开始）
+        Pageable pageable = PageRequest.of(page - 1, size);
+
+        // 调用 Repository 的搜索方法
+        Page<ImportantMatter> pageResult = importantMatterRepository.searchMatters(
+                assigneeId, keyword, pageable); // 转换为 DTO
+        List<ImportantMatterDTO> matters = pageResult.getContent().stream()
+                .map(matter -> {
+                    ImportantMatterDTO dto = new ImportantMatterDTO();
+                    dto.setMatterId(matter.getMatterId());
+                    dto.setTitle(matter.getTitle());
+                    dto.setContent(matter.getContent());
+                    if (matter.getDepartment() != null) {
+                        dto.setDepartmentId(matter.getDepartment().getOrgId());
+                        dto.setDepartmentName(matter.getDepartment().getOrgName());
+                    }
+                    dto.setPublishTime(matter.getPublishTime());
+
+                    // 添加默认值以兼容前端模板
+                    dto.setDeadline(matter.getPublishTime());
+                    dto.setAssigneeName("系统");
+                    dto.setAssigneeId(1);
+                    dto.setMatterStatus((byte) 0);
+                    dto.setMatterPriority((byte) 1);
+                    dto.setSerialNum((byte) 1);
+                    dto.setVisibleRange(0);
+
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+        // 构建返回结果
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("matters", matters);
+        result.put("totalCount", pageResult.getTotalElements());
+        result.put("currentPage", page);
+        result.put("totalPages", pageResult.getTotalPages());
+        result.put("pageSize", size);
+
+        return result;
     }
 
     /**

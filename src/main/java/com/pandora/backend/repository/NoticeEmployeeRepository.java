@@ -17,4 +17,8 @@ public interface NoticeEmployeeRepository extends JpaRepository<NoticeEmployee, 
 
     @Query("SELECT ne FROM NoticeEmployee ne JOIN FETCH ne.notice n JOIN FETCH n.sender s WHERE ne.id.receiverId = :receiverId AND ne.noticeStatus = com.pandora.backend.enums.NoticeStatus.NOT_VIEWED ORDER BY n.createdTime DESC")
     List<NoticeEmployee> findUnreadByReceiverId(@Param("receiverId") Integer receiverId);
+
+    @Query("SELECT ne FROM NoticeEmployee ne JOIN FETCH ne.notice n JOIN FETCH n.sender s WHERE ne.id.receiverId = :receiverId AND ne.noticeStatus = :status ORDER BY n.createdTime DESC")
+    List<NoticeEmployee> findByIdReceiverIdAndNoticeStatus(@Param("receiverId") Integer receiverId,
+            @Param("status") com.pandora.backend.enums.NoticeStatus status);
 }

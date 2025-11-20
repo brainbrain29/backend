@@ -47,8 +47,8 @@ public class DashboardService {
                 .stream().map(this::convertToImportantTaskDto).collect(Collectors.toList());
         log.debug("公司任务数量: {}", companyTasks.size());
 
-        // 3. 复用 TaskService.getTasksByUserId() - 获取个人任务,然后转换为 Summary 格式
-        List<TaskDTO> personalTasksFullDTO = taskService.getTasksByUserId(currentUserId);
+        // 3. 复用 TaskService.getUnfinishedTasksForLog() - 获取个人任务,然后转换为 Summary 格式
+        List<TaskDTO> personalTasksFullDTO = taskService.getUnfinishedTasksForLog(currentUserId);
         List<com.pandora.backend.dto.TaskSummaryDTO> personalTasks = personalTasksFullDTO.stream()
                 .map(this::convertTaskDTOToSummary)
                 .collect(Collectors.toList());
@@ -181,12 +181,12 @@ public class DashboardService {
         summary.setTaskPriority(taskDTO.getTaskPriority());
         summary.setTaskStatus(taskDTO.getTaskStatus());
         summary.setAssigneeName(taskDTO.getAssigneeName());
-        
+
         // 将 LocalDateTime 转换为 LocalDate
         if (taskDTO.getEndTime() != null) {
             summary.setDueDate(taskDTO.getEndTime().toLocalDate());
         }
-        
+
         return summary;
     }
 
@@ -197,7 +197,7 @@ public class DashboardService {
         com.pandora.backend.dto.LogSummaryDTO summary = new com.pandora.backend.dto.LogSummaryDTO();
         summary.setLogId(logDTO.getLogId());
         summary.setCreatedTime(logDTO.getCreatedTime());
-        
+
         // 内容摘要：截取内容的前 50 个字符
         String content = logDTO.getContent();
         if (content != null && content.length() > 50) {
@@ -205,7 +205,7 @@ public class DashboardService {
         } else {
             summary.setContentSummary(content);
         }
-        
+
         return summary;
     }
 }

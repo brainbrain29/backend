@@ -2,6 +2,7 @@ package com.pandora.backend.enums;
 
 // 项目/任务/事项状态
 public enum Status {
+    NOT_RECEIVED(0, "未接收"),
     NOT_FINISHED(1, "未完成"),
     COMPLETED(2, "已完成"),
     PENDING_REVIEW(3, "待审核"),

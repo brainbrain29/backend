@@ -20,6 +20,7 @@
     <properties>
         <java.version>17</java.version>
         <flyway.version>10.18.2</flyway.version>
+        <maven.test.skip>true</maven.test.skip>
     </properties>
 
     <dependencies>

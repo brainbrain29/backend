@@ -1,5 +1,6 @@
 package com.pandora.backend.service;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
@@ -12,22 +13,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import com.pandora.backend.repository.TaskRepository;
 import com.pandora.backend.repository.EmployeeRepository;
 import com.pandora.backend.repository.EmployeeTeamRepository;
 import com.pandora.backend.repository.MilestoneRepository;
 import com.pandora.backend.repository.ProjectRepository;
+import com.pandora.backend.repository.TaskAttachmentRepository;
 import com.pandora.backend.dto.AssignableEmployeeDTO;
+import com.pandora.backend.dto.AttachmentDTO;
 import com.pandora.backend.dto.TaskDTO;
 import com.pandora.backend.dto.TaskStatusDTO;
 import com.pandora.backend.enums.Status;
 import com.pandora.backend.entity.Task;
+import com.pandora.backend.entity.TaskAttachment;
 import com.pandora.backend.entity.Employee;
 import com.pandora.backend.entity.Milestone;
 import com.pandora.backend.entity.Project;
 import com.pandora.backend.enums.Priority;
 import com.pandora.backend.enums.TaskType;
-import com.pandora.backend.enums.NoticeType;
 import com.pandora.backend.enums.Position;
 
 @Service
@@ -56,17 +61,54 @@ public class TaskService {
     @Autowired
     private ProjectRepository projectRepository;
 
-    // 创建任务
-    public TaskDTO createTask(TaskDTO taskDTO) {
+    @Autowired
+    private TaskAttachmentRepository taskAttachmentRepository;
+
+    @Autowired
+    private FileStorageService fileStorageService;
+
+    /**
+     * 创建任务并处理附件
+     * 
+     * @param taskDTO 任务信息
+     * @param files   上传的文件数组
+     * @param userId  当前用户ID
+     * @return 创建后的任务DTO
+     */
+    @Transactional
+    public TaskDTO createTaskWithAttachments(TaskDTO taskDTO, MultipartFile[] files, Integer userId) {
+        // 1. 创建任务基本信息
         Task task = new Task();
         task.setTitle(taskDTO.getTitle());
         task.setContent(taskDTO.getContent());
         task.setStartTime(taskDTO.getStartTime());
         task.setEndTime(taskDTO.getEndTime());
-        if (taskDTO.getTaskStatus() != null) {
-            Status s = Status.fromDesc(taskDTO.getTaskStatus());
-            task.setTaskStatus((byte) s.getCode());
+
+        // 设置发送者（必填）
+        Employee sender = null;
+        if (taskDTO.getSenderId() != null) {
+            sender = employeeRepository.findById(taskDTO.getSenderId())
+                    .orElseThrow(() -> new RuntimeException("Sender not found"));
+            task.setSender(sender);
+        } else {
+            throw new RuntimeException("Sender ID is required");
         }
+
+        // 设置执行者（可选）
+        Employee assignee = null;
+        if (taskDTO.getAssigneeId() != null) {
+            assignee = employeeRepository.findById(taskDTO.getAssigneeId())
+                    .orElseThrow(() -> new RuntimeException("Assignee not found"));
+            task.setAssignee(assignee);
+        }
+
+        // 设置任务状态
+        if (assignee != null && !assignee.getEmployeeId().equals(sender.getEmployeeId())) {
+            task.setTaskStatus((byte) Status.NOT_RECEIVED.getCode());
+        } else {
+            task.setTaskStatus((byte) Status.NOT_FINISHED.getCode());
+        }
+
         if (taskDTO.getTaskPriority() != null) {
             Priority p = Priority.fromDesc(taskDTO.getTaskPriority());
             task.setTaskPriority((byte) p.getCode());
@@ -76,9 +118,64 @@ public class TaskService {
             task.setTaskType((byte) t.getCode());
         }
 
+        // 设置里程碑（可选）
+        if (taskDTO.getMilestoneId() != null) {
+            Milestone milestone = milestoneRepository.findById(taskDTO.getMilestoneId())
+                    .orElseThrow(() -> new RuntimeException("Milestone not found"));
+            task.setMilestone(milestone);
+        }
+
+        // 2. 保存任务（获取 taskId）
+        Task savedTask = taskRepository.save(task);
+
+        // 3. 处理附件
+        if (files != null && files.length > 0) {
+            for (MultipartFile file : files) {
+                if (file.isEmpty())
+                    continue;
+
+                try {
+                    // 3a. 存储文件到磁盘
+                    String storedFilename = fileStorageService.storeFile(file);
+
+                    // 3b. 保存附件信息到数据库
+                    TaskAttachment attachment = new TaskAttachment();
+                    attachment.setTask(savedTask);
+                    attachment.setOriginalFilename(file.getOriginalFilename());
+                    attachment.setStoredFilename(storedFilename);
+                    attachment.setFileType(file.getContentType());
+                    attachment.setFileSize(file.getSize());
+                    attachment.setUploadedBy(userId);
+                    // uploadTime 会通过 @PrePersist 自动设置
+
+                    taskAttachmentRepository.save(attachment);
+
+                } catch (IOException e) {
+                    throw new RuntimeException("文件上传失败: " + file.getOriginalFilename(), e);
+                }
+            }
+        }
+
+        // 4. 发送通知
+        if (savedTask.getAssignee() != null) {
+            noticeService.createTaskAssignmentNotice(savedTask);
+        }
+
+        return convertToDTO(savedTask);
+    }
+
+    // 创建任务（不带附件）
+    public TaskDTO createTask(TaskDTO taskDTO) {
+        Task task = new Task();
+        task.setTitle(taskDTO.getTitle());
+        task.setContent(taskDTO.getContent());
+        task.setStartTime(taskDTO.getStartTime());
+        task.setEndTime(taskDTO.getEndTime());
+
         // 设置发送者（必填）
+        Employee sender = null;
         if (taskDTO.getSenderId() != null) {
-            Employee sender = employeeRepository.findById(taskDTO.getSenderId())
+            sender = employeeRepository.findById(taskDTO.getSenderId())
                     .orElseThrow(() -> new RuntimeException("Sender not found"));
             task.setSender(sender);
         } else {
@@ -86,10 +183,29 @@ public class TaskService {
         }
 
         // 设置执行者（可选）
+        Employee assignee = null;
         if (taskDTO.getAssigneeId() != null) {
-            Employee assignee = employeeRepository.findById(taskDTO.getAssigneeId())
+            assignee = employeeRepository.findById(taskDTO.getAssigneeId())
                     .orElseThrow(() -> new RuntimeException("Assignee not found"));
             task.setAssignee(assignee);
+        }
+
+        // 设置任务状态：自动判断，忽略前端传入的状态
+        // 如果有执行者且执行者不是发送者，状态为"未接收"
+        if (assignee != null && !assignee.getEmployeeId().equals(sender.getEmployeeId())) {
+            task.setTaskStatus((byte) Status.NOT_RECEIVED.getCode());
+        } else {
+            // 否则默认为"未完成"（自己给自己创建的任务或没有指定执行者）
+            task.setTaskStatus((byte) Status.NOT_FINISHED.getCode());
+        }
+
+        if (taskDTO.getTaskPriority() != null) {
+            Priority p = Priority.fromDesc(taskDTO.getTaskPriority());
+            task.setTaskPriority((byte) p.getCode());
+        }
+        if (taskDTO.getTaskType() != null) {
+            TaskType t = TaskType.fromDesc(taskDTO.getTaskType());
+            task.setTaskType((byte) t.getCode());
         }
 
         // 设置里程碑（可选）
@@ -100,7 +216,7 @@ public class TaskService {
         }
 
         Task savedTask = taskRepository.save(task);
-        // 只是普通的“新任务派发”
+        // 只是普通的"新任务派发"
         if (savedTask.getAssignee() != null) {
             noticeService.createTaskAssignmentNotice(savedTask);
         }
@@ -163,6 +279,42 @@ public class TaskService {
             task.setMilestone(milestone);
         }
         Task updatedTask = taskRepository.save(task);
+        return convertToDTO(updatedTask);
+    }
+
+    /**
+     * 接收任务
+     * 将任务状态从"未接收"改为"未完成"
+     * 权限检查：只有任务的执行者（assignee）可以接收任务
+     * 
+     * @param taskId 任务ID
+     * @param userId 当前用户ID
+     * @return 更新后的任务DTO
+     */
+    public TaskDTO acceptTask(Integer taskId, Integer userId) {
+        if (taskId == null) {
+            throw new IllegalArgumentException("任务ID不能为空");
+        }
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("任务不存在"));
+
+        // 权限检查：只有任务的执行者可以接收任务
+        if (task.getAssignee() == null || !task.getAssignee().getEmployeeId().equals(userId)) {
+            throw new IllegalArgumentException("只有任务执行者可以接收任务");
+        }
+
+        // 状态检查：只能从"未接收"状态接收
+        if (task.getTaskStatus() == null || task.getTaskStatus() != Status.NOT_RECEIVED.getCode()) {
+            throw new IllegalArgumentException("任务状态不是\"未接收\"，无法接收");
+        }
+
+        // 更新状态：未接收 → 未完成
+        task.setTaskStatus((byte) Status.NOT_FINISHED.getCode());
+        Task updatedTask = taskRepository.save(task);
+
+        System.out.println("✅ 任务已接收，taskId: " + taskId + ", userId: " + userId + ", 状态: 未接收 → 未完成");
+
         return convertToDTO(updatedTask);
     }
 
@@ -236,18 +388,30 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
-    public List<TaskDTO> searchTasks(String keyword) {
-        if (keyword == null) {
+    /**
+     * 搜索任务
+     * 只返回分派人或负责人与当前员工ID相同的任务
+     * 
+     * @param keyword 搜索关键词（可为空）
+     * @param userId  当前用户ID
+     * @return 符合条件的任务列表
+     */
+    public List<TaskDTO> searchTasks(String keyword, Integer userId) {
+        // 如果 keyword 为空，返回空列表
+        if (keyword == null || keyword.trim().isEmpty()) {
             return Collections.emptyList();
         }
 
-        String trimmedKeyword = keyword.trim();
-        if (trimmedKeyword.isEmpty()) {
-            return Collections.emptyList();
-        }
+        // 搜索所有匹配的任务
+        List<Task> tasks = taskRepository.searchByKeyword(keyword.trim());
 
-        List<Task> tasks = taskRepository.searchByKeyword(trimmedKeyword);
-        return tasks.stream()
+        // 过滤：只返回分派人（sender）或负责人（assignee）与员工ID相同的任务
+        List<Task> filteredTasks = tasks.stream()
+                .filter(task -> (task.getSender() != null && task.getSender().getEmployeeId().equals(userId)) ||
+                        (task.getAssignee() != null && task.getAssignee().getEmployeeId().equals(userId)))
+                .collect(Collectors.toList());
+
+        return filteredTasks.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -255,6 +419,7 @@ public class TaskService {
     /**
      * 查询用户的所有任务
      * 返回用户创建的或被分配的任务，去重
+     * 过滤掉"未接收"状态的任务
      * 
      * @param userId 用户ID
      * @return 任务列表
@@ -282,7 +447,9 @@ public class TaskService {
             }
         }
 
+        // 过滤掉"未接收"状态的任务（状态码为0）
         return allTasks.stream()
+                .filter(task -> task.getTaskStatus() != null && task.getTaskStatus() != 0)
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -311,19 +478,29 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
-    // 根据任务状态查询
-    public List<TaskDTO> getTasksByStatus(Byte taskStatus) {
-        List<Task> tasks = taskRepository.findByTaskStatus(taskStatus);
-        return tasks.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
-
     // 获取当前用户负责的未完成任务列表,用于日志关联
     public List<TaskDTO> getUnfinishedTasksForLog(Integer userId) {
         byte notFinishedCode = (byte) Status.NOT_FINISHED.getCode();
         List<Task> tasks = taskRepository.findByAssigneeEmployeeIdAndTaskStatus(userId, notFinishedCode);
         return tasks.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取员工的未完成任务
+     * 返回该员工作为执行者或发送者的所有未完成任务（状态 0: 未开始, 1: 进行中）
+     * 
+     * @param employeeId 员工ID
+     * @return 未完成任务列表
+     */
+    public List<TaskDTO> getUnfinishedTasksByEmployeeId(Integer employeeId) {
+        // 获取作为执行者的任务
+        List<Task> assignedTasks = taskRepository.findByAssigneeEmployeeId(employeeId);
+
+        // 过滤出未完成的任务（状态 0: 未开始, 1: 进行中）
+        return assignedTasks.stream()
+                .filter(task -> task.getTaskStatus() == 0 || task.getTaskStatus() == 1)
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -363,6 +540,22 @@ public class TaskService {
                 dto.setProjectId(task.getMilestone().getProject().getProjectId());
                 dto.setProjectName(task.getMilestone().getProject().getTitle());
             }
+        }
+
+        // 附件信息
+        if (task.getAttachments() != null && !task.getAttachments().isEmpty()) {
+            Set<AttachmentDTO> attachmentDTOs = task.getAttachments().stream()
+                    .map(attachment -> {
+                        AttachmentDTO attachmentDTO = new AttachmentDTO();
+                        attachmentDTO.setId(attachment.getId());
+                        attachmentDTO.setOriginalFilename(attachment.getOriginalFilename());
+                        attachmentDTO.setFileType(attachment.getFileType());
+                        attachmentDTO.setFileSize(attachment.getFileSize());
+                        attachmentDTO.setUploadTime(attachment.getUploadTime());
+                        return attachmentDTO;
+                    })
+                    .collect(Collectors.toSet());
+            dto.setAttachments(attachmentDTOs);
         }
 
         return dto;

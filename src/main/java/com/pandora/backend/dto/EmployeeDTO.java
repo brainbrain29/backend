@@ -1,6 +1,5 @@
 package com.pandora.backend.dto;
 
-import com.pandora.backend.enums.Position;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,4 +15,5 @@ public class EmployeeDTO {
     private String positionName; // 新增：职位名称，如 "CEO"、"部门经理"
     private Integer orgId;
     private String orgName;
+    private String mbti; // MBTI性格类型
 }

@@ -1,6 +1,6 @@
 -- ===============================
--- V1__init_schema.sql
--- 数据库表结构初始化脚本
+-- V1__create_schema.sql
+-- 数据库表结构初始化脚本（包含所有表结构和字段）
 -- ===============================
 
 -- ========================================
@@ -10,7 +10,8 @@
 -- 1. 部门表
 CREATE TABLE department (
     org_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    org_name VARCHAR(64) NOT NULL COMMENT '部门名称'
+    org_name VARCHAR(64) NOT NULL COMMENT '部门名称',
+    manager_id INT NULL COMMENT '部门经理ID'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='部门表';
 
 -- 2. 员工表
@@ -58,8 +59,7 @@ CREATE TABLE milestone (
     milestone_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(64) NOT NULL COMMENT '里程碑标题',
     content VARCHAR(255) COMMENT '里程碑描述',
-    project_id INT NOT NULL COMMENT '所属项目ID',
-    milestone_no TINYINT NOT NULL COMMENT '里程碑序号'
+    project_id INT NOT NULL COMMENT '所属项目ID'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='里程碑表';
 
 -- 7. 任务表
@@ -85,9 +85,7 @@ CREATE TABLE log (
     created_time DATETIME NOT NULL COMMENT '创建时间',
     content VARCHAR(255) NOT NULL COMMENT '日志内容',
     emoji TINYINT NOT NULL COMMENT '心情表情',
-    attachment VARCHAR(255) COMMENT '附件路径',
-    employee_location VARCHAR(50) COMMENT '员工位置',
-    employee_position TINYINT COMMENT '员工职位'
+    employee_location VARCHAR(50) COMMENT '员工位置'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='日志表';
 
 -- 9. 日志附件表
@@ -101,7 +99,7 @@ CREATE TABLE log_attachment (
     upload_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
     uploaded_by INT COMMENT '上传者ID',
     FOREIGN KEY (log_id) REFERENCES log(log_id)
-        ON DELETE CASCADE -- 核心：删除日志时，自动删除此条附件记录
+        ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='日志附件表';
 
 -- 10. 重要事项表
@@ -132,7 +130,8 @@ CREATE TABLE notice (
     sender_id INT NOT NULL COMMENT '发送人ID',
     notice_type TINYINT NOT NULL COMMENT '通知类型',
     content VARCHAR(255) COMMENT '通知内容',
-    created_time DATETIME NOT NULL COMMENT '创建时间'
+    created_time DATETIME NOT NULL COMMENT '创建时间',
+    related_id INT NULL COMMENT '关联ID(任务ID/重要事项ID等)'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通知表';
 
 -- 13. 通知员工关系表
@@ -156,6 +155,10 @@ CREATE TABLE refresh_token (
 -- ========================================
 -- 第二部分: 添加外键约束
 -- ========================================
+
+ALTER TABLE department
+    ADD CONSTRAINT fk_department_manager FOREIGN KEY (manager_id)
+        REFERENCES employee(employee_id) ON DELETE SET NULL ON UPDATE CASCADE;
 
 ALTER TABLE employee
     ADD CONSTRAINT fk_employee_department FOREIGN KEY (org_id)
@@ -242,5 +245,6 @@ CREATE INDEX idx_log_att_log ON log_attachment(log_id);
 CREATE INDEX idx_imp_task_emp ON important_task(employee_id);
 CREATE INDEX idx_imp_task_serial ON important_task(serial_num);
 CREATE INDEX idx_notice_sender ON notice(sender_id);
+CREATE INDEX idx_notice_related_id ON notice(related_id);
 CREATE INDEX idx_token_user ON refresh_token(user_id);
 CREATE INDEX idx_token_value ON refresh_token(refresh_token);

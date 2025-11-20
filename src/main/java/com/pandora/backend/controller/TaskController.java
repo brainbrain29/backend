@@ -1,14 +1,17 @@
 package com.pandora.backend.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import com.pandora.backend.dto.AssignableEmployeeDTO;
 import com.pandora.backend.dto.AssignDTO;
 import com.pandora.backend.dto.LogDTO;
 import com.pandora.backend.dto.TaskDTO;
 import com.pandora.backend.dto.TaskStatusDTO;
+import com.pandora.backend.service.AttachmentService;
 import com.pandora.backend.service.LogService;
 import com.pandora.backend.service.TaskService;
 import com.pandora.backend.repository.EmployeeRepository;
@@ -30,32 +33,58 @@ public class TaskController {
     @Autowired
     private EmployeeRepository employeeRepository;
 
+    @Autowired
+    private AttachmentService attachmentService;
+
     /**
      * 自己创建任务(不需要权限)
      * POST /tasks
+     * 支持文件上传，使用 multipart/form-data
      */
     @PostMapping
-    public ResponseEntity<?> createTask(HttpServletRequest request, @RequestBody TaskDTO taskDTO) {
+    public ResponseEntity<?> createTask(
+            HttpServletRequest request,
+            @RequestParam("title") String title,
+            @RequestParam("content") String content,
+            @RequestParam(value = "startTime", required = false) String startTime,
+            @RequestParam(value = "endTime", required = false) String endTime,
+            @RequestParam(value = "taskPriority", required = false) String taskPriority,
+            @RequestParam(value = "taskType", required = false) String taskType,
+            @RequestParam(value = "assigneeId", required = false) Integer assigneeId,
+            @RequestParam(value = "milestoneId", required = false) Integer milestoneId,
+            @RequestParam(value = "files", required = false) MultipartFile[] files) {
+
         Object uidObj = request.getAttribute("userId");
         if (uidObj == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid token");
         }
         Integer userId = (Integer) uidObj;
-        // 创建时禁止客户端传入 taskId
-        if (taskDTO.getTaskId() != null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("taskId must not be provided when creating");
-        }
-        if (taskDTO.getSenderId() == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Sender ID is required");
-        }
-        if (!userId.equals(taskDTO.getSenderId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Sender mismatch");
-        }
+
         try {
-            TaskDTO createdTask = taskService.createTask(taskDTO);
+            // 构建 TaskDTO
+            TaskDTO taskDTO = new TaskDTO();
+            taskDTO.setTitle(title);
+            taskDTO.setContent(content);
+            taskDTO.setSenderId(userId);
+            taskDTO.setAssigneeId(assigneeId);
+            taskDTO.setMilestoneId(milestoneId);
+            taskDTO.setTaskPriority(taskPriority);
+            taskDTO.setTaskType(taskType);
+
+            // 解析时间
+            if (startTime != null && !startTime.isEmpty()) {
+                taskDTO.setStartTime(java.time.LocalDateTime.parse(startTime));
+            }
+            if (endTime != null && !endTime.isEmpty()) {
+                taskDTO.setEndTime(java.time.LocalDateTime.parse(endTime));
+            }
+
+            // 创建任务并处理附件
+            TaskDTO createdTask = taskService.createTaskWithAttachments(taskDTO, files, userId);
             return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("创建任务失败: " + e.getMessage());
         }
     }
 
@@ -186,8 +215,16 @@ public class TaskController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<TaskDTO>> searchTasks(@RequestParam("keyword") String keyword) {
-        List<TaskDTO> tasks = taskService.searchTasks(keyword);
+    public ResponseEntity<List<TaskDTO>> searchTasks(
+            HttpServletRequest request,
+            @RequestParam(value = "keyword", required = false) String keyword) {
+        Object uidObj = request.getAttribute("userId");
+        if (uidObj == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        }
+        Integer userId = (Integer) uidObj;
+
+        List<TaskDTO> tasks = taskService.searchTasks(keyword, userId);
         return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
 
@@ -222,12 +259,21 @@ public class TaskController {
     }
 
     /**
-     * 根据任务状态查询
-     * GET /tasks/status/{taskStatus}
+     * 查询当前员工的未完成任务
+     * 从 token 获取员工 ID，返回状态为"未开始"(0)和"进行中"(1)的任务
+     * GET /tasks/status
      */
-    @GetMapping("/status/{taskStatus}")
-    public ResponseEntity<List<TaskDTO>> getTasksByStatus(@PathVariable Byte taskStatus) {
-        List<TaskDTO> tasks = taskService.getTasksByStatus(taskStatus);
+    @GetMapping("/status")
+    public ResponseEntity<List<TaskDTO>> getTasksByStatus(HttpServletRequest request) {
+        // 从 token 中获取员工 ID
+        Object userIdObj = request.getAttribute("userId");
+        if (userIdObj == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        }
+        Integer userId = (Integer) userIdObj;
+
+        // 获取该员工的未完成任务（状态 0: 未开始, 1: 进行中）
+        List<TaskDTO> tasks = taskService.getUnfinishedTasksByEmployeeId(userId);
         return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
 
@@ -312,5 +358,56 @@ public class TaskController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
+    }
+
+    /**
+     * 接收任务
+     * 将任务状态从"未接收"改为"未完成"
+     * PUT /tasks/{taskId}/accept
+     */
+    @PutMapping("/{taskId}/accept")
+    public ResponseEntity<?> acceptTask(
+            HttpServletRequest request,
+            @PathVariable Integer taskId) {
+        Object uidObj = request.getAttribute("userId");
+        if (uidObj == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid token");
+        }
+        Integer userId = (Integer) uidObj;
+
+        try {
+            TaskDTO task = taskService.acceptTask(taskId, userId);
+            return new ResponseEntity<>(task, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("服务器错误");
+        }
+    }
+
+    /**
+     * 下载任务附件
+     * GET /tasks/attachments/{id}/download
+     */
+    @GetMapping("/attachments/{id}/download")
+    public ResponseEntity<Resource> downloadTaskAttachment(
+            @PathVariable("id") Long attachmentId,
+            @RequestParam(value = "token", required = false) String tokenParam,
+            HttpServletRequest request) {
+        return attachmentService.downloadTaskAttachment(attachmentId, tokenParam, request);
+    }
+
+    /**
+     * 预览任务附件
+     * GET /tasks/attachments/{id}/preview
+     */
+    @GetMapping("/attachments/{id}/preview")
+    public ResponseEntity<Resource> previewTaskAttachment(
+            @PathVariable("id") Long attachmentId,
+            @RequestParam(value = "token", required = false) String tokenParam,
+            HttpServletRequest request) {
+        return attachmentService.previewTaskAttachment(attachmentId, tokenParam, request);
     }
 }

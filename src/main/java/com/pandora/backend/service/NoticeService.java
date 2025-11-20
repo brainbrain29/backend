@@ -132,7 +132,8 @@ public class NoticeService {
         notice.setSender(task.getSender());
         notice.setNoticeType((byte) com.pandora.backend.enums.NoticeType.NEW_TASK.getCode());
         String taskTitle = task.getTitle() != null ? task.getTitle() : "";
-        notice.setContent("你被指派了任务: " + taskTitle);
+        String taskDeadline = task.getEndTime() != null ? task.getEndTime().toString() : "";
+        notice.setContent("你被指派了任务: " + taskTitle + "\n截止日期为:" + taskDeadline);
         notice.setRelatedId(task.getTaskId()); // 保存关联的任务ID
         notice.setCreatedTime(LocalDateTime.now());
         Notice saved = noticeRepository.save(notice);
@@ -211,28 +212,23 @@ public class NoticeService {
 
         // 1. 构建通知内容
         String title = task.getTitle() != null ? task.getTitle() : "";
-        String oldStatusDesc = oldStatus != null ? oldStatus.getDesc() : "";
-        String newStatusDesc = newStatus != null ? newStatus.getDesc() : "";
-
-        String baseContent = String.format("你的任务 '%s' 从 '%s' 更新为 '%s'", title, oldStatusDesc, newStatusDesc);
 
         String roleName = Position.getDescriptionByCode(updater.getPosition());
         String updaterName = updater.getEmployeeName();
         String extraContent = "";
 
         if (oldStatus == Status.PENDING_REVIEW && newStatus == Status.COMPLETED) {
-            extraContent = String.format("%s %s 通过了你的任务提交", roleName, updaterName);
+            extraContent = String.format("%s %s 通过了你的任务 %s 的提交", roleName, updaterName, title);
         } else if (oldStatus == Status.PENDING_REVIEW && newStatus == Status.NOT_FINISHED) {
-            extraContent = String.format("%s %s 拒绝了你的任务提交", roleName, updaterName);
+            extraContent = String.format("%s %s 拒绝了你的任务 %s 的提交。\n任务的截止日期是 %s,请注意完成!", roleName, updaterName, title,
+                    task.getEndTime());
         }
-
-        String finalContent = extraContent.isEmpty() ? baseContent : baseContent + "，" + extraContent;
 
         // 2. 保存通知到数据库
         Notice notice = new Notice();
         notice.setSender(updater); // 操作者是发送方
         notice.setNoticeType((byte) NoticeType.TASK_UPDATE.getCode()); // 使用枚举
-        notice.setContent(finalContent);
+        notice.setContent(extraContent);
         notice.setRelatedId(task.getTaskId()); // 保存关联的任务ID
         notice.setCreatedTime(LocalDateTime.now());
         Notice savedNotice = noticeRepository.save(notice);
@@ -459,5 +455,110 @@ public class NoticeService {
         dto.setStatus(ne.getNoticeStatus() != null ? ne.getNoticeStatus().getDesc() : null);
         dto.setRelatedId(n.getRelatedId()); // 设置关联ID
         return dto;
+    }
+
+    /**
+     * 批量确认收到通知
+     * 将通知状态从 NOT_RECEIVED → NOT_VIEWED
+     * 
+     * 使用批处理：只访问数据库一次
+     * 
+     * @param userId    用户ID
+     * @param noticeIds 通知ID列表
+     * @return Map 包含 confirmedCount（成功数量）和 failedNoticeIds（失败的ID列表）
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public java.util.Map<String, Object> batchConfirmReceived(Integer userId, List<Integer> noticeIds) {
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+
+        if (noticeIds == null || noticeIds.isEmpty()) {
+            result.put("confirmedCount", 0);
+            result.put("failedNoticeIds", new java.util.ArrayList<>());
+            return result;
+        }
+
+        System.out.println("📋 批量确认收到通知，userId: " + userId + ", 通知数量: " + noticeIds.size());
+
+        // 1. 批量查询所有通知（一次数据库查询）
+        List<NoticeEmployee> noticeEmployees = new java.util.ArrayList<>();
+        List<Integer> failedNoticeIds = new java.util.ArrayList<>();
+
+        for (Integer noticeId : noticeIds) {
+            NoticeEmployeeId id = new NoticeEmployeeId();
+            id.setNoticeId(noticeId);
+            id.setReceiverId(userId);
+
+            java.util.Optional<NoticeEmployee> optional = noticeEmployeeRepository.findById(id);
+            if (optional.isPresent()) {
+                noticeEmployees.add(optional.get());
+            } else {
+                // 记录找不到的通知ID
+                failedNoticeIds.add(noticeId);
+            }
+        }
+
+        if (noticeEmployees.isEmpty()) {
+            System.out.println("⚠️ 未找到任何通知");
+            result.put("confirmedCount", 0);
+            result.put("failedNoticeIds", failedNoticeIds);
+            return result;
+        }
+
+        // 2. 批量更新状态（只更新 NOT_RECEIVED 状态的）
+        List<NoticeEmployee> toUpdate = new java.util.ArrayList<>();
+
+        for (NoticeEmployee ne : noticeEmployees) {
+            if (ne.getNoticeStatus() == NoticeStatus.NOT_RECEIVED) {
+                ne.setNoticeStatus(NoticeStatus.NOT_VIEWED);
+                toUpdate.add(ne);
+            } else {
+                // 状态不是 NOT_RECEIVED，记录为失败
+                failedNoticeIds.add(ne.getId().getNoticeId());
+            }
+        }
+
+        // 3. 批量保存（一次数据库写入）
+        if (!toUpdate.isEmpty()) {
+            noticeEmployeeRepository.saveAll(toUpdate);
+            System.out.println("✅ 批量更新成功，更新数量: " + toUpdate.size());
+        }
+
+        // 4. 构建返回结果（简洁版）
+        result.put("confirmedCount", toUpdate.size());
+        result.put("failedNoticeIds", failedNoticeIds);
+
+        return result;
+    }
+
+    /**
+     * 搜索通知（搜索内容和发送者姓名）
+     * 
+     * @param keyword 搜索关键词
+     * @param userId  当前用户ID（只返回该用户相关的通知）
+     * @return 搜索结果列表
+     */
+    public List<NoticeDTO> searchNotices(String keyword, Integer userId) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        // 1. 调用 Repository 搜索所有匹配的通知
+        List<Notice> allNotices = noticeRepository.searchByKeyword(keyword.trim());
+
+        // 2. 过滤：只返回当前用户相关的通知
+        List<NoticeDTO> results = new java.util.ArrayList<>();
+
+        for (Notice notice : allNotices) {
+            // 查询该通知是否发送给当前用户
+            NoticeEmployeeId id = new NoticeEmployeeId();
+            id.setNoticeId(notice.getNoticeId());
+            id.setReceiverId(userId);
+
+            noticeEmployeeRepository.findById(id).ifPresent(ne -> {
+                results.add(toDTO(ne));
+            });
+        }
+
+        return results;
     }
 }

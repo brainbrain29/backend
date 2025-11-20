@@ -31,27 +31,30 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         try {
+            // 1. 优先从 Authorization 头获取 token
+            String token = null;
             String header = request.getHeader("Authorization");
+            if (header != null && header.startsWith("Bearer ")) {
+                token = header.substring(7);
+            }
 
-            // 如果没有 Authorization 头,直接放行(由 Spring Security 处理)
-            if (header == null || !header.startsWith("Bearer ")) {
+            // 2. 如果 Authorization 头没有，尝试从 URL 参数获取（用于附件预览/下载）
+            if (token == null || token.trim().isEmpty()) {
+                String tokenParam = request.getParameter("token");
+                if (tokenParam != null && !tokenParam.trim().isEmpty()) {
+                    token = tokenParam;
+                    log.debug("请求路径: {} - 从URL参数获取Token", request.getRequestURI());
+                }
+            }
+
+            // 3. 如果两处都没有 token，直接放行（由 Spring Security 处理）
+            if (token == null || token.trim().isEmpty()) {
                 log.debug("请求路径: {} - 未提供 JWT Token", request.getRequestURI());
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            String token = header.substring(7);
-
-            // 检查 token 是否为空
-            if (token == null || token.trim().isEmpty()) {
-                log.warn("请求路径: {} - JWT Token 为空", request.getRequestURI());
-                response.setContentType("application/json;charset=UTF-8");
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("{\"error\":\"Token 不能为空\"}");
-                return;
-            }
-
-            // 验证 token
+            // 4. 验证 token
             if (!jwtUtil.validateToken(token)) {
                 log.warn("请求路径: {} - JWT Token 无效或已过期", request.getRequestURI());
                 response.setContentType("application/json;charset=UTF-8");

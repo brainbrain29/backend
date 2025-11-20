@@ -1,14 +1,22 @@
 package com.pandora.backend.controller;
 
+import com.pandora.backend.dto.DailyWorkloadDTO;
 import com.pandora.backend.dto.EmployeeDTO;
+import com.pandora.backend.dto.EmployeeWeeklyStatsDTO;
+import com.pandora.backend.dto.ImportantMatterDTO;
+import com.pandora.backend.dto.ImportantTaskDTO;
+import com.pandora.backend.dto.MoodStatisticsDTO;
 import com.pandora.backend.entity.Employee;
 import com.pandora.backend.enums.Position;
 import com.pandora.backend.service.EmployeeService;
+import com.pandora.backend.service.DashboardService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +28,9 @@ public class EmployeeController {
 
     @Autowired
     private EmployeeService employeeService;
+
+    @Autowired
+    private DashboardService dashboardService;
 
     // @Autowired
     // private ProjectService projectService;
@@ -86,11 +97,155 @@ public class EmployeeController {
     }
 
     /**
-     * @GetMapping("/me/projects")
-     * public ResponseEntity<List<ProjectDTO>> getCurrentEmployeeProjects(
-     * @RequestAttribute("userId") Integer userId) {
-     * List<ProjectDTO> projects = projectService.getProjectsByEmployeeId(userId);
-     * return ResponseEntity.ok(projects);
-     * }
+     * 更新当前用户的信息
+     * PUT /employees/me
      */
+    @PutMapping("/me")
+    public ResponseEntity<?> updateEmployee(
+            @RequestAttribute("userId") Integer userId,
+            @RequestBody EmployeeDTO dto) {
+
+        Employee employee = employeeService.getEmployeeById(userId);
+
+        // 更新允许修改的字段
+        if (dto.getEmployeeName() != null && !dto.getEmployeeName().trim().isEmpty()) {
+            employee.setEmployeeName(dto.getEmployeeName());
+        }
+
+        if (dto.getPhone() != null && !dto.getPhone().trim().isEmpty()) {
+            employee.setPhone(dto.getPhone());
+        }
+
+        if (dto.getEmail() != null && !dto.getEmail().trim().isEmpty()) {
+            employee.setEmail(dto.getEmail());
+        }
+
+        if (dto.getMbti() != null && !dto.getMbti().trim().isEmpty()) {
+            // 验证 MBTI 格式（应该是4个大写字母）
+            if (!dto.getMbti().matches("^[A-Z]{4}$")) {
+                return ResponseEntity.badRequest().body("MBTI 格式不正确，应为4个大写字母（如INTJ）");
+            }
+            employee.setMbti(dto.getMbti());
+        }
+
+        employeeService.updateEmployee(employee);
+
+        // 返回更新后的员工信息
+        EmployeeDTO updatedDto = employeeService.getEmployeeDetails(userId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "员工信息更新成功");
+        response.put("employee", updatedDto);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 获取员工本周统计数据
+     * GET /employees/weekly-stats?date={date}
+     * 
+     * @param userId 当前用户ID（从 JWT Token 中获取）
+     * @param date   参考日期（可选，格式：yyyy-MM-dd，默认为当前日期）
+     * @return 本周统计数据
+     */
+    @GetMapping("/weekly-stats")
+    public ResponseEntity<?> getWeeklyStats(
+            @RequestAttribute("userId") Integer userId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+
+        try {
+            EmployeeWeeklyStatsDTO stats = employeeService.getWeeklyStats(userId, date);
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    /**
+     * 根据 ID 查询重要事项详情
+     * GET /employees/important-matters/{matterId}
+     * 
+     * @param matterId 重要事项ID
+     * @return 重要事项详情
+     */
+    @GetMapping("/important-matters/{matterId}")
+    public ResponseEntity<?> getImportantMatterById(@PathVariable Integer matterId) {
+        try {
+            ImportantMatterDTO matter = dashboardService.getImportantMatterById(matterId);
+            if (matter == null) {
+                return ResponseEntity.status(404).body(Map.of("error", "重要事项未找到，ID: " + matterId));
+            }
+            return ResponseEntity.ok(matter);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * 根据 ID 查询重要任务详情
+     * GET /employees/important-tasks/{taskId}
+     * 
+     * @param taskId 重要任务ID
+     * @return 重要任务详情
+     */
+    @GetMapping("/important-tasks/{taskId}")
+    public ResponseEntity<?> getImportantTaskById(@PathVariable Integer taskId) {
+        try {
+            ImportantTaskDTO task = dashboardService.getImportantTaskById(taskId);
+            if (task == null) {
+                return ResponseEntity.status(404).body(Map.of("error", "重要任务未找到，ID: " + taskId));
+            }
+            return ResponseEntity.ok(task);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取员工一周心情统计
+     * GET /employees/weekly-mood-statistics?date={date}
+     * 
+     * @param userId 当前用户ID（从 JWT Token 中获取）
+     * @param date   参考日期（可选，格式：yyyy-MM-dd，默认为当前日期）
+     * @return 一周心情统计数据，包含各种心情的数量和占比
+     */
+    @GetMapping("/weekly-mood-statistics")
+    public ResponseEntity<?> getWeeklyMoodStatistics(
+            @RequestAttribute("userId") Integer userId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+
+        try {
+            MoodStatisticsDTO stats = employeeService.getWeeklyMoodStatistics(userId, date);
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    /**
+     * 获取员工一周每日工作量
+     * GET /employees/weekly-daily-workload?date={date}
+     * 
+     * @param userId 当前用户ID（从 JWT Token 中获取）
+     * @param date   参考日期（可选，格式：yyyy-MM-dd，默认为当前日期）
+     * @return 一周每日工作量数据，包含每天的日志数和任务数
+     */
+    @GetMapping("/weekly-daily-workload")
+    public ResponseEntity<?> getWeeklyDailyWorkload(
+            @RequestAttribute("userId") Integer userId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+
+        try {
+            DailyWorkloadDTO workload = employeeService.getWeeklyDailyWorkload(userId, date);
+            return ResponseEntity.ok(workload);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
 }

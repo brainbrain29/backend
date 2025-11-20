@@ -3,6 +3,7 @@ package com.pandora.backend.dto;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -32,6 +33,9 @@ public class TaskDTO {
     // 项目信息
     private Integer projectId;
     private String projectName;
+
+    // 附件信息
+    private Set<AttachmentDTO> attachments;
 
     public TaskDTO() {
     }

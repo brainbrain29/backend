@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
@@ -50,4 +52,7 @@ public class Task {
     @OneToMany(mappedBy = "task", fetch = FetchType.LAZY)
     @JsonManagedReference(value = "task-logs")
     private List<Log> logs;
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<TaskAttachment> attachments = new HashSet<>();
 }

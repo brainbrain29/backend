@@ -11,13 +11,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/admin")
-@CrossOrigin(origins = "*")
 public class AdminController {
 
     @Autowired
     private AdminService adminService;
-
-
 
     // ========== 员工管理 ==========
 
@@ -135,7 +132,8 @@ public class AdminController {
      * 更新重要事项
      */
     @PutMapping("/important-matters/{id}")
-    public ResponseEntity<ImportantMatterDTO> updateImportantMatter(@PathVariable Integer id, @RequestBody ImportantMatterDTO dto) {
+    public ResponseEntity<ImportantMatterDTO> updateImportantMatter(@PathVariable Integer id,
+            @RequestBody ImportantMatterDTO dto) {
         try {
             ImportantMatterDTO result = adminService.updateImportantMatter(id, dto);
             return ResponseEntity.ok(result);
@@ -185,7 +183,8 @@ public class AdminController {
      * 更新重要任务
      */
     @PutMapping("/important-person-tasks/{id}")
-    public ResponseEntity<ImportantTaskDTO> updateImportantTask(@PathVariable Integer id, @RequestBody ImportantTaskDTO dto) {
+    public ResponseEntity<ImportantTaskDTO> updateImportantTask(@PathVariable Integer id,
+            @RequestBody ImportantTaskDTO dto) {
         try {
             ImportantTaskDTO result = adminService.updateImportantTask(id, dto);
             return ResponseEntity.ok(result);
@@ -194,7 +193,7 @@ public class AdminController {
         }
     }
 
-    //新添加的操控用户权限功能
+    // 新添加的操控用户权限功能
     @PutMapping("/employees/{employeeId}/position")
     public ResponseEntity<?> updateEmployeePosition(
             @PathVariable Integer employeeId,
@@ -209,7 +208,6 @@ public class AdminController {
         }
     }
 
-
     /**
      * 删除重要任务
      */
@@ -223,4 +221,3 @@ public class AdminController {
         }
     }
 }
-

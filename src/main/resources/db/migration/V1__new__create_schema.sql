@@ -1,6 +1,6 @@
 -- ===============================
--- V1__create_schema.sql
--- 数据库表结构初始化脚本（包含所有表结构和字段）
+-- V1_new__create_schema.sql
+-- 新版数据库表结构初始化脚本（与 V1__create_schema.sql 表结构一致，便于对照）
 -- ===============================
 
 -- ========================================
@@ -24,7 +24,8 @@ CREATE TABLE employee (
     email VARCHAR(64) NOT NULL UNIQUE COMMENT '邮箱',
     position TINYINT NOT NULL COMMENT '0:CEO 1:部门经理 2:团队长 3:员工',
     emp_password VARCHAR(20) NOT NULL COMMENT '密码',
-    avatar_url VARCHAR(255) COMMENT '头像URL,管理员用于Web端,其他员工用于移动端'
+    avatar_url VARCHAR(255) COMMENT '头像URL,管理员用于Web端,其他员工用于移动端',
+    mbti VARCHAR(5) COMMENT 'MBTI性格类型'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='员工表';
 
 -- 3. 团队表
@@ -102,7 +103,38 @@ CREATE TABLE log_attachment (
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='日志附件表';
 
--- 10. 重要事项表
+-- 10. AI 工作分析结果表
+CREATE TABLE IF NOT EXISTS ai_analysis (
+    analysis_id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'AI分析记录ID',
+    employee_id INT NOT NULL COMMENT '员工ID',
+    created_time DATETIME NOT NULL COMMENT '分析生成时间',
+    period_start DATETIME NOT NULL COMMENT '分析周期开始时间',
+    period_end DATETIME NOT NULL COMMENT '分析周期结束时间',
+    work_rhythm_advice TEXT COMMENT '工作节奏建议',
+    emotion_health_reminder TEXT COMMENT '情绪健康提醒',
+    task_completion_trend TEXT COMMENT '任务完成趋势',
+    full_content TEXT COMMENT '完整的AI回复内容',
+    log_count INT DEFAULT 0 COMMENT '分析时使用的日志数量',
+    task_count INT DEFAULT 0 COMMENT '分析时使用的任务数量',
+    FOREIGN KEY (employee_id) REFERENCES employee(employee_id) ON DELETE CASCADE,
+    INDEX idx_employee_created (employee_id, created_time DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI工作分析结果表';
+
+-- 11. 任务附件表
+CREATE TABLE task_attachment (
+    attachment_id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '附件ID',
+    task_id INT NOT NULL COMMENT '关联的任务ID',
+    original_filename VARCHAR(255) NOT NULL COMMENT '原始文件名',
+    stored_filename VARCHAR(255) NOT NULL UNIQUE COMMENT '存储在服务器上的安全文件名',
+    file_type VARCHAR(100) COMMENT '文件MIME类型',
+    file_size BIGINT COMMENT '文件大小(字节)',
+    upload_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+    uploaded_by INT COMMENT '上传者ID',
+    FOREIGN KEY (task_id) REFERENCES task(task_id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='任务附件表';
+
+-- 12. 重要事项表
 CREATE TABLE important_matter (
     matter_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(100) NOT NULL COMMENT '事项标题',
@@ -124,7 +156,7 @@ CREATE TABLE important_task (
     updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='重要任务表';
 
--- 12. 通知表
+-- 13. 通知表
 CREATE TABLE notice (
     notice_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     sender_id INT NOT NULL COMMENT '发送人ID',

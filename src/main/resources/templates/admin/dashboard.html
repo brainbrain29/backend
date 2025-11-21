@@ -661,7 +661,10 @@
                 <td style="padding: 12px; font-size: 14px; color: #409EFF;" th:text="${emp.email}">ceo@test.com</td>
                 <td style="padding: 12px; font-size: 14px; color: #606266;" th:text="${emp.position}">0</td>
                 <td style="padding: 12px; font-size: 14px; color: #606266;" th:text="${emp.orgName != null ? emp.orgName : '未分配'}">未分配</td>
-                <td style="padding: 12px;">
+                <td style="padding: 12px; display: flex; gap: 8px; align-items: center;">
+                  <button class="btn-icon" title="修改职位"
+                          th:attr="data-employee-id=${emp.employeeId},data-position=${emp.position}"
+                          onclick="openPositionModal(this)">⚙️</button>
                   <form th:action="@{/admin/web/employees/{id}/delete(id=${emp.employeeId})}" method="post" style="display:inline;">
                     <button type="submit" class="btn-icon delete" title="删除" onclick="return confirm('确认删除该员工？离职员工将被永久删除！')" style="border: 1px solid #dcdfe6; background: white; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-size: 13px; color: #606266; min-width: 80px;">删除</button>
                   </form>
@@ -796,42 +799,18 @@
         <div class="modal-body">
           <input type="hidden" name="matterId" id="matterId">
           <div class="form-group">
+            <label class="form-label">事项标题 <span class="required">*</span></label>
+            <input type="text" name="title" id="matterTitle" class="form-control" placeholder="请输入事项标题" required maxlength="100">
+          </div>
+          <div class="form-group">
             <label class="form-label">事项内容 <span class="required">*</span></label>
-            <input type="text" name="content" id="matterContent" class="form-control" placeholder="请输入事项内容" required maxlength="255">
+            <textarea name="content" id="matterContent" class="form-control" placeholder="请输入事项详细内容" required maxlength="500" rows="4"></textarea>
           </div>
           <div class="form-group">
-            <label class="form-label">截止日期 <span class="required">*</span></label>
-            <input type="datetime-local" name="deadline" id="matterDeadline" class="form-control" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">负责人 <span class="required">*</span></label>
-            <select name="assigneeId" id="matterAssignee" class="form-control" required>
-              <option value="">请选择负责人</option>
-              <option th:each="emp : ${employees}" th:value="${emp.employeeId}" th:text="${emp.employeeName}">员工</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">状态</label>
-            <select name="matterStatus" id="matterStatus" class="form-control">
-              <option value="0">待处理</option>
-              <option value="1">进行中</option>
-              <option value="2">已完成</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">优先级</label>
-            <select name="matterPriority" id="matterPriority" class="form-control">
-              <option value="0">低</option>
-              <option value="1">中</option>
-              <option value="2">高</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">可见范围</label>
-            <select name="visibleRange" id="matterVisible" class="form-control">
-              <option value="0">仅自己</option>
-              <option value="1">部门内</option>
-              <option value="2">全公司</option>
+            <label class="form-label">所属部门</label>
+            <select name="departmentId" id="matterDepartment" class="form-control">
+              <option value="">请选择部门（可选）</option>
+              <option th:each="dept : ${departments}" th:value="${dept.orgId}" th:text="${dept.orgName}">部门</option>
             </select>
           </div>
         </div>
@@ -915,18 +894,22 @@
           <div class="form-group">
             <label class="form-label">状态</label>
             <select name="taskStatus" id="taskStatus" class="form-control">
-              <option value="0">待处理</option>
-              <option value="1">进行中</option>
-              <option value="2">已完成</option>
+              <option value="待处理">待处理</option>
+              <option value="进行中">进行中</option>
+              <option value="已完成">已完成</option>
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">优先级</label>
             <select name="taskPriority" id="taskPriority" class="form-control">
-              <option value="0">低</option>
-              <option value="1">中</option>
-              <option value="2">高</option>
+              <option value="低">低</option>
+              <option value="中">中</option>
+              <option value="高">高</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">序号 <span class="required">*</span></label>
+            <input type="number" name="serialNum" id="taskSerialNum" class="form-control" min="1" max="10" placeholder="1-10" required>
           </div>
         </div>
         <div class="modal-footer">
@@ -968,7 +951,13 @@
           </div>
           <div class="form-group">
             <label class="form-label">职位等级</label>
-            <input type="number" name="position" id="employeePosition" class="form-control" min="0" max="10" placeholder="0-10，数字越小职位越高">
+            <select name="position" id="employeePosition" class="form-control">
+              <option value="0">CEO</option>
+              <option value="1">部门经理</option>
+              <option value="2">团队长</option>
+              <option value="3" selected>员工</option>
+            </select>
+            <small style="display: block; margin-top: 4px; font-size: 12px; color: #909399;">职位等级决定用户权限，数字越小权限越高</small>
           </div>
           <div class="form-group">
             <label class="form-label">所属部门</label>
@@ -980,6 +969,50 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-secondary" onclick="closeEmployeeModal()">取消</button>
+          <button type="submit" class="btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- 修改员工职位模态框 -->
+  <div id="positionModal" class="modal">
+    <div class="modal-content" style="max-width: 520px;">
+      <form id="positionForm" onsubmit="submitPositionForm(event)">
+        <div class="modal-header">
+          <h3 class="modal-title" id="positionModalTitle">修改员工职位</h3>
+          <button type="button" class="modal-close" onclick="closePositionModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="positionEmployeeId">
+          <div class="form-group">
+            <label class="form-label">新职位 <span class="required">*</span></label>
+            <select id="newPosition" class="form-control" required onchange="handlePositionChange()">
+              <option value="">请选择职位</option>
+              <option value="CEO">CEO</option>
+              <option value="DEPARTMENT_MANAGER">部门经理</option>
+              <option value="TEAM_LEADER">团队长</option>
+              <option value="EMPLOYEE">员工</option>
+            </select>
+          </div>
+          <div class="form-group" id="departmentSelectGroup" style="display:none;">
+            <label class="form-label">目标部门 <span class="required">*</span></label>
+            <select id="positionDepartmentSelect" class="form-control">
+              <option value="">请选择部门</option>
+              <option th:each="dept : ${departments}" th:value="${dept.orgId}" th:text="${dept.orgName}">部门</option>
+            </select>
+          </div>
+          <div class="form-group" id="teamSelectGroup" style="display:none;">
+            <label class="form-label">目标团队 <span class="required">*</span></label>
+            <select id="positionTeamSelect" class="form-control">
+              <option value="">请选择团队</option>
+              <option th:each="team : ${teams}" th:value="${team.teamId}" th:text="${team.teamName}">团队</option>
+            </select>
+          </div>
+          <p style="margin-top: 4px; font-size: 12px; color: #909399;">当职位调整为部门经理或团队长时，需要指定对应的部门或团队。</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closePositionModal()">取消</button>
           <button type="submit" class="btn-primary">保存</button>
         </div>
       </form>
@@ -1081,7 +1114,7 @@
     
     // 加载重要事项数据（编辑模式）
     function loadMatterData(matterId) {
-      fetch(`/admin/important-matters/${matterId}`, {
+      fetch(`/admin/web/important-matters/${matterId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -1091,12 +1124,9 @@
       .then(data => {
         // 填充表单数据
         document.getElementById('matterId').value = data.matterId;
+        document.getElementById('matterTitle').value = data.title || '';
         document.getElementById('matterContent').value = data.content || '';
-        document.getElementById('matterDeadline').value = data.deadline || '';
-        document.getElementById('matterAssignee').value = data.assigneeId || '';
-        document.getElementById('matterStatus').value = data.matterStatus || '0';
-        document.getElementById('matterPriority').value = data.matterPriority || '1';
-        document.getElementById('matterVisible').value = data.visibleRange || '2';
+        document.getElementById('matterDepartment').value = data.departmentId || '';
       })
       .catch(error => {
         console.error('加载数据失败:', error);
@@ -1182,6 +1212,102 @@
       document.getElementById('employeeModal').classList.remove('show');
     }
 
+    // 职位调整模态框
+    function openPositionModal(trigger) {
+      const modal = document.getElementById('positionModal');
+      const employeeIdInput = document.getElementById('positionEmployeeId');
+      const positionSelect = document.getElementById('newPosition');
+      const deptGroup = document.getElementById('departmentSelectGroup');
+      const teamGroup = document.getElementById('teamSelectGroup');
+      const deptSelect = document.getElementById('positionDepartmentSelect');
+      const teamSelect = document.getElementById('positionTeamSelect');
+
+      employeeIdInput.value = trigger.dataset.employeeId;
+      positionSelect.value = '';
+      deptSelect.value = '';
+      teamSelect.value = '';
+      deptGroup.style.display = 'none';
+      teamGroup.style.display = 'none';
+
+      modal.classList.add('show');
+    }
+
+    function closePositionModal() {
+      document.getElementById('positionModal').classList.remove('show');
+    }
+
+    function handlePositionChange() {
+      const positionSelect = document.getElementById('newPosition');
+      const value = positionSelect.value;
+      const deptGroup = document.getElementById('departmentSelectGroup');
+      const teamGroup = document.getElementById('teamSelectGroup');
+
+      if (value === 'DEPARTMENT_MANAGER') {
+        deptGroup.style.display = 'block';
+        teamGroup.style.display = 'none';
+      } else if (value === 'TEAM_LEADER') {
+        deptGroup.style.display = 'none';
+        teamGroup.style.display = 'block';
+      } else {
+        deptGroup.style.display = 'none';
+        teamGroup.style.display = 'none';
+      }
+    }
+
+    function submitPositionForm(event) {
+      event.preventDefault();
+      const employeeId = document.getElementById('positionEmployeeId').value;
+      const newPosition = document.getElementById('newPosition').value;
+      const deptSelect = document.getElementById('positionDepartmentSelect');
+      const teamSelect = document.getElementById('positionTeamSelect');
+
+      if (!newPosition) {
+        alert('请选择新职位');
+        return;
+      }
+
+      let targetId = null;
+      if (newPosition === 'DEPARTMENT_MANAGER') {
+        targetId = deptSelect.value || null;
+        if (!targetId) {
+          alert('请指定部门');
+          return;
+        }
+      } else if (newPosition === 'TEAM_LEADER') {
+        targetId = teamSelect.value || null;
+        if (!targetId) {
+          alert('请指定团队');
+          return;
+        }
+      }
+
+      fetch(`/admin/employees/${employeeId}/position`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          newPosition: newPosition,
+          targetId: targetId ? parseInt(targetId, 10) : null
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.text().then(text => { throw new Error(text || '职位更新失败'); });
+        }
+        return response.json();
+      })
+      .then(() => {
+        alert('职位更新成功');
+        closePositionModal();
+        window.location.reload();
+      })
+      .catch(error => {
+        console.error('更新职位失败:', error);
+        alert('更新职位失败：' + error.message);
+      });
+    }
+
     // 团队模态框
     function openTeamModal(trigger) {
       const modal = document.getElementById('teamModal');
@@ -1256,6 +1382,7 @@
       const employeeModal = document.getElementById('employeeModal');
       const teamModal = document.getElementById('teamModal');
       const profileModal = document.getElementById('profileModal');
+      const positionModal = document.getElementById('positionModal');
 
       if (event.target === matterModal) {
         closeMatterModal();
@@ -1272,6 +1399,9 @@
       if (event.target === profileModal) {
         closeProfileModal();
       }
+      if (event.target === positionModal) {
+        closePositionModal();
+      }
     }
 
     // ESC键关闭模态框
@@ -1282,6 +1412,7 @@
         closeEmployeeModal();
         closeTeamModal();
         closeProfileModal();
+        closePositionModal();
         closeUserMenu();
       }
     });

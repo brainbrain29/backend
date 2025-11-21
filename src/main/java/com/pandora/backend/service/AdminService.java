@@ -428,11 +428,11 @@ public class AdminService {
     public EmployeeDTO updateEmployeePosition(Integer employeeId, UpdatePositionDTO dto) {
         // 1. 查找需要被更新的员工
         Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee not found with id: " + employeeId));
+                .orElseThrow(() -> new RuntimeException("未找到对应的员工，ID=" + employeeId));
 
         Position newPosition = dto.getNewPosition();
         if (newPosition == null) {
-            throw new IllegalArgumentException("New position cannot be null.");
+            throw new IllegalArgumentException("新职位不能为空。");
         }
 
         // 2. 清理该员工旧的职位职责，防止数据冲突
@@ -442,10 +442,10 @@ public class AdminService {
         switch (newPosition) {
             case DEPARTMENT_MANAGER:
                 if (dto.getTargetId() == null) {
-                    throw new IllegalArgumentException("Department ID is required to set a Department Manager.");
+                    throw new IllegalArgumentException("设置部门经理时必须指定部门ID。");
                 }
                 Department department = departmentRepository.findById(dto.getTargetId())
-                        .orElseThrow(() -> new RuntimeException("Department not found with id: " + dto.getTargetId()));
+                        .orElseThrow(() -> new RuntimeException("未找到对应的部门，ID=" + dto.getTargetId()));
 
                 // 可选：检查该部门是否已有经理，如果有，则先将其降级
                 if (department.getManager() != null && !department.getManager().equals(employee)) {
@@ -460,10 +460,10 @@ public class AdminService {
 
             case TEAM_LEADER:
                 if (dto.getTargetId() == null) {
-                    throw new IllegalArgumentException("Team ID is required to set a Team Leader.");
+                    throw new IllegalArgumentException("设置团队长时必须指定团队ID。");
                 }
                 Team team = teamRepository.findById(dto.getTargetId())
-                        .orElseThrow(() -> new RuntimeException("Team not found with id: " + dto.getTargetId()));
+                        .orElseThrow(() -> new RuntimeException("未找到对应的团队，ID=" + dto.getTargetId()));
 
                 // 将该员工设为新领导
                 setTeamLeader(team, employee);
@@ -510,15 +510,37 @@ public class AdminService {
 
     /**
      * 辅助方法：设置团队的新领导，并自动处理旧领导的降职。
-     * 
+     *
      * @param team      目标团队
      * @param newLeader 新的领导者
      */
     private void setTeamLeader(Team team, Employee newLeader) {
         // 检查：新领导必须是该团队的成员
         Employee_Team newLeaderRelation = employeeTeamRepository.findByEmployeeAndTeam(newLeader, team)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Cannot make an employee a Team Leader of a team they are not a member of."));
+                .orElseGet(() -> {
+                    // 如果不是目标团队成员，查询其当前所属的所有团队，用于构造更友好的错误提示
+                    List<Employee_Team> currentRelations = employeeTeamRepository.findByEmployee(newLeader);
+                    String currentTeamsDesc;
+                    if (currentRelations == null || currentRelations.isEmpty()) {
+                        currentTeamsDesc = "当前未加入任何团队";
+                    } else {
+                        StringBuilder sb = new StringBuilder();
+                        for (Employee_Team et : currentRelations) {
+                            Team t = et.getTeam();
+                            if (t != null && t.getTeamName() != null) {
+                                if (sb.length() > 0) {
+                                    sb.append("，");
+                                }
+                                sb.append(t.getTeamName());
+                            }
+                        }
+                        currentTeamsDesc = sb.length() > 0 ? sb.toString() : "当前未加入任何团队";
+                    }
+
+                    throw new IllegalStateException(
+                            "无法将该员工设置为团队长：该员工当前所属团队为：(" + currentTeamsDesc +
+                                    ")，不包含目标团队（" + team.getTeamName() + "）。");
+                });
 
         // 找到并降级现任领导（如果存在）
         employeeTeamRepository.findByTeamAndIsLeader(team, (byte) 1).ifPresent(oldLeaderRelation -> {
@@ -542,7 +564,7 @@ public class AdminService {
     /**
      * 辅助方法：将 Employee 实体转换为 EmployeeDTO。
      * (从您的 getAllEmployees 方法中提取的通用逻辑)
-     * 
+     *
      * @param emp 员工实体
      * @return 员工DTO
      */
@@ -649,6 +671,26 @@ public class AdminService {
         result.put("currentPage", page);
         result.put("totalPages", pageResult.getTotalPages());
         result.put("pageSize", size);
+
+        return result;
+    }
+
+    /**
+     * 获取单个重要事项
+     */
+    public ImportantMatterDTO getImportantMatterById(Integer id) {
+        ImportantMatter matter = importantMatterRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Important matter not found"));
+
+        ImportantMatterDTO result = new ImportantMatterDTO();
+        result.setMatterId(matter.getMatterId());
+        result.setTitle(matter.getTitle());
+        result.setContent(matter.getContent());
+        if (matter.getDepartment() != null) {
+            result.setDepartmentId(matter.getDepartment().getOrgId());
+            result.setDepartmentName(matter.getDepartment().getOrgName());
+        }
+        result.setPublishTime(matter.getPublishTime());
 
         return result;
     }

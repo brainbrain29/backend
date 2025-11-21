@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/matters-dashboard")
-@CrossOrigin(origins = "*")
 public class MattersDashboardController {
 
     @Autowired

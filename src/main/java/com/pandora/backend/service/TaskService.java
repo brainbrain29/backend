@@ -498,9 +498,9 @@ public class TaskService {
         // 获取作为执行者的任务
         List<Task> assignedTasks = taskRepository.findByAssigneeEmployeeId(employeeId);
 
-        // 过滤出未完成的任务（状态 0: 未开始, 1: 进行中）
+        // 过滤出未完成的任务（状态 2: 已完成, 1: 未完成）
         return assignedTasks.stream()
-                .filter(task -> task.getTaskStatus() == 0 || task.getTaskStatus() == 1)
+                .filter(task -> task.getTaskStatus() == 2 || task.getTaskStatus() == 1)
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }

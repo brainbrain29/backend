@@ -34,7 +34,7 @@ public class AdminWebController {
         List<EmployeeDTO> employees = adminService.getAllEmployees();
         List<DepartmentDTO> departments = adminService.getAllDepartments();
         List<TeamDTO> teams = adminService.getAllTeams();
-        
+
         // 添加系统统计数据和活动日志
         model.addAttribute("matters", matters);
         model.addAttribute("tasks", tasks);
@@ -59,13 +59,13 @@ public class AdminWebController {
 
     @PostMapping("/profile")
     public String updateProfile(@RequestParam String adminName,
-                                @RequestParam String adminEmail,
-                                @RequestParam(required = false) String adminPhone,
-                                @RequestParam(required = false) String newPassword,
-                                @RequestParam(required = false) String confirmPassword,
-                                @RequestParam(required = false) MultipartFile avatar,
-                                HttpSession session,
-                                Model model) {
+            @RequestParam String adminEmail,
+            @RequestParam(required = false) String adminPhone,
+            @RequestParam(required = false) String newPassword,
+            @RequestParam(required = false) String confirmPassword,
+            @RequestParam(required = false) MultipartFile avatar,
+            HttpSession session,
+            Model model) {
         Integer adminId = (Integer) session.getAttribute("adminId");
         if (adminId == null) {
             return "redirect:/admin/login";
@@ -77,7 +77,8 @@ public class AdminWebController {
         }
 
         try {
-            var updated = adminService.updateAdminProfile(adminId, adminName, adminEmail, adminPhone, newPassword, avatar);
+            var updated = adminService.updateAdminProfile(adminId, adminName, adminEmail, adminPhone, newPassword,
+                    avatar);
             session.setAttribute("adminName", updated.getEmployeeName());
             session.setAttribute("adminEmail", updated.getEmail());
             session.setAttribute("adminPhone", updated.getPhone());
@@ -128,9 +129,9 @@ public class AdminWebController {
 
     @PostMapping("/teams")
     public String createTeam(@RequestParam String teamName,
-                             @RequestParam Integer orgId,
-                             @RequestParam(required = false) Integer leaderId,
-                             @RequestParam(value = "memberIds", required = false) List<Integer> memberIds) {
+            @RequestParam Integer orgId,
+            @RequestParam(required = false) Integer leaderId,
+            @RequestParam(value = "memberIds", required = false) List<Integer> memberIds) {
         TeamDTO dto = new TeamDTO();
         dto.setTeamName(teamName);
         dto.setOrgId(orgId);
@@ -142,10 +143,10 @@ public class AdminWebController {
 
     @PostMapping("/teams/{id}")
     public String updateTeam(@PathVariable Integer id,
-                             @RequestParam String teamName,
-                             @RequestParam Integer orgId,
-                             @RequestParam(required = false) Integer leaderId,
-                             @RequestParam(value = "memberIds", required = false) List<Integer> memberIds) {
+            @RequestParam String teamName,
+            @RequestParam Integer orgId,
+            @RequestParam(required = false) Integer leaderId,
+            @RequestParam(value = "memberIds", required = false) List<Integer> memberIds) {
         TeamDTO dto = new TeamDTO();
         dto.setTeamName(teamName);
         dto.setOrgId(orgId);
@@ -184,8 +185,15 @@ public class AdminWebController {
         return "redirect:/admin/web/dashboard#matter-section";
     }
 
+    @GetMapping("/important-matters/{id}")
+    @ResponseBody
+    public ImportantMatterDTO getImportantMatter(@PathVariable Integer id) {
+        return adminService.getImportantMatterById(id);
+    }
+
     @PostMapping("/important-matters/{id}")
-    public String updateImportantMatter(@PathVariable Integer id, @ModelAttribute("matterForm") ImportantMatterDTO dto) {
+    public String updateImportantMatter(@PathVariable Integer id,
+            @ModelAttribute("matterForm") ImportantMatterDTO dto) {
         adminService.updateImportantMatter(id, dto);
         return "redirect:/admin/web/dashboard#matter-section";
     }

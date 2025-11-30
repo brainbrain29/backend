@@ -1,5 +1,6 @@
 package com.pandora.backend.controller;
 
+import com.pandora.backend.dto.ChangePasswordDTO;
 import com.pandora.backend.dto.DailyWorkloadDTO;
 import com.pandora.backend.dto.EmployeeDTO;
 import com.pandora.backend.dto.EmployeeWeeklyStatsDTO;
@@ -35,11 +36,14 @@ public class EmployeeController {
     // @Autowired
     // private ProjectService projectService;
 
-    @PostMapping
-    public ResponseEntity<EmployeeDTO> createEmployee(@RequestBody EmployeeDTO dto) {
-        EmployeeDTO created = employeeService.createEmployee(dto);
-        return ResponseEntity.status(201).body(created);
-    }
+    /**
+     * @PostMapping
+     *              public ResponseEntity<EmployeeDTO> createEmployee(@RequestBody
+     *              EmployeeDTO dto) {
+     *              EmployeeDTO created = employeeService.createEmployee(dto);
+     *              return ResponseEntity.status(201).body(created);
+     *              }
+     */
 
     @GetMapping("/me")
     public ResponseEntity<EmployeeDTO> getCurrentEmployee(@RequestAttribute("userId") Integer userId) {
@@ -94,6 +98,31 @@ public class EmployeeController {
         response.put("message", "获取成功");
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 修改当前用户密码
+     * PUT /employees/me/password
+     *
+     * @param userId 当前用户ID（从 JWT Token 中获取）
+     * @param dto    包含旧密码和新密码的 DTO
+     * @return 修改结果
+     */
+    @PutMapping("/me/password")
+    public ResponseEntity<?> changePassword(
+            @RequestAttribute("userId") Integer userId,
+            @RequestBody ChangePasswordDTO dto) {
+
+        if (dto.getNewPassword() == null || dto.getNewPassword().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "新密码不能为空"));
+        }
+
+        try {
+            employeeService.changePassword(userId, dto.getNewPassword());
+            return ResponseEntity.ok(Map.of("message", "密码修改成功"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     /**
@@ -169,39 +198,46 @@ public class EmployeeController {
      * 
      * @param matterId 重要事项ID
      * @return 重要事项详情
-     */
-    @GetMapping("/important-matters/{matterId}")
-    public ResponseEntity<?> getImportantMatterById(@PathVariable Integer matterId) {
-        try {
-            ImportantMatterDTO matter = dashboardService.getImportantMatterById(matterId);
-            if (matter == null) {
-                return ResponseEntity.status(404).body(Map.of("error", "重要事项未找到，ID: " + matterId));
-            }
-            return ResponseEntity.ok(matter);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * 根据 ID 查询重要任务详情
-     * GET /employees/important-tasks/{taskId}
+     *         @GetMapping("/important-matters/{matterId}")
+     *         public ResponseEntity<?> getImportantMatterById(@PathVariable Integer
+     *         matterId) {
+     *         try {
+     *         ImportantMatterDTO matter =
+     *         dashboardService.getImportantMatterById(matterId);
+     *         if (matter == null) {
+     *         return ResponseEntity.status(404).body(Map.of("error", "重要事项未找到，ID: "
+     *         + matterId));
+     *         }
+     *         return ResponseEntity.ok(matter);
+     *         } catch (Exception e) {
+     *         return ResponseEntity.badRequest().body(Map.of("error",
+     *         e.getMessage()));
+     *         }
+     *         }
+     * 
+     *         /**
+     *         根据 ID 查询重要任务详情
+     *         GET /employees/important-tasks/{taskId}
      * 
      * @param taskId 重要任务ID
      * @return 重要任务详情
+     *         @GetMapping("/important-tasks/{taskId}")
+     *         public ResponseEntity<?> getImportantTaskById(@PathVariable Integer
+     *         taskId) {
+     *         try {
+     *         ImportantTaskDTO task =
+     *         dashboardService.getImportantTaskById(taskId);
+     *         if (task == null) {
+     *         return ResponseEntity.status(404).body(Map.of("error", "重要任务未找到，ID: "
+     *         + taskId));
+     *         }
+     *         return ResponseEntity.ok(task);
+     *         } catch (Exception e) {
+     *         return ResponseEntity.badRequest().body(Map.of("error",
+     *         e.getMessage()));
+     *         }
+     *         }
      */
-    @GetMapping("/important-tasks/{taskId}")
-    public ResponseEntity<?> getImportantTaskById(@PathVariable Integer taskId) {
-        try {
-            ImportantTaskDTO task = dashboardService.getImportantTaskById(taskId);
-            if (task == null) {
-                return ResponseEntity.status(404).body(Map.of("error", "重要任务未找到，ID: " + taskId));
-            }
-            return ResponseEntity.ok(task);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
 
     /**
      * 获取员工一周心情统计

@@ -8,8 +8,10 @@ import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Map;
 
 /**
  * 全局异常处理器
@@ -53,6 +55,24 @@ public class GlobalExceptionHandler {
         String uri = request.getRequestURI();
         logger.debug("异步请求超时: {}", uri);
         return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body("Request Timeout");
+    }
+
+    /**
+     * 处理参数类型转换异常（如日期格式错误、数字格式错误等）
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, String>> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request) {
+
+        String uri = request.getRequestURI();
+        String paramName = ex.getName();
+        String paramValue = ex.getValue() != null ? ex.getValue().toString() : "null";
+
+        logger.warn("参数转换失败: {} - 参数: {}, 值: {}", uri, paramName, paramValue);
+
+        return ResponseEntity.badRequest()
+                .body(Map.of("error", "参数格式错误: " + paramName + "=" + paramValue));
     }
 
     /**

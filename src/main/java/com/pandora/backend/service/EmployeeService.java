@@ -117,6 +117,25 @@ public class EmployeeService {
     }
 
     /**
+     * 修改员工密码
+     *
+     * @param employeeId  员工ID
+     * @param newPassword 新密码
+     */
+    public void changePassword(Integer employeeId, String newPassword) {
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("员工不存在"));
+
+        // 验证新密码与当前密码是否相同
+        if (employee.getPassword().equals(newPassword)) {
+            throw new RuntimeException("新密码不能与当前密码相同");
+        }
+
+        employee.setPassword(newPassword);
+        employeeRepository.save(employee);
+    }
+
+    /**
      * 获取员工本周统计数据（带 Redis 缓存）
      * 
      * @param employeeId    员工ID

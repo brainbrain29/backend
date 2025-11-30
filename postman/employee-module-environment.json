@@ -1,0 +1,109 @@
+{
+  "id": "employee-module-env",
+  "name": "Employee Module Integration Test",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "adminPhone",
+      "value": "13900000000",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "adminPassword",
+      "value": "admin",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "testEmployeePhone",
+      "value": "13900001111",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "testEmployeePassword",
+      "value": "123456",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "testLeaderPhone",
+      "value": "13900002222",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "testLeaderPassword",
+      "value": "123456",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "leaderAuthToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "createdEmployeeId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "createdLeaderId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "testMatterId",
+      "value": "1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "testDate",
+      "value": "2025-11-30",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "newPassword",
+      "value": "newPassword456",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "testPassword",
+      "value": "testpass123",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "createdMatterId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

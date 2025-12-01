@@ -1,4 +1,4 @@
-﻿ID,模块,用例名称,接口名称,前置条件,请求URL,请求类型,请求参数类型,请求参数,预期响应状态码,预期返回数据,实际返回数据,测试结果
+﻿测试ID,测试名称,描述,API端点,请求方法,预期状态码,测试步骤,优先级
 SETUP-001,环境准备,Login - Admin (Get Admin Token),POST /auth/login,网络正常；服务运行中,/auth/login,POST,JSON,"{""phone"": ""13900000000"",""password"": ""admin""}",200 OK,"{""accessToken"": ""<jwt>"",""refreshToken"": ""<jwt>""}","{""accessToken"": ""<jwt>"",""refreshToken"": ""<jwt>""}",Pass
 SETUP-002,环境准备,Create Test Employee (Normal User),POST /admin/employees,网络正常；服务运行中；已获取管理员Token,/admin/employees,POST,JSON,"{""employeeName"": ""Test Employee"",""gender"": ""男性"",""phone"": ""13900001111"",""email"": ""test.employee@example.com"",""position"": 3,""orgId"": 1}",200 OK,"{""employeeId"": 49,""employeeName"": ""Test Employee""}","{""employeeId"": 49,""employeeName"": ""Test Employee""}",Pass
 SETUP-003,环境准备,Create Test Leader,POST /admin/employees,网络正常；服务运行中；已获取管理员Token,/admin/employees,POST,JSON,"{""employeeName"": ""Test Leader"",""gender"": ""男性"",""phone"": ""13900002222"",""email"": ""test.leader@example.com"",""position"": 2,""orgId"": 1}",200 OK,"{""employeeId"": 50,""employeeName"": ""Test Leader""}","{""employeeId"": 50,""employeeName"": ""Test Leader""}",Pass
@@ -44,3 +44,8 @@ CLEAN-001,环境清理,Restore Original Password,PUT /employees/me/password,网�
 CLEAN-002,环境清理,Delete Test Employee,DELETE /admin/employees/{id},网络正常；服务运行中；已获取管理员Token；已创建测试员工,/admin/employees/49,DELETE,无,,200 OK,空响应体,空响应体,Pass
 CLEAN-003,环境清理,Delete Test Leader,DELETE /admin/employees/{id},网络正常；服务运行中；已获取管理员Token,/admin/employees/50,DELETE,无,,200 OK,空响应体,空响应体,Pass
 CLEAN-004,环境清理,Cleanup Environment Variables,GET /health,网络正常；服务运行中,/health,GET,无,,200 OK,"{""status"": ""UP""}","{""status"": ""UP""}",Pass
+,项目接口,获取所有项目,GET /api/project/list,网络正常；服务运行中；已获取用户Token,/api/project/list,GET,无
+,项目接口,获取项目详情,GET /api/project/{{projectId}},网络正常；服务运行中；已获取用户Token,/api/project/{{projectId}},GET,无
+,项目接口,创建项目,POST /api/project,网络正常；服务运行中；已获取用户Token,/api/project,POST,JSON
+,任务接口,获取所有任务,GET /api/task/list,网络正常；服务运行中；已获取用户Token,/api/task/list,GET,无
+,任务接口,创建任务,POST /api/task,网络正常；服务运行中；已获取用户Token,/api/task,POST,JSON

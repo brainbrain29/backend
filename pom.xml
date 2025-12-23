@@ -160,6 +160,30 @@
             <version>0.1.0</version>
         </dependency>
 
+        <!-- Aliyun OSS SDK -->
+        <dependency>
+            <groupId>com.aliyun.oss</groupId>
+            <artifactId>aliyun-sdk-oss</artifactId>
+            <version>3.17.4</version>
+        </dependency>
+        
+        <!-- JAXB dependencies for Java 9+ -->
+        <dependency>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>2.3.1</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.activation</groupId>
+            <artifactId>activation</artifactId>
+            <version>1.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
+            <version>2.3.3</version>
+        </dependency>
+
         <!-- JUnit 5 (已包含在 spring-boot-starter-test 中，这里显式声明版本) -->
         <!-- spring-boot-starter-test 已经包含了 JUnit Jupiter, Mockito, AssertJ 等 -->
 

@@ -44,12 +44,14 @@ public class LogService {
     private TaskRepository taskRepository;
     @Autowired
     private LogAttachmentRepository logAttachmentRepository;
+    // @Autowired
+    // private FileStorageService fileStorageService;
     @Autowired
-    private FileStorageService fileStorageService;
+    private OssService ossService;
 
-    // ==================================================
+    // =================================================:
     // 附件创建 (唯一保留的创建方法)
-    // ==================================================
+    // =================================================:
 
     /**
      * 创建一个新日志，并处理附件
@@ -100,8 +102,11 @@ public class LogService {
                     continue;
 
                 try {
-                    // 3a. 存到磁盘
-                    String storedFilename = fileStorageService.storeFile(file);
+                    // 3a. 存到磁盘 (Old)
+                    // String storedFilename = fileStorageService.storeFile(file);
+
+                    // 3a. 存到 OSS (New)
+                    String storedFilename = ossService.uploadFile(file);
 
                     // 3b. 存 "信息" 到数据库
                     LogAttachment attachment = new LogAttachment();
@@ -123,15 +128,13 @@ public class LogService {
         return savedLog;
     }
 
-    // ==================================================
-    // 你的已有方法 (已修复)
-    // ==================================================
     /**
      * 根据任务ID查询所有日志
      * 
      * @param taskId 任务ID
      * @return 任务所有日志的 DTO 列表
      */
+
     public List<LogDTO> getLogsByTask(Integer taskId) {
         List<Log> logs = logRepository.findByTask_TaskId(taskId);
         return convertToDtoList(logs);

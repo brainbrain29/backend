@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
@@ -73,6 +75,26 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest()
                 .body(Map.of("error", "参数格式错误: " + paramName + "=" + paramValue));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<String> handleNoResourceFoundException(
+            NoResourceFoundException ex,
+            HttpServletRequest request) {
+
+        String uri = request.getRequestURI();
+        logger.debug("静态资源不存在: {} - {}", uri, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not Found");
+    }
+
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<String> handleNoHandlerFoundException(
+            NoHandlerFoundException ex,
+            HttpServletRequest request) {
+
+        String uri = request.getRequestURI();
+        logger.debug("路由不存在: {} - {}", uri, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not Found");
     }
 
     /**

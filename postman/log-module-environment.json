@@ -1,0 +1,45 @@
+{
+	"id": "3de701b9-c118-43d0-b0ec-4a547bc02987",
+	"name": "Pandora_Log_Env",
+	"values": [
+		{
+  "key": "baseUrl",
+  "value": "http://127.0.0.1:8080",
+  "type": "default",
+  "enabled": true
+},
+		{
+			"key": "phone",
+			"value": "13900000000",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "password",
+			"value": "admin",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "token",
+			"value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwicG9zaXRpb24iOjAsImlhdCI6MTc2NDUyMzQzNywiZXhwIjoxNzY0NTI3MDM3fQ.k4jDCC60rZADNXvpgR8hhkRw-gEfqjVJmHeEb0eevaw",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "logId",
+			"value": 26,
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "today",
+			"value": "2025-12-01",
+			"type": "default",
+			"enabled": true
+		}
+	],
+	"_postman_variable_scope": "environment",
+	"_postman_exported_at": "2025-11-30T18:02:43.490Z",
+	"_postman_exported_using": "Postman/11.72.3"
+}

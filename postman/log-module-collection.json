@@ -1,0 +1,422 @@
+{
+	"info": {
+		"_postman_id": "21ddd5f1-ccdb-4293-aa80-de8d9ba58cf9",
+		"name": "Log_Final_Test",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "50462238",
+		"_collection_link": "https://liyiming337-5865828.postman.co/workspace/%E6%9D%8E%E4%BE%9D%E6%98%8E's-Workspace~a9bfa32c-9d28-4e9d-8b32-d9281012604d/collection/50462238-21ddd5f1-ccdb-4293-aa80-de8d9ba58cf9?action=share&source=collection_link&creator=50462238"
+	},
+	"item": [
+		{
+			"name": "1.登录",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"token\", jsonData.accessToken); // 存Token",
+							"",
+							"// --- 修改开始：获取本地时间 (解决时区问题) ---",
+							"var now = new Date();",
+							"var year = now.getFullYear();",
+							"var month = String(now.getMonth() + 1).padStart(2, '0'); // 月份从0开始，要+1",
+							"var day = String(now.getDate()).padStart(2, '0');",
+							"var localDate = year + '-' + month + '-' + day;",
+							"// ------------------------------------------",
+							"",
+							"pm.environment.set(\"today\", localDate);",
+							"console.log(\"今日日期已设置为: \" + localDate); // 你可以在 Console 里看到打印出的日期",
+							"",
+							"pm.test(\"Login Success\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"phone\": \"{{phone}}\",\n    \"password\": \"{{password}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/auth/login",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2.创建日志",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Create Success\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"logId\", jsonData.logId); // 记住ID"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "content",
+							"value": "测试日志内容",
+							"type": "text"
+						},
+						{
+							"key": "mood",
+							"value": "Happy",
+							"type": "text"
+						},
+						{
+							"key": "employeeLocation",
+							"value": "Office",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{baseUrl}}/logs",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"logs"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3.查询单个日志",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Verify Log Content\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    // 验证刚才创建的内容是否一致",
+							"    pm.expect(jsonData.content).to.include(\"测试日志内容\");",
+							"    pm.expect(jsonData.employeeLocation).to.eql(\"Office\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/logs/{{logId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"logs",
+						"{{logId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "4.按日期查询",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"List is not empty\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    // 只要今天创建了日志，列表长度就应该大于0",
+							"    pm.expect(jsonData.length).to.be.above(0);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/logs/byDate?datetime={{today}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"logs",
+						"byDate"
+					],
+					"query": [
+						{
+							"key": "datetime",
+							"value": "{{today}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "5.搜索日志",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Search returns result\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    // 检查返回结果里是否包含刚才那个 ID",
+							"    var found = jsonData.some(log => log.logId == pm.environment.get(\"logId\"));",
+							"    pm.expect(found).to.be.true;",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/logs/search?keyword=测试",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"logs",
+						"search"
+					],
+					"query": [
+						{
+							"key": "keyword",
+							"value": "测试"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "6.修改日志",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Update Success\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.content).to.eql(\"这是被修改后的日志内容\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"content\": \"这是被修改后的日志内容\",\n    \"emoji\": \"Sad\",\n    \"employeeLocation\": \"Home\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/logs/{{logId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"logs",
+						"{{logId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "7.边界测试-错误ID",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Should handle invalid ID\", function () {",
+							"    // 我们期望它报错（400, 404, 500都可以），只要不是200就行",
+							"    pm.response.to.not.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/logs/-1",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"logs",
+						"-1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "8.删除日志",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Delete Success\", function () {",
+							"    // 你的 Controller 返回的是 ResponseEntity.noContent().build()，对应状态码 204",
+							"    pm.response.to.have.status(204);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/logs/{{logId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"logs",
+						"{{logId}}"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

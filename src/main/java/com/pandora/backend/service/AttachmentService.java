@@ -35,8 +35,10 @@ public class AttachmentService {
     @Autowired
     private TaskAttachmentRepository taskAttachmentRepository;
 
+    // @Autowired
+    // private FileStorageService fileStorageService;
     @Autowired
-    private FileStorageService fileStorageService;
+    private OssService ossService;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -240,7 +242,8 @@ public class AttachmentService {
             String fileType,
             Long fileSize) throws Exception {
 
-        Resource resource = fileStorageService.loadFileAsResource(storedFilename);
+        // Resource resource = fileStorageService.loadFileAsResource(storedFilename);
+        Resource resource = ossService.getFileAsResource(storedFilename);
 
         String encodedFilename = URLEncoder.encode(originalFilename, StandardCharsets.UTF_8)
                 .replaceAll("\\+", "%20");
@@ -262,7 +265,8 @@ public class AttachmentService {
             String fileType,
             Long fileSize) throws Exception {
 
-        Resource resource = fileStorageService.loadFileAsResource(storedFilename);
+        // Resource resource = fileStorageService.loadFileAsResource(storedFilename);
+        Resource resource = ossService.getFileAsResource(storedFilename);
 
         String encodedFilename = URLEncoder.encode(originalFilename, StandardCharsets.UTF_8)
                 .replaceAll("\\+", "%20");

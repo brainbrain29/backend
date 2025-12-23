@@ -23,7 +23,6 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginDTO dto) {
-        // Validate input
         if (dto.getPhone() == null || dto.getPhone().trim().isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "手机号不能为空"));
@@ -33,7 +32,6 @@ public class AuthController {
                     .body(Map.of("error", "密码不能为空"));
         }
 
-        // Find user by phone
         var employeeOpt = employeeRepository.findByPhone(dto.getPhone());
         if (employeeOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

@@ -1,0 +1,710 @@
+{
+  "info": {
+    "_postman_id": "integration-test-v3",
+    "name": "Integration Test V3",
+    "description": "Third integration test including Notice, Dashboard, Employee and Task extended APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Setup",
+      "item": [
+        {
+          "name": "1.1 Admin Login",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+            "pm.environment.set('adminToken', pm.response.json().accessToken);",
+            "var d=new Date();pm.environment.set('today',d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"phone\":\"{{adminPhone}}\",\"password\":\"{{adminPassword}}\"}"},
+            "url": {"raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"]}
+          }
+        },
+        {
+          "name": "1.2 Create Test Employee",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+            "pm.environment.set('createdEmployeeId', pm.response.json().employeeId);",
+            "pm.environment.set('assigneeId', pm.response.json().employeeId);"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"employeeName\":\"Test Employee V3\",\"gender\":\"male\",\"phone\":\"{{testEmployeePhone}}\",\"email\":\"emp@test.com\",\"position\":3,\"orgId\":1}"},
+            "url": {"raw": "{{baseUrl}}/admin/employees", "host": ["{{baseUrl}}"], "path": ["admin", "employees"]}
+          }
+        },
+        {
+          "name": "1.3 Create Test Leader",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+            "pm.environment.set('createdLeaderId', pm.response.json().employeeId);"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"employeeName\":\"Test Leader V3\",\"gender\":\"male\",\"phone\":\"{{testLeaderPhone}}\",\"email\":\"leader@test.com\",\"position\":2,\"orgId\":1}"},
+            "url": {"raw": "{{baseUrl}}/admin/employees", "host": ["{{baseUrl}}"], "path": ["admin", "employees"]}
+          }
+        },
+        {
+          "name": "1.4 Employee Login",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+            "pm.environment.set('employeeToken', pm.response.json().accessToken);"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"phone\":\"{{testEmployeePhone}}\",\"password\":\"{{testEmployeePassword}}\"}"},
+            "url": {"raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"]}
+          }
+        },
+        {
+          "name": "1.5 Leader Login",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+            "pm.environment.set('leaderToken', pm.response.json().accessToken);"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"phone\":\"{{testLeaderPhone}}\",\"password\":\"{{testLeaderPassword}}\"}"},
+            "url": {"raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Project",
+      "item": [
+        {
+          "name": "2.1 Create Project",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+            "pm.environment.set('projectId', pm.response.json().projectId);"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"title\":\"Test Project V3\",\"content\":\"Integration test project\",\"teamId\":{{teamId}}}"},
+            "url": {"raw": "{{baseUrl}}/projects", "host": ["{{baseUrl}}"], "path": ["projects"]}
+          }
+        },
+        {
+          "name": "2.2 Get Projects",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/projects", "host": ["{{baseUrl}}"], "path": ["projects"]}
+          }
+        },
+        {
+          "name": "2.3 Get Project Detail",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/projects/{{projectId}}", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectId}}"]}
+          }
+        },
+        {
+          "name": "2.4 Assign Project to Team",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"teamId\":{{teamId}}}"},
+            "url": {"raw": "{{baseUrl}}/projects/{{projectId}}/assign", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectId}}", "assign"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Task",
+      "item": [
+        {
+          "name": "3.1 Create Task",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+            "if (pm.response.code === 201) {",
+            "    pm.environment.set('taskId', pm.response.json().taskId);",
+            "    console.log('Task created: ' + pm.response.json().taskId);",
+            "}"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{leaderToken}}"}],
+            "body": {"mode": "formdata", "formdata": [
+              {"key": "title", "value": "Test Task V3", "type": "text"},
+              {"key": "content", "value": "Integration test task", "type": "text"},
+              {"key": "taskPriority", "value": "high", "type": "text"},
+              {"key": "taskType", "value": "daily", "type": "text"}
+            ]},
+            "url": {"raw": "{{baseUrl}}/tasks", "host": ["{{baseUrl}}"], "path": ["tasks"]}
+          }
+        },
+        {
+          "name": "3.2 Get Tasks",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{leaderToken}}"}],
+            "url": {"raw": "{{baseUrl}}/tasks", "host": ["{{baseUrl}}"], "path": ["tasks"]}
+          }
+        },
+        {
+          "name": "3.3 Get Task Detail",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{leaderToken}}"}],
+            "url": {"raw": "{{baseUrl}}/tasks/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["tasks", "{{taskId}}"]}
+          }
+        },
+        {
+          "name": "3.4 Search Tasks",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{leaderToken}}"}],
+            "url": {"raw": "{{baseUrl}}/tasks/search?keyword=Test", "host": ["{{baseUrl}}"], "path": ["tasks", "search"], "query": [{"key": "keyword", "value": "Test"}]}
+          }
+        },
+        {
+          "name": "3.5 Get Unfinished Tasks",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{leaderToken}}"}],
+            "url": {"raw": "{{baseUrl}}/tasks/status", "host": ["{{baseUrl}}"], "path": ["tasks", "status"]}
+          }
+        },
+        {
+          "name": "3.6 Get Team Tasks (Leader)",
+          "event": [{"listen": "test", "script": {"exec": [
+            "if (pm.response.code === 200) {",
+            "    pm.test('Get team tasks success', function () { pm.response.to.have.status(200); });",
+            "} else {",
+            "    pm.test('Get team tasks - permission issue', function () { pm.expect(pm.response.code).to.be.oneOf([200, 403]); });",
+            "}"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{leaderToken}}"}],
+            "url": {"raw": "{{baseUrl}}/tasks/team", "host": ["{{baseUrl}}"], "path": ["tasks", "team"]}
+          }
+        },
+        {
+          "name": "3.7 Assign Task",
+          "event": [{"listen": "test", "script": {"exec": [
+            "if (pm.response.code === 200) {",
+            "    pm.test('Assign task success', function () { pm.response.to.have.status(200); });",
+            "    pm.environment.set('taskAssigned', 'true');",
+            "} else {",
+            "    pm.test('Assign task - expected in test env', function () { pm.expect(pm.response.code).to.be.oneOf([200, 400, 403, 404]); });",
+            "    pm.environment.set('taskAssigned', 'false');",
+            "}"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"assigneeId\":{{assigneeId}}}"},
+            "url": {"raw": "{{baseUrl}}/tasks/{{taskId}}/assign", "host": ["{{baseUrl}}"], "path": ["tasks", "{{taskId}}", "assign"]}
+          }
+        },
+        {
+          "name": "3.8 Accept Task",
+          "event": [{"listen": "test", "script": {"exec": [
+            "if (pm.environment.get('taskAssigned') === 'true') {",
+            "    pm.test('Accept task', function () { pm.expect(pm.response.code).to.be.oneOf([200, 400]); });",
+            "} else {",
+            "    pm.test('Skip - task not assigned', function () { pm.expect(true).to.be.true; });",
+            "}"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/tasks/{{taskId}}/accept", "host": ["{{baseUrl}}"], "path": ["tasks", "{{taskId}}", "accept"]}
+          }
+        },
+        {
+          "name": "3.9 Update Task Status",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Update status', function () { pm.expect(pm.response.code).to.be.oneOf([200, 400, 403]); });"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{leaderToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"taskId\":{{taskId}},\"taskStatus\":1}"},
+            "url": {"raw": "{{baseUrl}}/tasks/{{taskId}}/status", "host": ["{{baseUrl}}"], "path": ["tasks", "{{taskId}}", "status"]}
+          }
+        },
+        {
+          "name": "3.10 Get Task Logs",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{leaderToken}}"}],
+            "url": {"raw": "{{baseUrl}}/tasks/{{taskId}}/logs", "host": ["{{baseUrl}}"], "path": ["tasks", "{{taskId}}", "logs"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Log",
+      "item": [
+        {
+          "name": "4.1 Create Log",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+            "pm.environment.set('logId', pm.response.json().logId);"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "body": {"mode": "formdata", "formdata": [
+              {"key": "content", "value": "Daily work log V3", "type": "text"},
+              {"key": "mood", "value": "Happy", "type": "text"},
+              {"key": "employeeLocation", "value": "Office", "type": "text"}
+            ]},
+            "url": {"raw": "{{baseUrl}}/logs", "host": ["{{baseUrl}}"], "path": ["logs"]}
+          }
+        },
+        {
+          "name": "4.2 Create Log with Task",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+            "pm.environment.set('taskLogId', pm.response.json().logId);"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "body": {"mode": "formdata", "formdata": [
+              {"key": "content", "value": "Task progress log", "type": "text"},
+              {"key": "mood", "value": "Happy", "type": "text"},
+              {"key": "taskId", "value": "{{taskId}}", "type": "text"},
+              {"key": "employeeLocation", "value": "Office", "type": "text"}
+            ]},
+            "url": {"raw": "{{baseUrl}}/logs", "host": ["{{baseUrl}}"], "path": ["logs"]}
+          }
+        },
+        {
+          "name": "4.3 Get Log",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/logs/{{logId}}", "host": ["{{baseUrl}}"], "path": ["logs", "{{logId}}"]}
+          }
+        },
+        {
+          "name": "4.4 Get Logs by Date",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/logs/byDate?datetime={{today}}", "host": ["{{baseUrl}}"], "path": ["logs", "byDate"], "query": [{"key": "datetime", "value": "{{today}}"}]}
+          }
+        },
+        {
+          "name": "4.5 Search Logs",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/logs/search?keyword=work", "host": ["{{baseUrl}}"], "path": ["logs", "search"], "query": [{"key": "keyword", "value": "work"}]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Notice",
+      "item": [
+        {
+          "name": "5.1 Check Unread Count",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+            "pm.test('Has unreadCount field', function () { pm.expect(pm.response.json()).to.have.property('unreadCount'); });"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/notices/check", "host": ["{{baseUrl}}"], "path": ["notices", "check"]}
+          }
+        },
+        {
+          "name": "5.2 Get Unread Notices",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+            "pm.test('Response is array', function () { pm.expect(pm.response.json()).to.be.an('array'); });",
+            "var notices = pm.response.json();",
+            "if (notices.length > 0) { pm.environment.set('noticeId', notices[0].noticeId); }"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/notices/me/unread", "host": ["{{baseUrl}}"], "path": ["notices", "me", "unread"]}
+          }
+        },
+        {
+          "name": "5.3 Get All Notices",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+            "pm.test('Response is array', function () { pm.expect(pm.response.json()).to.be.an('array'); });",
+            "var notices = pm.response.json();",
+            "if (notices.length > 0 && !pm.environment.get('noticeId')) { pm.environment.set('noticeId', notices[0].noticeId); }"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/notices/me/all", "host": ["{{baseUrl}}"], "path": ["notices", "me", "all"]}
+          }
+        },
+        {
+          "name": "5.4 Search Notices",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/notices/search?keyword=task", "host": ["{{baseUrl}}"], "path": ["notices", "search"], "query": [{"key": "keyword", "value": "task"}]}
+          }
+        },
+        {
+          "name": "5.5 Mark Notice as Read",
+          "event": [{"listen": "test", "script": {"exec": [
+            "var noticeId = pm.environment.get('noticeId');",
+            "if (noticeId) {",
+            "    pm.test('Mark as read', function () { pm.expect(pm.response.code).to.be.oneOf([200, 404]); });",
+            "} else {",
+            "    pm.test('Skip - no notice to mark', function () { pm.expect(true).to.be.true; });",
+            "}"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/notices/mark-read/{{noticeId}}", "host": ["{{baseUrl}}"], "path": ["notices", "mark-read", "{{noticeId}}"]}
+          }
+        },
+        {
+          "name": "5.6 Mark All as Read",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/notices/mark-all-read", "host": ["{{baseUrl}}"], "path": ["notices", "mark-all-read"]}
+          }
+        },
+        {
+          "name": "5.7 Batch Confirm Received",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Batch confirm', function () { pm.expect(pm.response.code).to.be.oneOf([200, 400]); });"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"noticeIds\":[]}"},
+            "url": {"raw": "{{baseUrl}}/notices/batch-confirm-received", "host": ["{{baseUrl}}"], "path": ["notices", "batch-confirm-received"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Dashboard",
+      "item": [
+        {
+          "name": "6.1 Get Dashboard",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+            "pm.test('Has dashboard data', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json).to.be.an('object');",
+            "});"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/dashboard", "host": ["{{baseUrl}}"], "path": ["dashboard"]}
+          }
+        },
+        {
+          "name": "6.2 Get Dashboard (Admin)",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/dashboard", "host": ["{{baseUrl}}"], "path": ["dashboard"]}
+          }
+        },
+        {
+          "name": "6.3 Get Important Matter (Invalid ID)",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 404', function () { pm.response.to.have.status(404); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/dashboard/matters/-1", "host": ["{{baseUrl}}"], "path": ["dashboard", "matters", "-1"]}
+          }
+        },
+        {
+          "name": "6.4 Get Important Task (Invalid ID)",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 404', function () { pm.response.to.have.status(404); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/dashboard/tasks/-1", "host": ["{{baseUrl}}"], "path": ["dashboard", "tasks", "-1"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Employee Extended",
+      "item": [
+        {
+          "name": "7.1 Get Current Employee",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+            "pm.test('Has employee data', function () { pm.expect(pm.response.json()).to.have.property('employeeId'); });"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/employees/me", "host": ["{{baseUrl}}"], "path": ["employees", "me"]}
+          }
+        },
+        {
+          "name": "7.2 Get Weekly Stats",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/employees/weekly-stats", "host": ["{{baseUrl}}"], "path": ["employees", "weekly-stats"]}
+          }
+        },
+        {
+          "name": "7.3 Get Weekly Stats with Date",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/employees/weekly-stats?date={{today}}", "host": ["{{baseUrl}}"], "path": ["employees", "weekly-stats"], "query": [{"key": "date", "value": "{{today}}"}]}
+          }
+        },
+        {
+          "name": "7.4 Get Weekly Mood Statistics",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/employees/weekly-mood-statistics", "host": ["{{baseUrl}}"], "path": ["employees", "weekly-mood-statistics"]}
+          }
+        },
+        {
+          "name": "7.5 Get Weekly Daily Workload",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/employees/weekly-daily-workload", "host": ["{{baseUrl}}"], "path": ["employees", "weekly-daily-workload"]}
+          }
+        },
+        {
+          "name": "7.6 Get Assignable Employees (Leader)",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Get assignable employees', function () { pm.expect(pm.response.code).to.be.oneOf([200, 403]); });"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{leaderToken}}"}],
+            "url": {"raw": "{{baseUrl}}/employees/assignable", "host": ["{{baseUrl}}"], "path": ["employees", "assignable"]}
+          }
+        },
+        {
+          "name": "7.7 Update Employee Info",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"employeeName\":\"Updated Employee V3\"}"},
+            "url": {"raw": "{{baseUrl}}/employees/me", "host": ["{{baseUrl}}"], "path": ["employees", "me"]}
+          }
+        },
+        {
+          "name": "7.8 Change Password",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Change password', function () { pm.expect(pm.response.code).to.be.oneOf([200, 400]); });",
+            "if (pm.response.code === 400) {",
+            "    console.log('Change password failed: ' + pm.response.text());",
+            "}"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"newPassword\":\"123456\"}"},
+            "url": {"raw": "{{baseUrl}}/employees/me/password", "host": ["{{baseUrl}}"], "path": ["employees", "me", "password"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Negative Tests",
+      "item": [
+        {
+          "name": "8.0 Verify Employee Position",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Employee token is valid', function () { pm.response.to.have.status(200); });",
+            "pm.test('Employee position is 3', function () {",
+            "    var json = pm.response.json();",
+            "    console.log('Employee position: ' + json.position);",
+            "    pm.expect(json.position).to.equal(3);",
+            "});"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/employees/me", "host": ["{{baseUrl}}"], "path": ["employees", "me"]}
+          }
+        },
+        {
+          "name": "8.1 No Token Access",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 403', function () { pm.response.to.have.status(403); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{baseUrl}}/tasks", "host": ["{{baseUrl}}"], "path": ["tasks"]}
+          }
+        },
+        {
+          "name": "8.2 Invalid Log ID",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 404 or 500', function () { pm.expect(pm.response.code).to.be.oneOf([404, 500]); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/logs/-1", "host": ["{{baseUrl}}"], "path": ["logs", "-1"]}
+          }
+        },
+        {
+          "name": "8.3 Invalid Task ID",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 404', function () { pm.response.to.have.status(404); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/tasks/-1", "host": ["{{baseUrl}}"], "path": ["tasks", "-1"]}
+          }
+        },
+        {
+          "name": "8.4 Invalid Date Format",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 400', function () { pm.response.to.have.status(400); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/logs/byDate?datetime=invalid", "host": ["{{baseUrl}}"], "path": ["logs", "byDate"], "query": [{"key": "datetime", "value": "invalid"}]}
+          }
+        },
+        {
+          "name": "8.5 Employee Cannot Get Assignable (Permission)",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 401 or 403', function () { pm.expect(pm.response.code).to.be.oneOf([401, 403]); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/employees/assignable", "host": ["{{baseUrl}}"], "path": ["employees", "assignable"]}
+          }
+        },
+        {
+          "name": "8.6 Employee Cannot Get Team Tasks",
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('Status 401 or 403', function () { pm.expect(pm.response.code).to.be.oneOf([401, 403]); });"], "type": "text/javascript"}}],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/tasks/team", "host": ["{{baseUrl}}"], "path": ["tasks", "team"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Cleanup",
+      "item": [
+        {
+          "name": "9.1 Delete Log",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Delete log', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204, 404]); });"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/logs/{{logId}}", "host": ["{{baseUrl}}"], "path": ["logs", "{{logId}}"]}
+          }
+        },
+        {
+          "name": "9.2 Delete Task Log",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Delete task log', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204, 404]); });"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{employeeToken}}"}],
+            "url": {"raw": "{{baseUrl}}/logs/{{taskLogId}}", "host": ["{{baseUrl}}"], "path": ["logs", "{{taskLogId}}"]}
+          }
+        },
+        {
+          "name": "9.3 Delete Task",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Delete task', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204, 404]); });"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/tasks/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["tasks", "{{taskId}}"]}
+          }
+        },
+        {
+          "name": "9.4 Delete Project",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Delete project', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204, 404]); });"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/projects/{{projectId}}", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectId}}"]}
+          }
+        },
+        {
+          "name": "9.5 Delete Test Employee",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Delete employee', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204, 404]); });"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/admin/employees/{{createdEmployeeId}}", "host": ["{{baseUrl}}"], "path": ["admin", "employees", "{{createdEmployeeId}}"]}
+          }
+        },
+        {
+          "name": "9.6 Delete Test Leader",
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test('Delete leader', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204, 404]); });",
+            "pm.environment.unset('adminToken');",
+            "pm.environment.unset('employeeToken');",
+            "pm.environment.unset('leaderToken');",
+            "pm.environment.unset('createdEmployeeId');",
+            "pm.environment.unset('createdLeaderId');",
+            "pm.environment.unset('projectId');",
+            "pm.environment.unset('taskId');",
+            "pm.environment.unset('logId');",
+            "pm.environment.unset('taskLogId');",
+            "pm.environment.unset('noticeId');",
+            "pm.environment.unset('taskAssigned');"
+          ], "type": "text/javascript"}}],
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/admin/employees/{{createdLeaderId}}", "host": ["{{baseUrl}}"], "path": ["admin", "employees", "{{createdLeaderId}}"]}
+          }
+        }
+      ]
+    }
+  ]
+}

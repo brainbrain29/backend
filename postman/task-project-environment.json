@@ -1,0 +1,75 @@
+{
+  "id": "task-project-environment",
+  "name": "Task Project Test Environment",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "adminToken",
+      "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwicG9zaXRpb24iOjAsImlhdCI6MTc2NDU5NDc4MywiZXhwIjoxNzY0NTk4MzgzfQ.bbBE5A9W1kFmAA-VEmGzFTyhxEnmsPVbMtKfkNdEelM",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "projectId",
+      "value": "1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "newProjectId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "taskId",
+      "value": "1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "newTaskId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "senderId",
+      "value": "1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "assigneeId",
+      "value": "2",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "teamId",
+      "value": "1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "keyword",
+      "value": "测试",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2024-01-01T00:00:00.000Z",
+  "_postman_exported_using": "Postman"
+}

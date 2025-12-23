@@ -155,6 +155,7 @@ public class TaskController {
     // 更新任务状态
     @PutMapping("{taskId}/status")
     public ResponseEntity<TaskDTO> updateTaskStatus(
+            @PathVariable("taskId") Integer taskId,
             @RequestBody TaskStatusDTO dto,
             HttpServletRequest request) {
         Integer userId = (Integer) request.getAttribute("userId");
@@ -299,7 +300,7 @@ public class TaskController {
         if (emp == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
         }
-        if (emp.getPosition() < 2) {
+        if (emp.getPosition() > 2) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Permission denied");
         }
         List<TaskDTO> tasks = taskService.getTasksByTeam(userId);

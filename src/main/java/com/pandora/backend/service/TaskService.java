@@ -64,8 +64,10 @@ public class TaskService {
     @Autowired
     private TaskAttachmentRepository taskAttachmentRepository;
 
+    // @Autowired
+    // private FileStorageService fileStorageService;
     @Autowired
-    private FileStorageService fileStorageService;
+    private OssService ossService;
 
     /**
      * 创建任务并处理附件
@@ -135,8 +137,11 @@ public class TaskService {
                     continue;
 
                 try {
-                    // 3a. 存储文件到磁盘
-                    String storedFilename = fileStorageService.storeFile(file);
+                    // 3a. 存储文件到磁盘 (Old)
+                    // String storedFilename = fileStorageService.storeFile(file);
+
+                    // 3a. 存储文件到 OSS (New)
+                    String storedFilename = ossService.uploadFile(file);
 
                     // 3b. 保存附件信息到数据库
                     TaskAttachment attachment = new TaskAttachment();

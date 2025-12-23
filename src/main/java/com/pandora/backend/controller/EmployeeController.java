@@ -72,8 +72,8 @@ public class EmployeeController {
         }
 
         // 验证权限：只有领导（position >= 2）才能查看
-        if (currentUser.getPosition() < 2) {
-            return ResponseEntity.status(403).body("权限不足，只有领导才能分配任务");
+        if (currentUser.getPosition() > 2) {
+            return ResponseEntity.status(401).body("权限不足，只有领导才能分配任务");
         }
 
         // 获取所有员工（排除自己）

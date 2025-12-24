@@ -3,18 +3,11 @@ package com.pandora.backend.controller;
 import com.pandora.backend.dto.LogDTO;
 import com.pandora.backend.dto.TaskDTO;
 import com.pandora.backend.entity.Log; // 导入实体类 Log
-import com.pandora.backend.entity.LogAttachment;
-import com.pandora.backend.repository.LogAttachmentRepository;
 import com.pandora.backend.service.LogService;
 import com.pandora.backend.service.AttachmentService;
-import com.pandora.backend.service.FileStorageService;
 import com.pandora.backend.service.TaskService;
-import com.pandora.backend.util.JwtUtil;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 
-import com.pandora.backend.service.TaskService;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -45,9 +36,6 @@ public class LogController {
 
     @Autowired
     private TaskService taskService;
-
-    @Autowired
-    private JwtUtil jwtUtil;
 
     // 根据时间获取当天所有日志
     @GetMapping("/byDate")

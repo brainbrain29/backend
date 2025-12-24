@@ -19,11 +19,12 @@ CREATE TABLE employee (
     employee_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     org_id INT COMMENT '所属部门ID',
     employee_name VARCHAR(64) NOT NULL COMMENT '员工姓名',
-    phone VARCHAR(20) NOT NULL UNIQUE COMMENT '手机号',
+    phone_enc VARCHAR(255) NOT NULL COMMENT '手机号（可逆加密存储）',
+    phone_hash CHAR(64) NULL UNIQUE COMMENT '手机号Hash（用于查询）',
     gender TINYINT NOT NULL COMMENT '0:女 1:男',
     email VARCHAR(64) NOT NULL UNIQUE COMMENT '邮箱',
     position TINYINT NOT NULL COMMENT '0:CEO 1:部门经理 2:团队长 3:员工',
-    emp_password VARCHAR(20) NOT NULL COMMENT '密码',
+    emp_password VARCHAR(100) NOT NULL COMMENT '密码',
     avatar_url VARCHAR(255) COMMENT '头像URL,管理员用于Web端,其他员工用于移动端',
     mbti VARCHAR(5) COMMENT 'MBTI性格类型'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='员工表';
@@ -98,9 +99,7 @@ CREATE TABLE log_attachment (
     file_type VARCHAR(100) COMMENT '文件MIME类型',
     file_size BIGINT COMMENT '文件大小(字节)',
     upload_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
-    uploaded_by INT COMMENT '上传者ID',
-    FOREIGN KEY (log_id) REFERENCES log(log_id)
-        ON DELETE CASCADE
+    uploaded_by INT COMMENT '上传者ID'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='日志附件表';
 
 -- 10. AI 工作分析结果表
@@ -183,6 +182,23 @@ CREATE TABLE refresh_token (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     expires_at DATETIME NOT NULL COMMENT '过期时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='刷新令牌表';
+
+-- 15. 上传任务表
+CREATE TABLE upload_job (
+    upload_job_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    content_type VARCHAR(255) NULL,
+    file_size BIGINT NULL,
+    local_path VARCHAR(1024) NOT NULL,
+    oss_object_key VARCHAR(1024) NULL,
+    status VARCHAR(50) NOT NULL,
+    error_message VARCHAR(2000) NULL,
+    created_time DATETIME NOT NULL,
+    updated_time DATETIME NOT NULL,
+    INDEX idx_upload_job_user_id (user_id),
+    INDEX idx_upload_job_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ========================================
 -- 第二部分: 添加外键约束

@@ -37,8 +37,6 @@ import com.pandora.backend.enums.Position;
 
 @Service
 public class TaskService {
-
-    private static final Byte POSITION_TEAM_LEADER = 2;
     private static final Byte LEADER_FLAG = 1;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TaskService.class);
@@ -564,17 +562,6 @@ public class TaskService {
         }
 
         return dto;
-    }
-
-    private Employee loadLeaderOrThrow(Integer leaderId) {
-        return employeeRepository.findById(leaderId)
-                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
-    }
-
-    private void validateLeaderPosition(Employee leader) {
-        if (!POSITION_TEAM_LEADER.equals(leader.getPosition())) {
-            throw new IllegalArgumentException("仅团队长可以执行该操作");
-        }
     }
 
     public List<TaskDTO> getTasksByTeam(Integer leaderId) {

@@ -77,12 +77,11 @@ public class AdminWebController {
         }
 
         try {
-            var updated = adminService.updateAdminProfile(adminId, adminName, adminEmail, adminPhone, newPassword,
-                    avatar);
-            session.setAttribute("adminName", updated.getEmployeeName());
-            session.setAttribute("adminEmail", updated.getEmail());
-            session.setAttribute("adminPhone", updated.getPhone());
-            session.setAttribute("adminAvatar", updated.getAvatarUrl());
+            adminService.updateAdminProfile(adminId, adminName, adminEmail, adminPhone, newPassword, avatar);
+            EmployeeDTO updatedDto = adminService.getAdminById(adminId);
+            session.setAttribute("adminName", updatedDto.getEmployeeName());
+            session.setAttribute("adminEmail", updatedDto.getEmail());
+            session.setAttribute("adminPhone", updatedDto.getPhone());
             model.addAttribute("profileMessage", "个人信息已更新");
         } catch (IllegalArgumentException ex) {
             model.addAttribute("profileError", ex.getMessage());

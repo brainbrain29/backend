@@ -33,6 +33,14 @@ build/
 .vscode/
 node_modules/
 
+### Environment files (sensitive) ###
 .env
 .env.*
 !.env.example
+
+### User uploads (runtime data) ###
+uploads/
+
+### Node.js (not needed for Java backend) ###
+package.json
+package-lock.json

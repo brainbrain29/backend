@@ -39,11 +39,14 @@ public class Employee {
     private Byte position;
 
     @JsonIgnore
-    @Column(name = "emp_password", nullable = false, length = 20)
+    @Column(name = "emp_password", nullable = false, length = 100)
     private String password;
 
-    @Column(name = "phone", nullable = false, length = 20)
-    private String phone;
+    @Column(name = "phone_enc", nullable = false, length = 255)
+    private String phoneEnc;
+
+    @Column(name = "phone_hash", unique = true, length = 64)
+    private String phoneHash;
 
     @Column(name = "avatar_url", length = 255)
     private String avatarUrl;

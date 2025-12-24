@@ -3,6 +3,7 @@ package com.pandora.backend.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import com.pandora.backend.repository.EmployeeRepository;
 import com.pandora.backend.repository.LogRepository;
@@ -17,6 +18,8 @@ import com.pandora.backend.entity.Task;
 import com.pandora.backend.enums.Emoji;
 import com.pandora.backend.enums.Gender;
 import com.pandora.backend.enums.Position;
+import com.pandora.backend.security.EmployeeSecurityMapper;
+import com.pandora.backend.security.PasswordHashService;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -46,15 +49,41 @@ public class EmployeeService {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
+    @Autowired
+    private EmployeeSecurityMapper employeeSecurityMapper;
+
+    @Autowired
+    private PasswordHashService passwordHashService;
+
     // 创建新员工
     public EmployeeDTO createEmployee(EmployeeDTO dto) {
+        if (dto == null) {
+            throw new IllegalArgumentException("EmployeeDTO is null");
+        }
+        if (!StringUtils.hasText(dto.getEmployeeName())) {
+            throw new IllegalArgumentException("员工姓名不能为空");
+        }
+        if (!StringUtils.hasText(dto.getGender())) {
+            throw new IllegalArgumentException("性别不能为空");
+        }
+        if (!StringUtils.hasText(dto.getPhone())) {
+            throw new IllegalArgumentException("手机号不能为空");
+        }
+        if (!StringUtils.hasText(dto.getEmail())) {
+            throw new IllegalArgumentException("邮箱不能为空");
+        }
+        if (dto.getPosition() == null) {
+            throw new IllegalArgumentException("职位不能为空");
+        }
         Employee emp = new Employee();
-        emp.setEmployeeName(dto.getEmployeeName());
+        emp.setEmployeeName(dto.getEmployeeName().trim());
         emp.setGender(Gender.fromDesc(dto.getGender())); // DTO 文字 → Enum
-        emp.setPhone(dto.getPhone());
-        emp.setEmail(dto.getEmail());
+        employeeSecurityMapper.setPhone(emp, dto.getPhone().trim());
+        emp.setEmail(dto.getEmail().trim());
         emp.setPosition(dto.getPosition());
         emp.setMbti(dto.getMbti());
+
+        emp.setPassword(passwordHashService.hashPassword("123456"));
 
         Employee saved = employeeRepository.save(emp); // JPA 自动生成 INSERT
 
@@ -62,7 +91,7 @@ public class EmployeeService {
         EmployeeDTO result = new EmployeeDTO();
         result.setEmployeeName(saved.getEmployeeName());
         result.setGender(saved.getGender().getDesc()); // Enum → 文字
-        result.setPhone(saved.getPhone());
+        result.setPhone(employeeSecurityMapper.getPhonePlain(saved));
         result.setEmail(saved.getEmail());
         result.setPosition(saved.getPosition());
         result.setMbti(saved.getMbti());
@@ -89,7 +118,7 @@ public class EmployeeService {
         dto.setEmployeeId(emp.getEmployeeId());
         dto.setEmployeeName(emp.getEmployeeName());
         dto.setGender(emp.getGender().getDesc());
-        dto.setPhone(emp.getPhone());
+        dto.setPhone(employeeSecurityMapper.getPhonePlain(emp));
         dto.setEmail(emp.getEmail());
         dto.setPosition(emp.getPosition());
         dto.setPositionName(Position.getDescriptionByCode(emp.getPosition()));
@@ -127,11 +156,11 @@ public class EmployeeService {
                 .orElseThrow(() -> new RuntimeException("员工不存在"));
 
         // 验证新密码与当前密码是否相同
-        if (employee.getPassword().equals(newPassword)) {
+        if (passwordHashService.matches(newPassword, employee.getPassword())) {
             throw new RuntimeException("新密码不能与当前密码相同");
         }
 
-        employee.setPassword(newPassword);
+        employee.setPassword(passwordHashService.hashPassword(newPassword));
         employeeRepository.save(employee);
     }
 

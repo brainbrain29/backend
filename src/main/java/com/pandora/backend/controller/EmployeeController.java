@@ -4,13 +4,11 @@ import com.pandora.backend.dto.ChangePasswordDTO;
 import com.pandora.backend.dto.DailyWorkloadDTO;
 import com.pandora.backend.dto.EmployeeDTO;
 import com.pandora.backend.dto.EmployeeWeeklyStatsDTO;
-import com.pandora.backend.dto.ImportantMatterDTO;
-import com.pandora.backend.dto.ImportantTaskDTO;
 import com.pandora.backend.dto.MoodStatisticsDTO;
 import com.pandora.backend.entity.Employee;
 import com.pandora.backend.enums.Position;
+import com.pandora.backend.security.EmployeeSecurityMapper;
 import com.pandora.backend.service.EmployeeService;
-import com.pandora.backend.service.DashboardService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -31,7 +29,7 @@ public class EmployeeController {
     private EmployeeService employeeService;
 
     @Autowired
-    private DashboardService dashboardService;
+    private EmployeeSecurityMapper employeeSecurityMapper;
 
     // @Autowired
     // private ProjectService projectService;
@@ -86,7 +84,7 @@ public class EmployeeController {
                     empMap.put("employeeName", emp.getEmployeeName());
                     empMap.put("position", emp.getPosition());
                     empMap.put("positionName", Position.getDescriptionByCode(emp.getPosition()));
-                    empMap.put("phone", emp.getPhone());
+                    empMap.put("phone", employeeSecurityMapper.getPhonePlain(emp));
                     empMap.put("email", emp.getEmail());
                     return empMap;
                 })
@@ -142,7 +140,7 @@ public class EmployeeController {
         }
 
         if (dto.getPhone() != null && !dto.getPhone().trim().isEmpty()) {
-            employee.setPhone(dto.getPhone());
+            employeeSecurityMapper.setPhone(employee, dto.getPhone());
         }
 
         if (dto.getEmail() != null && !dto.getEmail().trim().isEmpty()) {

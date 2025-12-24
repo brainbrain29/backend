@@ -15,27 +15,27 @@ INSERT INTO department (org_name) VALUES
 -- ========================================
 -- 2. 员工表测试数据
 -- ========================================
-INSERT INTO employee (org_id, employee_name, phone, gender, email, position, emp_password, mbti) VALUES
-(NULL, 'admin', '13900000000', 1, 'admin@test.com', 0, 'admin', 'INTJ'),
-(NULL, '张伟', '13800000001', 1, 'ceo@test.com', 0, '123456', 'ENTJ'),
-(1, '李强', '13800000002', 1, 'tech_mgr@test.com', 1, '123456', 'ISTJ'),
-(2, '王芳', '13800000003', 0, 'market_mgr@test.com', 1, '123456', 'ENFP'),
-(3, '刘洋', '13800000004', 1, 'hr_mgr@test.com', 1, '123456', 'ESFJ'),
-(4, '陈敏', '13800000005', 0, 'finance_mgr@test.com', 1, '123456', 'ESTJ'),
-(1, '赵磊', '13800000006', 1, 'tech_lead@test.com', 2, '123456', 'INTP'),
-(2, '陈静', '13800000007', 0, 'market_lead@test.com', 2, '123456', 'ENFJ'),
-(3, '周杰', '13800000008', 1, 'hr_lead@test.com', 2, '123456', 'ISFJ'),
-(4, '吴娜', '13800000009', 0, 'finance_lead@test.com', 2, '123456', 'ISTJ'),
-(1, '孙浩', '13800000010', 1, 'tech_emp@test.com', 3, '123456', 'ISTP'),
-(2, '刘颖', '13800000011', 0, 'market_emp@test.com', 3, '123456', 'ESFP'),
-(3, '郑强', '13800000012', 1, 'hr_emp@test.com', 3, '123456', 'INFJ'),
-(4, '黄丽', '13800000013', 0, 'finance_emp@test.com', 3, '123456', 'ISFP'),
-(1, '张三', '13800000014', 1, 'zhangsan@test.com', 3, '123456', 'ENTP'),
-(1, '李四', '13800000015', 0, 'lisi@test.com', 3, '123456', 'INFP'),
-(2, '王五', '13800000016', 1, 'wangwu@test.com', 3, '123456', 'ESTP'),
-(2, '赵六', '13800000017', 0, 'zhaoliu@test.com', 3, '123456', 'ENFP'),
-(3, '孙七', '13800000018', 1, 'sunqi@test.com', 3, '123456', 'ISFJ'),
-(4, '周八', '13800000019', 0, 'zhouba@test.com', 3, '123456', 'ESFJ');
+INSERT INTO employee (org_id, employee_name, phone_enc, phone_hash, gender, email, position, emp_password, mbti) VALUES
+(NULL, 'admin', '13900000000', NULL, 1, 'admin@test.com', 0, 'admin', 'INTJ'),
+(NULL, '张伟', '13800000001', NULL, 1, 'ceo@test.com', 0, '123456', 'ENTJ'),
+(1, '李强', '13800000002', NULL, 1, 'tech_mgr@test.com', 1, '123456', 'ISTJ'),
+(2, '王芳', '13800000003', NULL, 0, 'market_mgr@test.com', 1, '123456', 'ENFP'),
+(3, '刘洋', '13800000004', NULL, 1, 'hr_mgr@test.com', 1, '123456', 'ESFJ'),
+(4, '陈敏', '13800000005', NULL, 0, 'finance_mgr@test.com', 1, '123456', 'ESTJ'),
+(1, '赵磊', '13800000006', NULL, 1, 'tech_lead@test.com', 2, '123456', 'INTP'),
+(2, '陈静', '13800000007', NULL, 0, 'market_lead@test.com', 2, '123456', 'ENFJ'),
+(3, '周杰', '13800000008', NULL, 1, 'hr_lead@test.com', 2, '123456', 'ISFJ'),
+(4, '吴娜', '13800000009', NULL, 0, 'finance_lead@test.com', 2, '123456', 'ISTJ'),
+(1, '孙浩', '13800000010', NULL, 1, 'tech_emp@test.com', 3, '123456', 'ISTP'),
+(2, '刘颖', '13800000011', NULL, 0, 'market_emp@test.com', 3, '123456', 'ESFP'),
+(3, '郑强', '13800000012', NULL, 1, 'hr_emp@test.com', 3, '123456', 'INFJ'),
+(4, '黄丽', '13800000013', NULL, 0, 'finance_emp@test.com', 3, '123456', 'ISFP'),
+(1, '张三', '13800000014', NULL, 1, 'zhangsan@test.com', 3, '123456', 'ENTP'),
+(1, '李四', '13800000015', NULL, 0, 'lisi@test.com', 3, '123456', 'INFP'),
+(2, '王五', '13800000016', NULL, 1, 'wangwu@test.com', 3, '123456', 'ESTP'),
+(2, '赵六', '13800000017', NULL, 0, 'zhaoliu@test.com', 3, '123456', 'ENFP'),
+(3, '孙七', '13800000018', NULL, 1, 'sunqi@test.com', 3, '123456', 'ISFJ'),
+(4, '周八', '13800000019', NULL, 0, 'zhouba@test.com', 3, '123456', 'ESFJ');
 
 -- ========================================
 -- 3. 团队表测试数据

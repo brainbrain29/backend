@@ -69,7 +69,8 @@ public class GlobalExceptionHandler {
 
         String uri = request.getRequestURI();
         String paramName = ex.getName();
-        String paramValue = ex.getValue() != null ? ex.getValue().toString() : "null";
+        Object paramRawValue = ex.getValue();
+        String paramValue = paramRawValue == null ? "null" : paramRawValue.toString();
 
         logger.warn("参数转换失败: {} - 参数: {}, 值: {}", uri, paramName, paramValue);
 

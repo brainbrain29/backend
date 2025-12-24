@@ -15,6 +15,8 @@ import com.pandora.backend.entity.*;
 import com.pandora.backend.repository.*;
 import com.pandora.backend.enums.Gender;
 import com.pandora.backend.enums.Position;
+import com.pandora.backend.security.EmployeeSecurityMapper;
+import com.pandora.backend.security.PasswordHashService;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -47,6 +49,12 @@ public class AdminService {
     @Autowired
     private ImportantTaskRepository importantTaskRepository;
 
+    @Autowired
+    private EmployeeSecurityMapper employeeSecurityMapper;
+
+    @Autowired
+    private PasswordHashService passwordHashService;
+
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
 
@@ -63,7 +71,7 @@ public class AdminService {
                     dto.setEmployeeId(emp.getEmployeeId());
                     dto.setEmployeeName(emp.getEmployeeName());
                     dto.setGender(emp.getGender().getDesc());
-                    dto.setPhone(emp.getPhone());
+                    dto.setPhone(employeeSecurityMapper.getPhonePlain(emp));
                     dto.setEmail(emp.getEmail());
                     dto.setPosition(emp.getPosition());
                     if (emp.getDepartment() != null) {
@@ -97,7 +105,7 @@ public class AdminService {
         dto.setEmployeeId(emp.getEmployeeId());
         dto.setEmployeeName(emp.getEmployeeName());
         dto.setGender(emp.getGender() != null ? emp.getGender().getDesc() : null);
-        dto.setPhone(emp.getPhone());
+        dto.setPhone(employeeSecurityMapper.getPhonePlain(emp));
         dto.setEmail(emp.getEmail());
         dto.setPosition(emp.getPosition());
         if (emp.getDepartment() != null) {
@@ -112,15 +120,33 @@ public class AdminService {
      */
     @Transactional
     public EmployeeDTO createEmployee(EmployeeDTO dto) {
+        if (dto == null) {
+            throw new IllegalArgumentException("EmployeeDTO is null");
+        }
+        if (!StringUtils.hasText(dto.getEmployeeName())) {
+            throw new IllegalArgumentException("员工姓名不能为空");
+        }
+        if (!StringUtils.hasText(dto.getGender())) {
+            throw new IllegalArgumentException("性别不能为空");
+        }
+        if (!StringUtils.hasText(dto.getPhone())) {
+            throw new IllegalArgumentException("手机号不能为空");
+        }
+        if (!StringUtils.hasText(dto.getEmail())) {
+            throw new IllegalArgumentException("邮箱不能为空");
+        }
+        if (dto.getPosition() == null) {
+            throw new IllegalArgumentException("职位不能为空");
+        }
         Employee emp = new Employee();
-        emp.setEmployeeName(dto.getEmployeeName());
+        emp.setEmployeeName(dto.getEmployeeName().trim());
         emp.setGender(Gender.fromDesc(dto.getGender()));
-        emp.setPhone(dto.getPhone());
-        emp.setEmail(dto.getEmail());
+        employeeSecurityMapper.setPhone(emp, dto.getPhone().trim());
+        emp.setEmail(dto.getEmail().trim());
         emp.setPosition(dto.getPosition());
 
         // 设置默认密码
-        emp.setPassword("123456");
+        emp.setPassword(passwordHashService.hashPassword("123456"));
 
         // 设置部门
         if (dto.getOrgId() != null) {
@@ -135,7 +161,7 @@ public class AdminService {
         result.setEmployeeId(saved.getEmployeeId());
         result.setEmployeeName(saved.getEmployeeName());
         result.setGender(saved.getGender().getDesc());
-        result.setPhone(saved.getPhone());
+        result.setPhone(employeeSecurityMapper.getPhonePlain(saved));
         result.setEmail(saved.getEmail());
         result.setPosition(saved.getPosition());
         if (saved.getDepartment() != null) {
@@ -179,13 +205,31 @@ public class AdminService {
      */
     @Transactional
     public EmployeeDTO updateEmployee(Integer id, EmployeeDTO dto) {
+        if (dto == null) {
+            throw new IllegalArgumentException("EmployeeDTO is null");
+        }
+        if (!StringUtils.hasText(dto.getEmployeeName())) {
+            throw new IllegalArgumentException("员工姓名不能为空");
+        }
+        if (!StringUtils.hasText(dto.getGender())) {
+            throw new IllegalArgumentException("性别不能为空");
+        }
+        if (!StringUtils.hasText(dto.getPhone())) {
+            throw new IllegalArgumentException("手机号不能为空");
+        }
+        if (!StringUtils.hasText(dto.getEmail())) {
+            throw new IllegalArgumentException("邮箱不能为空");
+        }
+        if (dto.getPosition() == null) {
+            throw new IllegalArgumentException("职位不能为空");
+        }
         Employee emp = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
 
-        emp.setEmployeeName(dto.getEmployeeName());
+        emp.setEmployeeName(dto.getEmployeeName().trim());
         emp.setGender(Gender.fromDesc(dto.getGender()));
-        emp.setPhone(dto.getPhone());
-        emp.setEmail(dto.getEmail());
+        employeeSecurityMapper.setPhone(emp, dto.getPhone().trim());
+        emp.setEmail(dto.getEmail().trim());
         emp.setPosition(dto.getPosition());
 
         // 更新部门
@@ -203,7 +247,7 @@ public class AdminService {
         result.setEmployeeId(saved.getEmployeeId());
         result.setEmployeeName(saved.getEmployeeName());
         result.setGender(saved.getGender().getDesc());
-        result.setPhone(saved.getPhone());
+        result.setPhone(employeeSecurityMapper.getPhonePlain(saved));
         result.setEmail(saved.getEmail());
         result.setPosition(saved.getPosition());
         if (saved.getDepartment() != null) {
@@ -379,11 +423,11 @@ public class AdminService {
         emp.setEmployeeName(name.trim());
         emp.setEmail(email.trim());
         if (StringUtils.hasText(phone)) {
-            emp.setPhone(phone.trim());
+            employeeSecurityMapper.setPhone(emp, phone.trim());
         }
 
         if (StringUtils.hasText(newPassword)) {
-            emp.setPassword(newPassword.trim());
+            emp.setPassword(passwordHashService.hashPassword(newPassword.trim()));
         }
 
         if (avatarFile != null && !avatarFile.isEmpty()) {
@@ -575,7 +619,7 @@ public class AdminService {
         if (emp.getGender() != null) {
             dto.setGender(emp.getGender().getDesc());
         }
-        dto.setPhone(emp.getPhone());
+        dto.setPhone(employeeSecurityMapper.getPhonePlain(emp));
         dto.setEmail(emp.getEmail());
         dto.setPosition(emp.getPosition());
         if (emp.getDepartment() != null) {

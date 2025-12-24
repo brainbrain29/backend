@@ -2,6 +2,7 @@ package com.pandora.backend.controller;
 
 import com.pandora.backend.entity.Employee;
 import com.pandora.backend.repository.EmployeeRepository;
+import com.pandora.backend.security.PasswordHashService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -17,6 +18,9 @@ public class LoginController {
 
     @Autowired
     private EmployeeRepository employeeRepository;
+
+    @Autowired
+    private PasswordHashService passwordHashService;
 
     /**
      * 显示登录页面
@@ -35,34 +39,34 @@ public class LoginController {
             @RequestParam String password,
             HttpSession session,
             Model model) {
-        
+
         // 查找用户
         Optional<Employee> employeeOpt = employeeRepository.findByEmail(email);
-        
+
         if (employeeOpt.isEmpty()) {
             model.addAttribute("error", "邮箱或密码错误");
             return "admin/login";
         }
-        
+
         Employee employee = employeeOpt.get();
-        
+
         // 验证密码
-        if (!employee.getPassword().equals(password)) {
+        if (!passwordHashService.matches(password, employee.getPassword())) {
             model.addAttribute("error", "邮箱或密码错误");
             return "admin/login";
         }
-        
+
         // 验证是否为管理员（position = 0）
         if (employee.getPosition() != 0) {
             model.addAttribute("error", "您没有管理员权限");
             return "admin/login";
         }
-        
+
         // 登录成功，存储session
         session.setAttribute("adminId", employee.getEmployeeId());
         session.setAttribute("adminName", employee.getEmployeeName());
         session.setAttribute("adminEmail", employee.getEmail());
-        
+
         return "redirect:/admin/web/dashboard";
     }
 

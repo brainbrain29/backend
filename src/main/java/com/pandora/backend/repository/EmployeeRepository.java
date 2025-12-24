@@ -9,19 +9,22 @@ import java.util.Optional;
 
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Integer> {
-    Optional<Employee> findByPhone(String phone);
+    Optional<Employee> findByPhoneHash(String phoneHash);
+
+    Optional<Employee> findByPhoneEnc(String phoneEnc);
+
     Optional<Employee> findByEmail(String email);
-    
+
     /**
      * 根据部门查询所有员工
      */
     List<Employee> findByDepartment(Department department);
-    
+
     /**
      * 根据职位查询员工
      */
     List<Employee> findByPosition(Byte position);
-    
+
     /**
      * 根据部门和职位查询员工
      */

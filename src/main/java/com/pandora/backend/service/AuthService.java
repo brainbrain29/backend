@@ -4,6 +4,9 @@ import com.pandora.backend.entity.Employee;
 import com.pandora.backend.entity.RefreshToken;
 import com.pandora.backend.repository.EmployeeRepository;
 import com.pandora.backend.repository.RefreshTokenRepository;
+import com.pandora.backend.security.EmployeeSecurityMapper;
+import com.pandora.backend.security.PasswordHashService;
+import com.pandora.backend.security.PhoneSecurityService;
 import com.pandora.backend.util.JwtUtil;
 import com.pandora.backend.dto.TokenPair;
 import org.slf4j.Logger;
@@ -27,12 +30,37 @@ public class AuthService {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private PhoneSecurityService phoneSecurityService;
+
+    @Autowired
+    private PasswordHashService passwordHashService;
+
+    @Autowired
+    private EmployeeSecurityMapper employeeSecurityMapper;
+
     public String login(String phone, String password) {
-        Employee emp = employeeRepository.findByPhone(phone)
+        String phoneHash = phoneSecurityService.hashPhone(phone);
+        Employee emp = employeeRepository.findByPhoneHash(phoneHash)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!emp.getPassword().equals(password)) {
+        if (!passwordHashService.matches(password, emp.getPassword())) {
             throw new RuntimeException("Invalid password");
+        }
+
+        boolean shouldUpgradePassword = emp.getPassword() != null
+                && !(emp.getPassword().startsWith("$2a$")
+                        || emp.getPassword().startsWith("$2b$")
+                        || emp.getPassword().startsWith("$2y$"));
+
+        if (shouldUpgradePassword) {
+            emp.setPassword(passwordHashService.hashPassword(password));
+            employeeRepository.save(emp);
+        }
+
+        if (emp.getPhoneHash() == null || phoneSecurityService.isLegacyPlainPhoneEnc(emp.getPhoneEnc())) {
+            employeeSecurityMapper.setPhone(emp, phone);
+            employeeRepository.save(emp);
         }
 
         return jwtUtil.generateAccessToken(emp.getEmployeeId(), emp.getPosition());

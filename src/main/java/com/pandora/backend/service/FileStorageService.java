@@ -1,4 +1,4 @@
-package com.pandora.backend.service; 
+package com.pandora.backend.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -19,13 +19,15 @@ import java.util.UUID;
 @Service
 public class FileStorageService {
 
-    private final Path uploadDir; 
+    private final Path uploadDir;
 
-    public FileStorageService(@Value("${file.upload-dir}") String uploadDirString) {
+    public FileStorageService(@Value("${file.upload-dir:uploads}") String uploadDirString) {
+        if (!StringUtils.hasText(uploadDirString)) {
+            throw new IllegalStateException("file.upload-dir must not be blank");
+        }
         this.uploadDir = Paths.get(uploadDirString);
         try {
-            
-            Files.createDirectories(this.uploadDir); 
+            Files.createDirectories(this.uploadDir);
         } catch (IOException e) {
             throw new RuntimeException("无法初始化文件存储目录!", e);
         }
@@ -35,14 +37,20 @@ public class FileStorageService {
      * 存储文件并返回唯一的存储文件名
      */
     public String storeFile(MultipartFile file) throws IOException {
-        String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+        String originalFilenameRaw = file.getOriginalFilename();
+        if (originalFilenameRaw == null || originalFilenameRaw.trim().isEmpty()) {
+            throw new IOException("文件名不能为空");
+        }
+        String originalFilename = StringUtils.cleanPath(originalFilenameRaw);
 
         if (originalFilename.contains("..")) {
             throw new IOException("非法的文件名: " + originalFilename);
         }
 
         String extension = StringUtils.getFilenameExtension(originalFilename);
-        String storedFilename = UUID.randomUUID().toString() + "." + extension;
+        String storedFilename = StringUtils.hasText(extension)
+                ? UUID.randomUUID().toString() + "." + extension
+                : UUID.randomUUID().toString();
 
         Path targetLocation = this.uploadDir.resolve(storedFilename);
 

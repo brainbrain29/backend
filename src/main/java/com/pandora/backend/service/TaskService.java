@@ -645,7 +645,10 @@ public class TaskService {
                     dto.getTaskId(), userId,
                     oldStatus != null ? oldStatus.name() : null,
                     newStatus != null ? newStatus.name() : null);
-            return convertToDTO(task);
+            throw new IllegalArgumentException("不支持的任务状态变更: "
+                    + (oldStatus != null ? oldStatus.getDesc() : "未知")
+                    + " -> "
+                    + (newStatus != null ? newStatus.getDesc() : "未知"));
         }
 
         task.setTaskStatus((byte) newStatus.getCode());

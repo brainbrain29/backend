@@ -48,12 +48,18 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-pandora_repo}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=${MYSQL_USER:-appuser}
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=${RABBITMQ_DEFAULT_USER:-appuser}
+      - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}
       - GLM_API_KEY=${GLM_API_KEY:?GLM_API_KEY is required}
       - GLM_API_URL=${GLM_API_URL:-https://open.bigmodel.cn/api/paas/v4}
       - GLM_MODEL=${GLM_MODEL:-glm-4}

@@ -237,4 +237,18 @@ public class NotificationCacheService {
             redisUtil.expire(key, 30, TimeUnit.MINUTES);
         }
     }
+
+    // ==================== 幂等性检查 ====================
+
+    /**
+     * 尝试设置幂等性键（用于防止消息重复处理）
+     * 使用 SET NX 实现：如果键不存在则设置成功返回 true，否则返回 false
+     *
+     * @param key      幂等性键
+     * @param duration 过期时间
+     * @return true 如果是新键（首次处理），false 如果键已存在（重复处理）
+     */
+    public Boolean trySetIdempotentKey(String key, java.time.Duration duration) {
+        return redisUtil.setIfAbsent(key, "1", duration.toMillis(), TimeUnit.MILLISECONDS);
+    }
 }

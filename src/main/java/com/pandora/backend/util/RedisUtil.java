@@ -70,10 +70,11 @@ public class RedisUtil {
 
     /**
      * 尝试获取分布式锁
-     * @param key 锁的 key
-     * @param value 锁的值（通常用 UUID）
+     * 
+     * @param key     锁的 key
+     * @param value   锁的值（通常用 UUID）
      * @param timeout 锁的超时时间
-     * @param unit 时间单位
+     * @param unit    时间单位
      * @return 是否获取成功
      */
     public Boolean tryLock(String key, String value, long timeout, TimeUnit unit) {
@@ -82,7 +83,8 @@ public class RedisUtil {
 
     /**
      * 释放分布式锁（需要验证值匹配）
-     * @param key 锁的 key
+     * 
+     * @param key   锁的 key
      * @param value 锁的值
      * @return 是否释放成功
      */
@@ -92,5 +94,18 @@ public class RedisUtil {
             return redisTemplate.delete(key);
         }
         return false;
+    }
+
+    /**
+     * 如果 key 不存在则设置值（原子操作）
+     * 
+     * @param key     键
+     * @param value   值
+     * @param timeout 过期时间
+     * @param unit    时间单位
+     * @return true 如果设置成功（key 不存在），false 如果 key 已存在
+     */
+    public Boolean setIfAbsent(String key, Object value, long timeout, TimeUnit unit) {
+        return redisTemplate.opsForValue().setIfAbsent(key, value, timeout, unit);
     }
 }

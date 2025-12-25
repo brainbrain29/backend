@@ -1,5 +1,7 @@
 package com.pandora.backend.service;
 
+import com.pandora.backend.mq.NoticeMessage;
+import com.pandora.backend.mq.NoticeMessageProducer;
 import com.pandora.backend.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -45,6 +47,9 @@ public class NoticeService {
     @Autowired
     @Qualifier("asyncExecutor")
     private Executor asyncExecutor; // 异步线程池
+
+    @Autowired
+    private NoticeMessageProducer noticeMessageProducer; // RabbitMQ 消息生产者
 
     /**
      * 获取所有通知（包括已读和未读）
@@ -115,7 +120,12 @@ public class NoticeService {
     }
 
     /**
-     * 创建任务分配通知（集成 Redis 缓存 + SSE 推送）
+     * 创建任务分配通知（集成 Redis 缓存 + RabbitMQ 异步推送）
+     * 
+     * 流程：
+     * 1. 写入 MySQL（权威记录）
+     * 2. 发送消息到 RabbitMQ
+     * 3. Consumer 异步处理：更新 Redis 缓存 + SSE 推送/离线队列
      */
     public void createTaskAssignmentNotice(Task task) {
         if (task.getAssignee() == null || task.getSender() == null) {
@@ -127,14 +137,14 @@ public class NoticeService {
             return;
         }
 
-        // 1. 保存通知到数据库
+        // 1. 保存通知到数据库（权威记录）
         Notice notice = new Notice();
         notice.setSender(task.getSender());
         notice.setNoticeType((byte) com.pandora.backend.enums.NoticeType.NEW_TASK.getCode());
         String taskTitle = task.getTitle() != null ? task.getTitle() : "";
         String taskDeadline = task.getEndTime() != null ? task.getEndTime().toString() : "";
         notice.setContent("你被指派了任务: " + taskTitle + "\n截止日期为:" + taskDeadline);
-        notice.setRelatedId(task.getTaskId()); // 保存关联的任务ID
+        notice.setRelatedId(task.getTaskId());
         notice.setCreatedTime(LocalDateTime.now());
         Notice saved = noticeRepository.save(notice);
 
@@ -154,17 +164,20 @@ public class NoticeService {
         ne.setNoticeStatus(initialStatus);
         noticeEmployeeRepository.save(ne);
 
-        // 2. 转换为 DTO
-        NoticeDTO dto = toDTO(ne);
+        // 2. 发送消息到 RabbitMQ（异步处理缓存和推送）
+        NoticeMessage message = new NoticeMessage();
+        message.setNoticeId(saved.getNoticeId());
+        message.setReceiverId(receiverId);
+        message.setContent(saved.getContent());
+        message.setSenderName(task.getSender().getEmployeeName());
+        message.setCreatedTime(saved.getCreatedTime());
+        message.setRelatedId(saved.getRelatedId());
+        message.setNoticeType(NoticeType.NEW_TASK.getDesc());
+        message.setStatus(initialStatus.getDesc());
 
-        // 3. 更新 Redis 缓存
-        cacheService.incrementUnreadCount(receiverId); // 未读数 +1
-        cacheService.cacheRecentNotice(receiverId, dto); // 缓存最近通知
+        noticeMessageProducer.sendNotice(message);
 
-        // 4. SSE 实时推送（如果用户在线）或加入待推送队列（用户离线）
-        pushService.pushNotification(receiverId, dto);
-
-        System.out.println("任务分配通知已创建，用户: " + receiverId + ", 状态: " + initialStatus.getDesc());
+        System.out.println("任务分配通知已创建并发送到MQ，用户: " + receiverId + ", 状态: " + initialStatus.getDesc());
     }
 
     /**

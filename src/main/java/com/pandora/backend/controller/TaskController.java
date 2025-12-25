@@ -11,6 +11,8 @@ import com.pandora.backend.dto.AssignDTO;
 import com.pandora.backend.dto.LogDTO;
 import com.pandora.backend.dto.TaskDTO;
 import com.pandora.backend.dto.TaskStatusDTO;
+import com.pandora.backend.enums.Priority;
+import com.pandora.backend.enums.TaskType;
 import com.pandora.backend.service.AttachmentService;
 import com.pandora.backend.service.LogService;
 import com.pandora.backend.service.TaskService;
@@ -18,7 +20,9 @@ import com.pandora.backend.repository.EmployeeRepository;
 import com.pandora.backend.entity.Employee;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/tasks")
@@ -100,6 +104,12 @@ public class TaskController {
 
         try {
             // 验证输入参数
+            if (isBlank(body.getTitle())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Title is required");
+            }
+            if (isBlank(body.getContent())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Content is required");
+            }
             if (body.getSenderId() == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Sender ID is required");
             }
@@ -108,6 +118,30 @@ public class TaskController {
             }
             if (body.getMilestoneId() == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Milestone ID is required");
+            }
+            if (isBlank(body.getTaskPriority()) || !isSupportedPriorityDesc(body.getTaskPriority())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Task priority is required");
+            }
+            if (isBlank(body.getTaskType()) || !isSupportedTaskTypeDesc(body.getTaskType())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Task type is required");
+            }
+            if (body.getStartTime() == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Start time is required");
+            }
+            if (body.getEndTime() == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("End time is required");
+            }
+
+            LocalDateTime now = LocalDateTime.now();
+            if (body.getStartTime().isBefore(now)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Start time must not be earlier than now");
+            }
+            if (body.getEndTime().isBefore(now)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("End time must not be earlier than now");
+            }
+            if (body.getEndTime().isBefore(body.getStartTime())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("End time must be later than or equal to start time");
             }
 
             // 验证用户身份
@@ -154,16 +188,54 @@ public class TaskController {
     // TODO:更改url为/status更合理
     // 更新任务状态
     @PutMapping("{taskId}/status")
-    public ResponseEntity<TaskDTO> updateTaskStatus(
+    public ResponseEntity<?> updateTaskStatus(
             @PathVariable("taskId") Integer taskId,
             @RequestBody TaskStatusDTO dto,
             HttpServletRequest request) {
-        Integer userId = (Integer) request.getAttribute("userId");
+        Object uidObj = request.getAttribute("userId");
+        if (uidObj == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid token");
+        }
+        Integer userId = (Integer) uidObj;
         Byte position = (Byte) request.getAttribute("position");
 
-        // 权限检查: 只有任务负责人、创建者、上级可以更新状态
-        TaskDTO updated = taskService.updateTaskStatus(dto, userId, position);
-        return ResponseEntity.ok(updated);
+        if (dto.getTaskId() == null) {
+            dto.setTaskId(taskId);
+        } else if (!dto.getTaskId().equals(taskId)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Task ID mismatch");
+        }
+        if (dto.getTaskStatus() == null || dto.getTaskStatus().trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Task status is required");
+        }
+
+        try {
+            TaskDTO updated = taskService.updateTaskStatus(dto, userId, position);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private static boolean isSupportedPriorityDesc(String desc) {
+        for (Priority p : Priority.values()) {
+            if (p.getDesc().equals(desc)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isSupportedTaskTypeDesc(String desc) {
+        for (TaskType t : TaskType.values()) {
+            if (t.getDesc().equals(desc)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

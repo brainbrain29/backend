@@ -111,12 +111,16 @@ public class EmployeeController {
             @RequestAttribute("userId") Integer userId,
             @RequestBody ChangePasswordDTO dto) {
 
+        if (dto.getOldPassword() == null || dto.getOldPassword().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "原密码不能为空"));
+        }
+
         if (dto.getNewPassword() == null || dto.getNewPassword().trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "新密码不能为空"));
         }
 
         try {
-            employeeService.changePassword(userId, dto.getNewPassword());
+            employeeService.changePassword(userId, dto.getOldPassword(), dto.getNewPassword());
             return ResponseEntity.ok(Map.of("message", "密码修改成功"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

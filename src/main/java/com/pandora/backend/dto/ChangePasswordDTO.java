@@ -9,6 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ChangePasswordDTO {
+    private String oldPassword;
 
     /**
      * 新密码

@@ -149,15 +149,15 @@ public class EmployeeService {
      * 修改员工密码
      *
      * @param employeeId  员工ID
+     * @param oldPassword 原密码
      * @param newPassword 新密码
      */
-    public void changePassword(Integer employeeId, String newPassword) {
+    public void changePassword(Integer employeeId, String oldPassword, String newPassword) {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("员工不存在"));
 
-        // 验证新密码与当前密码是否相同
-        if (passwordHashService.matches(newPassword, employee.getPassword())) {
-            throw new RuntimeException("新密码不能与当前密码相同");
+        if (!passwordHashService.matches(oldPassword, employee.getPassword())) {
+            throw new RuntimeException("原密码错误");
         }
 
         employee.setPassword(passwordHashService.hashPassword(newPassword));

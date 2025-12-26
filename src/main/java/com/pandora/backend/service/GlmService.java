@@ -370,7 +370,6 @@ public class GlmService {
 
     /**
      * 保存 AI 分析结果到数据库
-     * 每个员工只保留最新的一份分析,旧的会被删除
      */
     private void saveAiAnalysis(
             final Integer userId,
@@ -380,14 +379,6 @@ public class GlmService {
             final int logCount,
             final int taskCount) {
         try {
-            // 删除该员工的所有旧分析记录
-            List<AiAnalysis> oldAnalyses = aiAnalysisRepository
-                    .findByEmployeeEmployeeIdOrderByCreatedTimeDesc(userId);
-            if (!oldAnalyses.isEmpty()) {
-                aiAnalysisRepository.deleteAll(oldAnalyses);
-                log.info("已删除用户 {} 的 {} 条旧分析记录", userId, oldAnalyses.size());
-            }
-
             // 创建新的分析记录
             final AiAnalysis analysis = new AiAnalysis();
 
@@ -406,7 +397,7 @@ public class GlmService {
             parseAndSetThemes(analysis, fullContent);
 
             aiAnalysisRepository.save(analysis);
-            log.info("已为用户 {} 保存最新的 AI 分析结果到数据库", userId);
+            log.info("已为用户 {} 保存 AI 分析结果到数据库", userId);
         } catch (Exception e) {
             log.error("保存 AI 分析结果失败", e);
         }

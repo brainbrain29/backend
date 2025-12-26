@@ -163,7 +163,7 @@
         <dependency>
             <groupId>ai.z.openapi</groupId>
             <artifactId>zai-sdk</artifactId>
-            <version>0.1.0</version>
+            <version>0.3.0</version>
         </dependency>
 
         <!-- Aliyun OSS SDK -->

@@ -3,6 +3,7 @@ package com.pandora.backend.controller;
 import com.pandora.backend.dto.ChatMessageDTO;
 import com.pandora.backend.dto.ChatRequestDTO;
 import com.pandora.backend.dto.ChatResponseDTO;
+import com.pandora.backend.agent.service.WorkReportAgentService;
 import com.pandora.backend.service.GlmService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,6 +28,7 @@ import java.util.List;
 public class GlmController {
 
     private final GlmService glmService;
+    private final WorkReportAgentService workReportAgentService;
 
     /**
      * 非流式聊天接口
@@ -179,11 +181,11 @@ public class GlmController {
      */
     @GetMapping(value = "/analysis/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "AI 工作分析", description = "基于员工近三周的日志和任务数据，实时生成任务完成趋势、工作节奏建议和情绪健康提醒")
-    public SseEmitter getAiAnalysis(HttpServletRequest request) {
+    public ResponseEntity<SseEmitter> getAiAnalysis(HttpServletRequest request) {
         // 从 token 中获取员工 ID
         Object userIdObj = request.getAttribute("userId");
         if (userIdObj == null) {
-            throw new RuntimeException("无法获取用户ID，请确保已登录");
+            return ResponseEntity.status(401).build();
         }
         Integer userId = (Integer) userIdObj;
 
@@ -202,8 +204,8 @@ public class GlmController {
         });
 
         // 调用 Service 生成 AI 分析
-        glmService.generateAiAnalysis(userId, emitter);
+        workReportAgentService.generateWorkReport(userId, emitter);
 
-        return emitter;
+        return ResponseEntity.ok(emitter);
     }
 }

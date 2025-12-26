@@ -14,6 +14,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
+import java.time.Instant;
+import java.util.Date;
 import java.util.UUID;
 
 @Slf4j
@@ -87,6 +90,20 @@ public class OssService {
             ossClient.deleteObject(bucketName, storedFilename);
         } catch (Exception e) {
             log.error("Failed to delete file from OSS: {}", storedFilename, e);
+        }
+    }
+
+    /**
+     * 生成短暂的预签名 URL
+     */
+    public String generatePresignedUrl(final String storedFilename, final int expireSeconds) {
+        try {
+            final Instant expiresAt = Instant.now().plusSeconds(expireSeconds);
+            final URL url = ossClient.generatePresignedUrl(bucketName, storedFilename, Date.from(expiresAt));
+            return url.toString();
+        } catch (Exception e) {
+            log.error("Failed to generate presigned url: {}", storedFilename, e);
+            throw new RuntimeException("Failed to generate presigned url", e);
         }
     }
 }

@@ -1,10 +1,12 @@
 package com.pandora.backend.entity;
 
+import com.pandora.backend.persistence.EmojiConverter;
 import com.pandora.backend.enums.Emoji;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+
 import java.time.LocalDateTime;
 
 import java.util.Set;
@@ -41,7 +43,7 @@ public class Log {
     private String content;
 
     @Column(nullable = false)
-    @Enumerated(EnumType.ORDINAL)
+    @Convert(converter = EmojiConverter.class)
     private Emoji emoji;
 
     @Column(length = 50)

@@ -38,6 +38,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -61,6 +62,17 @@ public class WorkReportAgentService {
     private final AttachmentInsightService attachmentInsightService;
     private final AgentMemoryService agentMemoryService;
     private final EntityManager entityManager;
+
+    private record ChatContextData(
+            Employee employee,
+            List<Log> logs,
+            List<Task> tasks,
+            List<Project> projects,
+            List<AgentMemory> memories,
+            List<AttachmentMeta> attachmentMetas,
+            List<AttachmentInsight> attachmentInsights,
+            WorkReportTrendSummary trendSummary) {
+    }
 
     public void generateWorkReport(final Integer userId, final SseEmitter emitter) {
         log.info("[agent-plan] start generateWorkReport userId={}", userId);
@@ -113,6 +125,79 @@ public class WorkReportAgentService {
         log.info("[agent-plan] prompt built userId={} messages={}", userId, messages.size());
         chatStreamAndSave(messages, emitter, userId, periodStart, now, logs.size(), tasks.size());
         log.info("[agent-plan] chatStream started userId={}", userId);
+    }
+
+    public List<ChatMessageDTO> buildChatContextMessages(
+            final Integer userId,
+            final int weeks,
+            final boolean includeAttachments) {
+        final ChatContextData data = loadChatContextData(userId, weeks, includeAttachments);
+        return buildChatContextPrompt(data);
+    }
+
+    private ChatContextData loadChatContextData(
+            final Integer userId,
+            final int weeks,
+            final boolean includeAttachments) {
+        final LocalDateTime now = LocalDateTime.now();
+        final LocalDateTime periodStart = now.minusWeeks(weeks);
+
+        final Employee employee = employeeRepository.findById(userId).orElse(null);
+        final List<Log> logs = safeLoadLogs(userId, periodStart, now);
+        final List<Task> tasks = safeLoadTasks(userId, periodStart);
+        final List<Project> projects = safeLoadProjects(employee, userId);
+        final List<AgentMemory> memories = agentMemoryService.getLatestMemories(userId);
+
+        final List<AttachmentMeta> attachmentMetas;
+        final List<AttachmentInsight> attachmentInsights;
+        if (includeAttachments) {
+            attachmentMetas = loadAttachmentMetas(userId, logs, tasks);
+            attachmentInsights = decideAndAnalyzeAttachments(logs, tasks, attachmentMetas);
+        } else {
+            attachmentMetas = List.of();
+            attachmentInsights = List.of();
+        }
+
+        final WorkReportTrendSummary trendSummary = WorkReportTrendExtractor.extract(periodStart, now, logs, tasks);
+        return new ChatContextData(employee, logs, tasks, projects, memories, attachmentMetas, attachmentInsights,
+                trendSummary);
+    }
+
+    private List<ChatMessageDTO> buildChatContextPrompt(final ChatContextData data) {
+        final List<ChatMessageDTO> messages = new ArrayList<>();
+
+        messages.add(new ChatMessageDTO("system", "Context for user work history. Use it to answer questions."));
+
+        if (data.employee() != null
+                && data.employee().getMbti() != null
+                && !data.employee().getMbti().isEmpty()) {
+            messages.add(new ChatMessageDTO("system", "User MBTI: " + data.employee().getMbti()));
+        }
+
+        messages.add(new ChatMessageDTO("system", "Trend summary:\n"
+                + "WORK: " + data.trendSummary().workTrend() + "\n"
+                + "EMOTION: " + data.trendSummary().emotionTrend() + "\n"
+                + "TASK: " + data.trendSummary().taskTrend()));
+
+        if (!data.memories().isEmpty()) {
+            messages.add(new ChatMessageDTO("system", "Agent memory (latest):\n" + formatMemories(data.memories())));
+        }
+
+        messages.add(new ChatMessageDTO("system", "Logs (last 3 weeks):\n" + formatLogsAsText(data.logs())));
+        messages.add(new ChatMessageDTO("system", "Tasks (last 3 weeks):\n" + formatTasksAsText(data.tasks())));
+        messages.add(new ChatMessageDTO("system", "Projects:\n" + formatProjectsAsText(data.projects())));
+
+        if (!data.attachmentMetas().isEmpty()) {
+            messages.add(new ChatMessageDTO("system",
+                    "Attachment metas:\n" + formatAttachmentMetas(data.attachmentMetas())));
+        }
+
+        if (!data.attachmentInsights().isEmpty()) {
+            messages.add(new ChatMessageDTO("system",
+                    "Attachment insights:\n" + formatAttachmentInsights(data.attachmentInsights())));
+        }
+
+        return messages.stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     private List<Log> safeLoadLogs(final Integer userId, final LocalDateTime start, final LocalDateTime end) {
@@ -265,7 +350,7 @@ public class WorkReportAgentService {
 
         messages.add(new ChatMessageDTO(
                 "system",
-                "你是一个智能工作助手，专门帮助用户分析工作日志和任务数据，提供个性化的工作建议。"));
+                "你是一个智能工作助手，专门帮助用户分析工作日志和任务数据，提供个性化的工作建议。你必须使用中文回复。"));
 
         messages.add(new ChatMessageDTO(
                 "system",
@@ -276,7 +361,10 @@ public class WorkReportAgentService {
                         + "要求：不少于50字，至少包含两句话，必须基于日志中的实际心情数据。\n\n"
                         + "【任务完成趋势】\n"
                         + "要求：不少于50字，至少包含两句话。\n\n"
-                        + "如果某个主题缺少数据支撑，明确说明。如果你收到了附件解析,请先分析附件解析结果,再试着使用它配合任务完成趋势分析"));
+                        + "如果某个主题缺少数据支撑，明确说明。如果你收到了附件解析,请先分析附件解析结果,再试着使用它配合任务完成趋势分析。\n"
+                        + "你必须使用中文回复。\n"
+                        + "不要编造不存在的日志、任务、项目或附件内容；涉及数量/比例时仅使用上下文中明确给出的数据，否则说明无法从数据推断。\n"
+                        + "不要输出或猜测任何敏感信息（如密码、验证码、密钥、完整手机号等）。"));
 
         if (employee != null && employee.getMbti() != null && !employee.getMbti().isEmpty()) {
             messages.add(new ChatMessageDTO("system", "用户的MBTI性格类型是：" + employee.getMbti()));
